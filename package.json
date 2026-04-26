@@ -1,0 +1,19 @@
+{
+  "name": "make-love-adventures",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Make Love Adventures — мини-игры для пиццамонстров. Кайф, драйв, рок-н-ролл!",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10"
+  }
+}
