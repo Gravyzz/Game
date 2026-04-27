@@ -5,6 +5,8 @@ import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
+import { SoundManager } from '@core/SoundManager';
+import { Haptics } from '@core/Haptics';
 import {
   generatePattern,
   HIT_WINDOWS,
@@ -392,6 +394,9 @@ export class RhythmBattleScene extends BaseMinigame {
     n.consumed = true;
     n.sprite.destroy();
 
+    SoundManager.playSfx(quality);
+    Haptics.trigger(quality);
+
     this.hitsByQuality[quality]++;
     this.score += SCORE_DELTA[quality];
     this.scoreText.setText(this.score.toString());
@@ -413,6 +418,8 @@ export class RhythmBattleScene extends BaseMinigame {
 
   private markMiss(n: ActiveNote): void {
     n.consumed = true;
+    SoundManager.playSfx('miss');
+    Haptics.trigger('miss');
     this.tweens.add({
       targets: n.sprite,
       alpha: 0,
@@ -523,6 +530,9 @@ export class RhythmBattleScene extends BaseMinigame {
     }
 
     const won = this.battleMeter >= 0.5;
+
+    SoundManager.playSfx(won ? 'win' : 'lose');
+    Haptics.trigger(won ? 'win' : 'lose');
 
     const { WIDTH, HEIGHT } = GAME;
     const finalPoster = new PosterText(this, WIDTH / 2, HEIGHT / 2, won ? RU.minigame.win : RU.minigame.lose, {

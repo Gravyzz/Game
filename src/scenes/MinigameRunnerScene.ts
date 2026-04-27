@@ -6,6 +6,8 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { EventBus } from '@core/EventBus';
 import { SessionState } from '@core/SessionState';
+import { GameState } from '@core/GameState';
+import { TicketProvider } from '@core/TicketProvider';
 import { getMinigameForLevel, getDifficultyForLevel } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
 
@@ -27,9 +29,21 @@ export class MinigameRunnerScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Если сессия не активна — стартуем (например, при первом входе)
+    // Если сессия уже активна (после ChoiceScene → continue), просто продолжаем
     if (!SessionState.isActive()) {
-      SessionState.startSession(1);
+      // Защита: сюда нельзя попасть без билета. Но если каким-то образом
+      // попали — отправляем на NoTicketScene.
+      if (!GameState.hasTicket()) {
+        this.scene.start('NoTicketScene');
+        return;
+      }
+
+      // Списываем билет (одна сессия — один билет)
+      GameState.consumeTicket();
+
+      // Стартуем сессию с уровня прогресса (для возобновления через 2 недели)
+      const startLevel = GameState.getProgressLevel();
+      SessionState.startSession(startLevel);
     }
 
     this.showHintSplash();
@@ -154,9 +168,15 @@ export class MinigameRunnerScene extends Phaser.Scene {
       // Иначе — переход на ChoiceScene «крутить или дальше»
       this.transitionTo('ChoiceScene', { wonLevel: SessionState.getCurrentLevel() });
     } else {
-      // Проигрыш — конец сессии, без приза
-      // В Phase 4.7 здесь будет fixate progressLevel в Storage
+      // Проигрыш — конец сессии, без приза.
+      // ВАЖНО: фиксируем прогресс на ТЕКУЩЕМ уровне, чтобы при следующем заказе
+      // игрок попал именно на эту минку, а не на следующую.
+      const currentLevel = SessionState.getCurrentLevel();
+      GameState.markProgressOnLose(currentLevel);
+
       SessionState.endSession('lose');
+      TicketProvider.reportSessionEnd('lose', { failedAtLevel: currentLevel });
+
       this.transitionTo('ResultScene', { outcome: 'lose' });
     }
   }

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME } from '@config/game';
+import { TicketProvider } from '@core/TicketProvider';
 import { BootScene } from '@scenes/BootScene';
 import { SplashScene } from '@scenes/SplashScene';
 import { OrientationLockScene } from '@scenes/OrientationLockScene';
@@ -8,6 +9,7 @@ import { MinigameRunnerScene } from '@scenes/MinigameRunnerScene';
 import { ChoiceScene } from '@scenes/ChoiceScene';
 import { WheelScene } from '@scenes/WheelScene';
 import { ResultScene } from '@scenes/ResultScene';
+import { NoTicketScene } from '@scenes/NoTicketScene';
 import { FireStarterScene } from '@minigames/FireStarter';
 import { DontWorkScene } from '@minigames/DontWork';
 import { RhythmBattleScene } from '@minigames/RhythmBattle';
@@ -53,6 +55,7 @@ const config: Phaser.Types.Core.GameConfig = {
     SplashScene,
     OrientationLockScene,
     TutorialScene,
+    NoTicketScene,
     MinigameRunnerScene,
     ChoiceScene,
     WheelScene,
@@ -62,7 +65,6 @@ const config: Phaser.Types.Core.GameConfig = {
     DontWorkScene,
     RhythmBattleScene,
     NightDeliveryScene,
-    // Дальше: NoTicketScene (Phase 4.7)
   ],
 
   // Без отрисовки физических тел — нам не нужны коллизии в этой игре
@@ -74,6 +76,9 @@ const config: Phaser.Types.Core.GameConfig = {
     },
   },
 };
+
+// Запускаем источники билетов до старта игры (URL-параметр и postMessage слушатель)
+TicketProvider.init();
 
 // Запускаем игру
 const game = new Phaser.Game(config);
@@ -108,4 +113,7 @@ document.addEventListener(
 );
 
 // Экспортим для отладки в консоли
-(window as unknown as { __game: Phaser.Game }).__game = game;
+import { GameState } from '@core/GameState';
+(window as unknown as { __game: Phaser.Game; __state: typeof GameState; __ticket: typeof TicketProvider }).__game = game;
+(window as unknown as { __game: Phaser.Game; __state: typeof GameState; __ticket: typeof TicketProvider }).__state = GameState;
+(window as unknown as { __game: Phaser.Game; __state: typeof GameState; __ticket: typeof TicketProvider }).__ticket = TicketProvider;

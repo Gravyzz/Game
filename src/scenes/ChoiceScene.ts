@@ -6,6 +6,9 @@ import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { PosterText } from '@ui/PosterText';
 import { SessionState } from '@core/SessionState';
+import { SoundManager } from '@core/SoundManager';
+import { Haptics } from '@core/Haptics';
+import { attachSoundButton } from '@utils/SceneHelpers';
 
 /**
  * Экран выбора после победы в минке.
@@ -128,6 +131,12 @@ export class ChoiceScene extends Phaser.Scene {
     continueHint.setAlpha(0.7);
     continueHint.setDepth(DEPTH.ui);
 
+    // Звук победы на входе на ChoiceScene
+    SoundManager.playSfx('win');
+    Haptics.trigger('win');
+
+    attachSoundButton(this);
+
     this.cameras.main.fadeIn(300, 255, 230, 0);
   }
 
@@ -198,6 +207,8 @@ export class ChoiceScene extends Phaser.Scene {
   }
 
   private chooseWheel(): void {
+    SoundManager.playSfx('choice');
+    Haptics.trigger('tap');
     this.cameras.main.fadeOut(300, 10, 10, 10);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('WheelScene', { isJackpot: false });
@@ -205,6 +216,8 @@ export class ChoiceScene extends Phaser.Scene {
   }
 
   private chooseContinue(): void {
+    SoundManager.playSfx('choice');
+    Haptics.trigger('tap');
     const next = SessionState.advanceLevel();
     if (next === null) {
       // На всякий случай — но сюда мы не должны попадать (уровень 4 минует ChoiceScene)

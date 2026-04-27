@@ -5,6 +5,8 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { PosterText } from '@ui/PosterText';
+import { SoundManager } from '@core/SoundManager';
+import { Haptics } from '@core/Haptics';
 
 /**
  * Общая логика для всех минок-заглушек.
@@ -102,7 +104,11 @@ export abstract class StubMinigame extends BaseMinigame {
       WIDTH / 2,
       HEIGHT - 220,
       '🎸 ВЫИГРАЛ',
-      () => this.complete({ outcome: 'win', score: 80 + Math.floor(Math.random() * 20) }),
+      () => {
+        SoundManager.playSfx('win');
+        Haptics.trigger('win');
+        this.complete({ outcome: 'win', score: 80 + Math.floor(Math.random() * 20) });
+      },
       {
         width: 380,
         height: 80,
@@ -120,7 +126,11 @@ export abstract class StubMinigame extends BaseMinigame {
       WIDTH / 2,
       HEIGHT - 110,
       '💔 ПРОИГРАЛ',
-      () => this.complete({ outcome: 'lose', score: Math.floor(Math.random() * 30) }),
+      () => {
+        SoundManager.playSfx('lose');
+        Haptics.trigger('lose');
+        this.complete({ outcome: 'lose', score: Math.floor(Math.random() * 30) });
+      },
       {
         width: 380,
         height: 80,

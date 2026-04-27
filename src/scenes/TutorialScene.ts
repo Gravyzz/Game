@@ -5,6 +5,10 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { PosterText } from '@ui/PosterText';
+import { SoundManager } from '@core/SoundManager';
+import { Haptics } from '@core/Haptics';
+import { GameState } from '@core/GameState';
+import { attachSoundButton } from '@utils/SceneHelpers';
 
 /**
  * Tutorial — экран обучения.
@@ -102,6 +106,8 @@ export class TutorialScene extends Phaser.Scene {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
     });
+
+    attachSoundButton(this);
 
     this.cameras.main.fadeIn(300, 250, 247, 240);
   }
@@ -278,9 +284,10 @@ export class TutorialScene extends Phaser.Scene {
   }
 
   private finishTutorial(): void {
-    // В Phase 4.7 здесь будет: GameState.markTutorialSeen()
-    // и проверка, есть ли валидный билет (если нет — NoTicketScene).
-    // Сейчас — стартуем сессию и переходим в раннер минок.
+    SoundManager.playSfx('choice');
+    Haptics.trigger('tap');
+    GameState.markTutorialSeen();
+    // Стартуем сессию с уровня прогресса (для нового игрока progressLevel = 1)
     this.cameras.main.fadeOut(300, 10, 10, 10);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('MinigameRunnerScene');

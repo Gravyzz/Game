@@ -5,6 +5,10 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { PosterText } from '@ui/PosterText';
+import { SoundManager } from '@core/SoundManager';
+import { Haptics } from '@core/Haptics';
+import { GameState } from '@core/GameState';
+import { attachSoundButton } from '@utils/SceneHelpers';
 
 /**
  * Splash — стартовый экран.
@@ -114,6 +118,9 @@ export class SplashScene extends Phaser.Scene {
     });
 
     // Эффект «появления» сцены
+    // ===== Кнопка mute в углу =====
+    attachSoundButton(this);
+
     this.cameras.main.fadeIn(400, 255, 46, 46);
   }
 
@@ -187,11 +194,27 @@ export class SplashScene extends Phaser.Scene {
   }
 
   private startGame(): void {
-    // Переход в Tutorial. В Phase 4.6 появится проверка флага tutorialSeen —
-    // если игрок уже видел туториал, будем сразу прыгать в MinigameRunnerScene.
+    // Первый пользовательский жест — самое время поднять AudioContext и запустить музыку.
+    SoundManager.startMusic();
+    SoundManager.playSfx('sessionStart');
+    Haptics.trigger('tap');
+
+    // Куда идём дальше — зависит от наличия билета и прогресса:
+    //  - нет билета → NoTicketScene
+    //  - билет есть, туториал не виден → Tutorial → Runner
+    //  - билет есть, туториал виден    → Runner (с minigame.progressLevel)
+    let nextScene: string;
+    if (!GameState.hasTicket()) {
+      nextScene = 'NoTicketScene';
+    } else if (!GameState.hasSeenTutorial()) {
+      nextScene = 'TutorialScene';
+    } else {
+      nextScene = 'MinigameRunnerScene';
+    }
+
     this.cameras.main.fadeOut(300, 10, 10, 10);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start('TutorialScene');
+      this.scene.start(nextScene);
     });
   }
 }

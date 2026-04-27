@@ -6,6 +6,9 @@ import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { PosterText } from '@ui/PosterText';
 import { SessionState } from '@core/SessionState';
+import { SoundManager } from '@core/SoundManager';
+import { Haptics } from '@core/Haptics';
+import { attachSoundButton } from '@utils/SceneHelpers';
 
 /**
  * Финальный экран сессии.
@@ -164,6 +167,11 @@ export class ResultScene extends Phaser.Scene {
     backBtn.setDepth(DEPTH.ui);
     this.add.existing(backBtn);
 
+    SoundManager.playSfx('win');
+    Haptics.trigger('win');
+
+    attachSoundButton(this);
+
     this.cameras.main.fadeIn(300, 255, 230, 0);
   }
 
@@ -231,6 +239,11 @@ export class ResultScene extends Phaser.Scene {
     backBtn.setDepth(DEPTH.ui);
     this.add.existing(backBtn);
 
+    SoundManager.playSfx('lose');
+    Haptics.trigger('lose');
+
+    attachSoundButton(this);
+
     this.cameras.main.fadeIn(300, 26, 26, 26);
   }
 
@@ -252,6 +265,8 @@ export class ResultScene extends Phaser.Scene {
       }
       btn.setText(RU.result.copied);
       btn.setEnabled(false);
+      SoundManager.playSfx('perfect');
+      Haptics.trigger('good');
     } catch (err) {
       console.warn('[ResultScene] copy failed', err);
       btn.setText('НЕ УДАЛОСЬ :(');
@@ -259,6 +274,8 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private goHome(): void {
+    SoundManager.playSfx('tap');
+    Haptics.trigger('tap');
     this.cameras.main.fadeOut(300, 10, 10, 10);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('SplashScene');
