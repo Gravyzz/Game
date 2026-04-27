@@ -55,7 +55,7 @@ export const MINIGAME_ORDER: MinigameMeta[] = [
     key: 'RhythmBattle',
     i18nKey: 'RhythmBattle',
     hintI18nKey: 'RhythmBattle',
-    durationMs: 50000,
+    durationMs: 35000,
   },
   {
     key: 'NightDelivery',
