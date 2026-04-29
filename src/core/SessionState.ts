@@ -1,4 +1,5 @@
 import { EventBus } from '@core/EventBus';
+import { generateSessionSequence, type MinigameMeta } from '@core/MinigameRegistry';
 
 /**
  * Состояние ОДНОЙ игровой сессии (от старта первой минки до колеса/проигрыша).
@@ -17,14 +18,16 @@ export interface PrizeWon {
 }
 
 interface SessionData {
-  /** Текущая минка сессии. 1..4 включительно. */
+  /** Текущий слот сессии. 1..4 включительно. */
   currentLevel: SessionLevel;
-  /** Минки, которые игрок прошёл успешно в этой сессии */
+  /** Слоты, которые игрок прошёл успешно в этой сессии */
   completedLevels: SessionLevel[];
   /** Финальный приз (если сессия закрыта успешно) */
   prizeWon: PrizeWon | null;
   /** Активна ли сессия (false до старта и после завершения) */
   active: boolean;
+  /** Случайная последовательность минок, сгенерированная при старте сессии */
+  sequence: MinigameMeta[];
 }
 
 class SessionStateManager {
@@ -33,6 +36,7 @@ class SessionStateManager {
     completedLevels: [],
     prizeWon: null,
     active: false,
+    sequence: [],
   };
 
   /** Стартует новую сессию с указанного уровня (для возобновления прогресса) */
@@ -42,13 +46,19 @@ class SessionStateManager {
       completedLevels: [],
       prizeWon: null,
       active: true,
+      sequence: generateSessionSequence(),
     };
     EventBus.emit('session:start', { startLevel });
   }
 
-  /** Текущий уровень сессии */
+  /** Текущий уровень (слот) сессии */
   getCurrentLevel(): SessionLevel {
     return this.data.currentLevel;
+  }
+
+  /** Минка для конкретного слота (1..4) из сгенерированной последовательности */
+  getMinigameAtLevel(level: SessionLevel): MinigameMeta {
+    return this.data.sequence[level - 1];
   }
 
   /** Фиксируем победу на текущем уровне */
@@ -91,6 +101,7 @@ class SessionStateManager {
       completedLevels: [],
       prizeWon: null,
       active: false,
+      sequence: [],
     };
   }
 }

@@ -8,7 +8,7 @@ import { EventBus } from '@core/EventBus';
 import { SessionState } from '@core/SessionState';
 import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
-import { getMinigameForLevel, getDifficultyForLevel } from '@core/MinigameRegistry';
+import { getDifficultyForLevel } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
 
 /**
@@ -53,7 +53,7 @@ export class MinigameRunnerScene extends Phaser.Scene {
   private showHintSplash(): void {
     const { WIDTH, HEIGHT } = GAME;
     const level = SessionState.getCurrentLevel();
-    const meta = getMinigameForLevel(level);
+    const meta = SessionState.getMinigameAtLevel(level);
 
     // Чёрный фон
     const bg = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black);
@@ -135,7 +135,7 @@ export class MinigameRunnerScene extends Phaser.Scene {
   /** Запуск scene минки + подписка на результат */
   private launchMinigame(): void {
     const level = SessionState.getCurrentLevel();
-    const meta = getMinigameForLevel(level);
+    const meta = SessionState.getMinigameAtLevel(level);
 
     const initData: MinigameInitData = {
       level,
