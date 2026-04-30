@@ -82,18 +82,30 @@ export const RU = {
 
     // Имена минок (используются на табло «уровень N: ...»)
     names: {
-      RhythmBattle: 'ОЛДСКУЛ vs ШОКИНГ БЛЮ',
-      DontWork:     'ДОНТВОРК: РАСКОЛБАС',
-      NightDelivery:'НОЧНАЯ ДОСТАВКА',
-      FireStarter:  'ФАЕРСТАРТЕР: ПЕЧЬ',
+      RhythmBattle:  'ОЛДСКУЛ vs ШОКИНГ БЛЮ',
+      DontWork:      'ДОНТВОРК: РАСКОЛБАС',
+      NightDelivery: 'НОЧНАЯ ДОСТАВКА',
+      FireStarter:   'ФАЕРСТАРТЕР: ПЕЧЬ',
+      Surfer:        'СЁРФЕР НА ВОЛНЕ',
+      PizzaAssembly: 'СБОРКА ПИЦЦЫ',
+      ChopChop:      'НАРЕЗКА',
+      DanceBeat:     'ТАНЦПОЛ В РИТМ',
+      FiveDollar:    'РОВНО НА $5',
+      RecipeMemo:    'ПЕРЕПУТАННЫЕ РЕЦЕПТЫ',
     } as Record<string, string>,
 
     // Короткий tutorial-стикер перед каждой минкой
     hints: {
-      RhythmBattle: 'ТАПАЙ В РИТМ',
-      DontWork:     'РЕЖЬ ДЕДЛАЙНЫ',
-      NightDelivery:'СВАЙП ВВЕРХ/ВНИЗ',
-      FireStarter:  'ТАЙМИНГ — ОДИН ТАП',
+      RhythmBattle:  'ТАПАЙ В РИТМ',
+      DontWork:      'РЕЖЬ ДЕДЛАЙНЫ',
+      NightDelivery: 'СВАЙП ВВЕРХ/ВНИЗ',
+      FireStarter:   'ТАЙМИНГ — ОДИН ТАП',
+      Surfer:        'ТАП — ПРЫЖОК',
+      PizzaAssembly: 'ТЯНИ НА ПИЦЦУ',
+      ChopChop:      'РОВНО СТОЛЬКО РАЗ',
+      DanceBeat:     'ТАПАЙ ЗОНУ',
+      FiveDollar:    'ИТОГ — РОВНО $5',
+      RecipeMemo:    'НАЙДИ ПАРЫ',
     } as Record<string, string>,
   },
 

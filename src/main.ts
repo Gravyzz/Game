@@ -10,10 +10,18 @@ import { ChoiceScene } from '@scenes/ChoiceScene';
 import { WheelScene } from '@scenes/WheelScene';
 import { ResultScene } from '@scenes/ResultScene';
 import { NoTicketScene } from '@scenes/NoTicketScene';
+// === DEV: minigame test menu — REMOVE BEFORE PROD ===
+import { DevMinigameMenuScene } from '@scenes/DevMinigameMenuScene';
 import { FireStarterScene } from '@minigames/FireStarter';
 import { DontWorkScene } from '@minigames/DontWork';
 import { RhythmBattleScene } from '@minigames/RhythmBattle';
 import { NightDeliveryScene } from '@minigames/NightDelivery';
+import { SurferScene } from '@minigames/Surfer';
+import { PizzaAssemblyScene } from '@minigames/PizzaAssembly';
+import { ChopChopScene } from '@minigames/ChopChop';
+import { DanceBeatScene } from '@minigames/DanceBeat';
+import { FiveDollarScene } from '@minigames/FiveDollar';
+import { RecipeMemoScene } from '@minigames/RecipeMemo';
 
 /**
  * Точка входа Make Love Adventures.
@@ -60,11 +68,19 @@ const config: Phaser.Types.Core.GameConfig = {
     ChoiceScene,
     WheelScene,
     ResultScene,
+    // === DEV: minigame test menu — REMOVE BEFORE PROD ===
+    DevMinigameMenuScene,
     // Мини-игры — Phaser scene key совпадает с MINIGAME_ORDER в registry
     FireStarterScene,
     DontWorkScene,
     RhythmBattleScene,
     NightDeliveryScene,
+    SurferScene,
+    PizzaAssemblyScene,
+    ChopChopScene,
+    DanceBeatScene,
+    FiveDollarScene,
+    RecipeMemoScene,
   ],
 
   // Без отрисовки физических тел — нам не нужны коллизии в этой игре

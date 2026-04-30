@@ -39,6 +39,7 @@ export interface MinigameMeta {
  *   hard   — высокая нагрузка, кульминация и финал (слоты 3–4)
  */
 export const MINIGAME_POOL: MinigameMeta[] = [
+  // ===== EASY =====
   {
     key: 'FireStarter',
     i18nKey: 'FireStarter',
@@ -47,12 +48,58 @@ export const MINIGAME_POOL: MinigameMeta[] = [
     class: 'easy',
   },
   {
+    key: 'ChopChop',
+    i18nKey: 'ChopChop',
+    hintI18nKey: 'ChopChop',
+    durationMs: 35_000,
+    class: 'easy',
+  },
+  {
+    key: 'PizzaAssembly',
+    i18nKey: 'PizzaAssembly',
+    hintI18nKey: 'PizzaAssembly',
+    durationMs: 40_000,
+    class: 'easy',
+  },
+  {
+    key: 'RecipeMemo',
+    i18nKey: 'RecipeMemo',
+    hintI18nKey: 'RecipeMemo',
+    durationMs: 35_000,
+    class: 'easy',
+  },
+
+  // ===== MEDIUM =====
+  {
     key: 'DontWork',
     i18nKey: 'DontWork',
     hintI18nKey: 'DontWork',
     durationMs: 45_000,
     class: 'medium',
   },
+  {
+    key: 'FiveDollar',
+    i18nKey: 'FiveDollar',
+    hintI18nKey: 'FiveDollar',
+    durationMs: 40_000,
+    class: 'medium',
+  },
+  {
+    key: 'Surfer',
+    i18nKey: 'Surfer',
+    hintI18nKey: 'Surfer',
+    durationMs: 35_000,
+    class: 'medium',
+  },
+  {
+    key: 'DanceBeat',
+    i18nKey: 'DanceBeat',
+    hintI18nKey: 'DanceBeat',
+    durationMs: 35_000,
+    class: 'medium',
+  },
+
+  // ===== HARD =====
   {
     key: 'RhythmBattle',
     i18nKey: 'RhythmBattle',

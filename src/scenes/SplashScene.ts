@@ -95,6 +95,32 @@ export class SplashScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
+    // === DEV: minigame test menu — REMOVE BEFORE PROD ===
+    if (GAME.DEBUG) {
+      const devBtn = new Button(
+        this,
+        WIDTH / 2,
+        HEIGHT * 0.85,
+        '🧪 ТЕСТ МИНОК',
+        () => {
+          this.cameras.main.fadeOut(200, 10, 10, 10);
+          this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.start('DevMinigameMenuScene');
+          });
+        },
+        {
+          width: 320,
+          height: 64,
+          bgColor: COLORS.greyDark,
+          textColor: '#FAF7F0',
+          fontSize: '20px',
+        }
+      );
+      devBtn.setDepth(DEPTH.ui);
+      devBtn.setAlpha(0.85);
+      this.add.existing(devBtn);
+    }
+
     // ===== Версия (мелким) =====
     const version = this.add.text(WIDTH / 2, HEIGHT - 40, RU.splash.version, {
       ...TEXT_STYLES.label,
