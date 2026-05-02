@@ -60,6 +60,7 @@ export class NightDeliveryScene extends BaseMinigame {
   private timeLeftMs = 0;
   private spawnTimer: Phaser.Time.TimerEvent | null = null;
   private gameTimer: Phaser.Time.TimerEvent | null = null;
+  private finished = false;
 
   // Свайп
   private dragStartX = 0;
@@ -408,8 +409,9 @@ export class NightDeliveryScene extends BaseMinigame {
     const sec = Math.max(0, Math.ceil(this.timeLeftMs / 1000));
     this.timerText.setText(`⏱ ${sec}`);
 
-    // Лёгкое нарастание скорости со временем
-    this.speed += 0.15;
+    // Лёгкое нарастание скорости со временем (~+50px/s за весь раунд).
+    // tick = 200мс, +1.2 за тик ≈ +6 px/s в секунду.
+    this.speed += 1.2;
 
     if (this.timeLeftMs <= 0 && this.lives > 0) {
       this.finish(true);
@@ -417,6 +419,9 @@ export class NightDeliveryScene extends BaseMinigame {
   }
 
   private finish(win: boolean): void {
+    if (this.finished) return;
+    this.finished = true;
+
     if (this.spawnTimer) this.spawnTimer.remove();
     if (this.gameTimer)  this.gameTimer.remove();
 

@@ -64,6 +64,7 @@ export class DanceBeatScene extends BaseMinigame {
   private timeLeftMs = 0;
   private gameTimer: Phaser.Time.TimerEvent | null = null;
   private beatTimer: Phaser.Time.TimerEvent | null = null;
+  private finished = false;
 
   private pending: PendingPrompt | null = null;
 
@@ -203,7 +204,6 @@ export class DanceBeatScene extends BaseMinigame {
       duration: 120,
       yoyo: true,
     });
-    SoundManager.playSfx('tap');
 
     // По истечении окна — погасить
     this.time.delayedCall(this.hitWindow, () => {
@@ -312,6 +312,9 @@ export class DanceBeatScene extends BaseMinigame {
   }
 
   private finish(): void {
+    if (this.finished) return;
+    this.finished = true;
+
     if (this.gameTimer) this.gameTimer.remove();
     if (this.beatTimer) this.beatTimer.remove();
 

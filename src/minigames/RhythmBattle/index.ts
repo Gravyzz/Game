@@ -520,7 +520,10 @@ export class RhythmBattleScene extends BaseMinigame {
     if (this.isFinished) return;
     this.isFinished = true;
 
-    this.input.removeAllListeners();
+    // Снимаем только свой обработчик тапа (был навешен в create через handleTap-стрелку).
+    // removeAllListeners() сносил бы и системные события Phaser — потенциальный
+    // источник багов при возврате в раннер.
+    this.input.off('pointerdown');
 
     for (const n of this.notes) {
       if (!n.consumed) {

@@ -64,6 +64,7 @@ export class DontWorkScene extends BaseMinigame {
   private goodChance = 0.25;
   private spawnInterval = 1100;
   private winThreshold = 0.55;
+  private finished = false;
 
   constructor() {
     super({ key: 'DontWork' });
@@ -377,13 +378,21 @@ export class DontWorkScene extends BaseMinigame {
   }
 
   private finish(): void {
+    if (this.finished) return;
+    this.finished = true;
+
     if (this.spawnTimer) this.spawnTimer.remove();
     if (this.gameTimer)  this.gameTimer.remove();
 
-    const totalAttempts = this.badSliced + this.badMissed + this.goodSliced;
-    const success = totalAttempts > 0
-      ? this.badSliced / Math.max(1, this.badSliced + this.badMissed + this.goodSliced * 2)
-      : 0;
+    // Метрика: точность нарезки.
+    //   1. Базовая доля порезанных «плохих» (хочется, чтобы все долетающие плохие
+    //      были порезаны).
+    //   2. Каждый случайный срез «хорошего» — серьёзный штраф.
+    // Формула: success = badSliced / (badSliced + badMissed) − goodSliced * 0.10
+    // — т.е. за каждый порезанный хороший снимаем 10% точности.
+    const badTotal = this.badSliced + this.badMissed;
+    const accuracy = badTotal > 0 ? this.badSliced / badTotal : 0;
+    const success = Math.max(0, accuracy - this.goodSliced * 0.10);
     const win = success >= this.winThreshold && this.badSliced >= 3;
 
     if (win) {

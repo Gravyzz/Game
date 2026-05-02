@@ -72,6 +72,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   private timeLeftMs = 0;
   private spawnTimer: Phaser.Time.TimerEvent | null = null;
   private gameTimer: Phaser.Time.TimerEvent | null = null;
+  private finished = false;
 
   private pizzaBaseX = 0;
   private pizzaBaseY = 0;
@@ -251,9 +252,11 @@ export class PizzaAssemblyScene extends BaseMinigame {
       key = FORBIDDEN.key;
       emoji = FORBIDDEN.emoji;
     } else if (isDecoy) {
-      // случайный из всех, но НЕ из недостающих
-      const missingKeys = new Set(missing.map(s => s.key));
-      const decoys = ALL_INGREDIENTS.filter(i => !missingKeys.has(i.key));
+      // Приманка: всё из ALL_INGREDIENTS, кроме того, что вообще присутствует в рецепте
+      // (включая уже filled — иначе игрок будет тянуть и попадать в штраф «дубль»,
+      //  что запутывает после нескольких успешных).
+      const recipeKeys = new Set(this.recipe.map(s => s.key));
+      const decoys = ALL_INGREDIENTS.filter(i => !recipeKeys.has(i.key));
       const pick = decoys.length > 0
         ? decoys[Math.floor(Math.random() * decoys.length)]
         : ALL_INGREDIENTS[Math.floor(Math.random() * ALL_INGREDIENTS.length)];
@@ -423,6 +426,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
   }
 
   private finish(win: boolean): void {
+    if (this.finished) return;
+    this.finished = true;
+
     if (this.spawnTimer) this.spawnTimer.remove();
     if (this.gameTimer)  this.gameTimer.remove();
 

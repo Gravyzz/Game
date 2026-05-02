@@ -54,6 +54,7 @@ export class FireStarterScene extends BaseMinigame {
   private accepting = false;
   private timeLeftMs = 0;
   private timerEvent: Phaser.Time.TimerEvent | null = null;
+  private finished = false;
 
   constructor() {
     super({ key: 'FireStarter' });
@@ -304,6 +305,9 @@ export class FireStarterScene extends BaseMinigame {
   }
 
   private finish(): void {
+    if (this.finished) return;
+    this.finished = true;
+
     this.accepting = false;
     if (this.markerTween) this.markerTween.remove();
     if (this.timerEvent) this.timerEvent.remove();

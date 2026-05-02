@@ -58,6 +58,7 @@ export class SurferScene extends BaseMinigame {
 
   private spawnTimer: Phaser.Time.TimerEvent | null = null;
   private gameTimer: Phaser.Time.TimerEvent | null = null;
+  private finished = false;
 
   private dragStartY = 0;
   private dragging = false;
@@ -400,6 +401,9 @@ export class SurferScene extends BaseMinigame {
   }
 
   private finish(win: boolean): void {
+    if (this.finished) return;
+    this.finished = true;
+
     if (this.spawnTimer) this.spawnTimer.remove();
     if (this.gameTimer)  this.gameTimer.remove();
 

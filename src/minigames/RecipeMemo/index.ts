@@ -30,6 +30,8 @@ interface Card {
   icon: string;
   container: Phaser.GameObjects.Container;
   back: Phaser.GameObjects.Rectangle;
+  backLines: Phaser.GameObjects.Graphics;
+  backLabel: Phaser.GameObjects.Text;
   front: Phaser.GameObjects.Rectangle;
   iconText: Phaser.GameObjects.Text;
   flipped: boolean;
@@ -50,6 +52,7 @@ export class RecipeMemoScene extends BaseMinigame {
   private timeLeftMs = 0;
   private totalTimeMs = 0;
   private gameTimer: Phaser.Time.TimerEvent | null = null;
+  private finished = false;
 
   private matchedPairs = 0;
   private totalPairs = 3;
@@ -181,7 +184,7 @@ export class RecipeMemoScene extends BaseMinigame {
     container.setDepth(DEPTH.gameplay);
 
     const card: Card = {
-      pairId, icon, container, back, front, iconText,
+      pairId, icon, container, back, backLines, backLabel, front, iconText,
       flipped: false, matched: false,
     };
 
@@ -255,14 +258,12 @@ export class RecipeMemoScene extends BaseMinigame {
       scaleX: 0,
       duration: 120,
       onComplete: () => {
+        // Видимость всех элементов рубашки и лица — через явные ссылки в карточке.
         card.back.setVisible(!toFront);
+        card.backLines.setVisible(!toFront);
+        card.backLabel.setVisible(!toFront);
         card.front.setVisible(toFront);
         card.iconText.setVisible(toFront);
-        // Стороны рубашки скрываем тоже
-        const backLabel = card.container.list[2] as Phaser.GameObjects.Text;
-        const backLines = card.container.list[1] as Phaser.GameObjects.Graphics;
-        if (backLabel && 'setVisible' in backLabel) backLabel.setVisible(!toFront);
-        if (backLines && 'setVisible' in backLines) backLines.setVisible(!toFront);
         this.tweens.add({
           targets: card.container,
           scaleX: 1,
@@ -309,6 +310,9 @@ export class RecipeMemoScene extends BaseMinigame {
   }
 
   private finish(win: boolean): void {
+    if (this.finished) return;
+    this.finished = true;
+
     if (this.gameTimer) this.gameTimer.remove();
     this.busy = true;
 

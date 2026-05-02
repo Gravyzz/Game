@@ -20,9 +20,11 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        // Phaser в отдельный чанк — кэшируется браузером отдельно от нашего кода
-        manualChunks: {
-          phaser: ['phaser'],
+        // Phaser в отдельный чанк — кэшируется браузером отдельно от нашего кода.
+        // В Vite 8 (Rolldown) manualChunks принимает только функцию, не объект.
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules/phaser')) return 'phaser';
+          return undefined;
         },
       },
     },

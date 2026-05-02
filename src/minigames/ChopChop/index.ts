@@ -67,6 +67,7 @@ export class ChopChopScene extends BaseMinigame {
   private timeLeftMs = 0;
   private gameTimer: Phaser.Time.TimerEvent | null = null;
   private commitTimer: Phaser.Time.TimerEvent | null = null;
+  private finished = false;
 
   private swipeStartX = 0;
   private swipeStartY = 0;
@@ -355,6 +356,9 @@ export class ChopChopScene extends BaseMinigame {
   }
 
   private finish(): void {
+    if (this.finished) return;
+    this.finished = true;
+
     if (this.gameTimer)   this.gameTimer.remove();
     if (this.commitTimer) this.commitTimer.remove();
     this.swiping = false;
@@ -391,8 +395,15 @@ export class ChopChopScene extends BaseMinigame {
     if (this.commitTimer) this.commitTimer.remove();
   }
 
-  /** Геометрия: пересекает ли отрезок (a,b) окружность (cx,cy,r) */
+  /** Геометрия: пересекает ли отрезок (a,b) окружность (cx,cy,r). Покрывает и случай,
+   *  когда один или оба конца отрезка находятся внутри окружности. */
   private lineIntersectsCircle(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, r: number): boolean {
+    // Один из концов внутри окружности — тогда отрезок гарантированно её затрагивает
+    const dax = ax - cx, day = ay - cy;
+    const dbx = bx - cx, dby = by - cy;
+    if (dax * dax + day * day <= r * r) return true;
+    if (dbx * dbx + dby * dby <= r * r) return true;
+
     const dx = bx - ax;
     const dy = by - ay;
     const fx = ax - cx;
