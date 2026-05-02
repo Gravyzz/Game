@@ -1,0 +1,16 @@
+<svg width="654" height="128" viewBox="0 0 654 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g fill="#FFC928">
+    <path d="M64 8c30.928 0 56 25.072 56 56 0 13.757-4.961 26.356-13.191 36.103L69 78.275V9.083A56.88 56.88 0 0 0 64 8Z"/>
+    <path d="M59 9.083v69.192l-37.809 21.828C12.961 90.356 8 77.757 8 64 8 34.763 30.417 10.762 59 8Z"/>
+    <path d="m26.205 107.011 35.303-20.382 35.955 20.758C88.141 115.259 76.101 120 64 120c-14.462 0-27.644-5.487-37.795-12.989Z"/>
+  </g>
+  <text
+    x="146"
+    y="83"
+    fill="#FAF7F0"
+    font-family="Unbounded, Arial Narrow, Arial, sans-serif"
+    font-size="50"
+    font-weight="900"
+    letter-spacing="-1"
+  >MAKE LOVE PIZZA</text>
+</svg>

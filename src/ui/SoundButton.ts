@@ -1,36 +1,46 @@
 import Phaser from 'phaser';
-import { COLORS } from '@config/colors';
+import { Haptics } from '@core/Haptics';
 import { SoundManager } from '@core/SoundManager';
 
 /**
  * Маленькая кнопка-иконка для включения/выключения звука.
  * Автоматически добавляется на все ключевые сцены через SceneHelpers.attachSoundButton().
  *
- * Дизайн: круг 44x44 (минимальный тач-таргет по Apple HIG) в правом верхнем углу.
- * Иконка — эмодзи 🔊 / 🔇, чтобы не тащить SVG.
+ * Дизайн: пиксельная иконка 52x52 с тач-зоной 64x64.
  */
 export class SoundButton extends Phaser.GameObjects.Container {
-  private bg: Phaser.GameObjects.Arc;
-  private icon: Phaser.GameObjects.Text;
+  private icon: Phaser.GameObjects.Image;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    this.bg = scene.add.circle(0, 0, 26, COLORS.black);
-    this.bg.setStrokeStyle(2, COLORS.cream);
-
-    this.icon = scene.add.text(0, 0, this.getIconChar(), {
-      fontSize: '22px',
-    });
+    this.icon = scene.add.image(0, 0, this.getIconKey());
+    scene.textures.get('sound-on-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
+    scene.textures.get('sound-off-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.icon.setOrigin(0.5);
+    this.icon.setDisplaySize(52, 52);
+    this.icon.setTexture(this.getIconKey());
 
-    this.add([this.bg, this.icon]);
+    this.add(this.icon);
 
-    this.setSize(52, 52);
-    this.setInteractive({ useHandCursor: true });
+    this.setSize(64, 64);
+    this.setInteractive(
+      new Phaser.Geom.Rectangle(-32, -32, 64, 64),
+      Phaser.Geom.Rectangle.Contains
+    );
+    this.input!.cursor = 'pointer';
     this.on('pointerdown', () => {
+      Haptics.trigger('tap');
+      SoundManager.playSfx('tap');
       SoundManager.toggleMute();
       this.refreshIcon();
+      this.scene.tweens.add({
+        targets: this,
+        scale: 0.9,
+        duration: 70,
+        yoyo: true,
+        ease: 'Sine.easeOut',
+      });
       // Если включили — стартуем фоновую музыку
       if (!SoundManager.isMuted()) {
         SoundManager.startMusic();
@@ -39,14 +49,15 @@ export class SoundButton extends Phaser.GameObjects.Container {
       }
     });
 
-    this.setAlpha(0.85);
+    this.on('pointerover', () => this.setScale(1.08));
+    this.on('pointerout', () => this.setScale(1));
   }
 
-  private getIconChar(): string {
-    return SoundManager.isMuted() ? '🔇' : '🔊';
+  private getIconKey(): string {
+    return SoundManager.isMuted() ? 'sound-off-pixel' : 'sound-on-pixel';
   }
 
   private refreshIcon(): void {
-    this.icon.setText(this.getIconChar());
+    this.icon.setTexture(this.getIconKey());
   }
 }

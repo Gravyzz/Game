@@ -1,10 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { Button } from '@ui/Button';
-import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { GameState } from '@core/GameState';
@@ -21,6 +18,8 @@ import { attachSoundButton } from '@utils/SceneHelpers';
  * Пока кнопка ведёт в TutorialScene → MinigameRunner.
  */
 export class SplashScene extends Phaser.Scene {
+  private readonly pixelFont = '"Press Start 2P", monospace';
+
   constructor() {
     super({ key: 'SplashScene' });
   }
@@ -28,107 +27,92 @@ export class SplashScene extends Phaser.Scene {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
-    // ===== Фон: красный с лёгким шумом =====
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.red);
-    this.drawNoise();
+    this.setPixelTexture('heart-pixel');
+    this.setPixelTexture('pizza-pixel');
+    this.setPixelTexture('gamepad-pixel');
+    this.setPixelTexture('star-pixel');
+    this.setPixelTexture('make-love-pizza-logo-pixel');
 
-    // ===== Декоративные плашки фоном (пиццамонстры-стиль) =====
-    this.drawDecoStickers();
-
-    // ===== Главное лого: «MAKE LOVE» — большое =====
-    const logoBrand = this.add.text(WIDTH / 2, HEIGHT * 0.32, RU.splash.brand, {
-      ...TEXT_STYLES.hero,
-      fontSize: '88px',
-      color: '#FAF7F0',
-    });
-    logoBrand.setOrigin(0.5);
-    logoBrand.setDepth(DEPTH.ui);
-
-    // Лёгкая тень-обводка для постерности
-    logoBrand.setStroke('#0A0A0A', 6);
-
-    // ===== Подзаголовок: «ADVENTURES» — на жёлтой плашке =====
-    const adventures = new PosterText(this, WIDTH / 2, HEIGHT * 0.42, RU.splash.tagline, {
-      bgColor: COLORS.yellow,
-      textColor: '#0A0A0A',
-      fontSize: '48px',
-      rotation: 0.025,
-      paddingX: 28,
-      paddingY: 10,
-    });
-    adventures.setDepth(DEPTH.ui);
-    this.add.existing(adventures);
-
-    // ===== Tagline манифеста =====
-    const tagline = this.add.text(WIDTH / 2, HEIGHT * 0.52, RU.splash.sub, {
-      ...TEXT_STYLES.subtitle,
-      fontSize: '22px',
-      color: '#FAF7F0',
-    });
-    tagline.setOrigin(0.5);
-    tagline.setDepth(DEPTH.ui);
-
-    // ===== Главная кнопка =====
-    const startBtn = new Button(
-      this,
-      WIDTH / 2,
-      HEIGHT * 0.72,
-      RU.splash.cta,
-      () => this.startGame(),
-      {
-        width: 420,
-        height: 100,
-        bgColor: COLORS.yellow,
-        fontSize: '32px',
-      }
-    );
-    startBtn.setDepth(DEPTH.ui);
-    this.add.existing(startBtn);
-
-    // Лёгкая пульсация кнопки — чтобы притянуть взгляд
+    // ===== Фон: #5A54F9 с плавным переливом оттенков =====
+    const background = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x5a54f9);
+    background.setDepth(DEPTH.background);
+    const backgroundGlowA = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x766dff);
+    backgroundGlowA.setAlpha(0);
+    backgroundGlowA.setDepth(DEPTH.background);
+    const backgroundGlowB = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x423dd4);
+    backgroundGlowB.setAlpha(0);
+    backgroundGlowB.setDepth(DEPTH.background);
     this.tweens.add({
-      targets: startBtn,
-      scale: 1.04,
-      duration: 800,
+      targets: backgroundGlowA,
+      alpha: 0.55,
+      duration: 2200,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
-
-    // === DEV: minigame test menu — REMOVE BEFORE PROD ===
-    if (GAME.DEBUG) {
-      const devBtn = new Button(
-        this,
-        WIDTH / 2,
-        HEIGHT * 0.85,
-        '🧪 ТЕСТ МИНОК',
-        () => {
-          this.cameras.main.fadeOut(200, 10, 10, 10);
-          this.cameras.main.once('camerafadeoutcomplete', () => {
-            this.scene.start('DevMinigameMenuScene');
-          });
-        },
-        {
-          width: 320,
-          height: 64,
-          bgColor: COLORS.greyDark,
-          textColor: '#FAF7F0',
-          fontSize: '20px',
-        }
-      );
-      devBtn.setDepth(DEPTH.ui);
-      devBtn.setAlpha(0.85);
-      this.add.existing(devBtn);
-    }
-
-    // ===== Версия (мелким) =====
-    const version = this.add.text(WIDTH / 2, HEIGHT - 40, RU.splash.version, {
-      ...TEXT_STYLES.label,
-      color: '#FAF7F0',
+    this.tweens.add({
+      targets: backgroundGlowB,
+      alpha: 0.38,
+      duration: 3200,
+      delay: 700,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
     });
-    version.setOrigin(0.5);
-    version.setAlpha(0.5);
-    version.setDepth(DEPTH.ui);
+    this.createFallingStars();
+
+    const frame = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH - 8, HEIGHT - 8);
+    frame.setStrokeStyle(8, COLORS.black);
+    frame.setDepth(DEPTH.background);
+
+    const screenContent = this.add.container(WIDTH / 2, HEIGHT / 2);
+    screenContent.setSize(WIDTH, HEIGHT);
+    screenContent.setDepth(DEPTH.ui);
+
+    // ===== Сердца: количество жизней/доступа к сессии =====
+    this.drawHearts();
+
+    // ===== Главное лого Make Love Pizza =====
+    const logoBrand = this.add.image(0, 305 - HEIGHT / 2, 'make-love-pizza-logo-pixel');
+    logoBrand.setOrigin(0.5);
+    logoBrand.setDisplaySize(500, 333);
+    logoBrand.setDepth(DEPTH.ui);
+    screenContent.add(logoBrand);
+
+    const adventures = this.add.text(0, 485 - HEIGHT / 2, RU.splash.tagline, {
+      fontFamily: this.pixelFont,
+      fontSize: '42px',
+      color: '#0A0A0A',
+      align: 'center',
+    });
+    adventures.setOrigin(0.5);
+    adventures.setDepth(DEPTH.ui);
+    screenContent.add(adventures);
+
+    // ===== Главная кнопка =====
+    const startBtn = this.createPixelButton(
+      0,
+      735 - HEIGHT / 2,
+      510,
+      120,
+      'PLAY',
+      0x69bd45,
+      'pizza-pixel',
+      () => this.startPlayScenario()
+    );
+    screenContent.add(startBtn);
+
+    const miniGamesBtn = this.createPixelButton(
+      0,
+      895 - HEIGHT / 2,
+      510,
+      120,
+      'MINI\nGAMES',
+      COLORS.red,
+      'gamepad-pixel',
+      () => this.openMiniGames()
+    );
+    screenContent.add(miniGamesBtn);
 
     // ===== Слушаем поворот: ушли в landscape — улетаем в lock =====
     const onResize = () => {
@@ -143,79 +127,119 @@ export class SplashScene extends Phaser.Scene {
       window.removeEventListener('orientationchange', onResize);
     });
 
-    // Эффект «появления» сцены
     // ===== Кнопка mute в углу =====
     attachSoundButton(this);
 
     this.cameras.main.fadeIn(400, 255, 46, 46);
   }
 
-  /** Добавляем зернистую текстуру поверх фона — постерный эффект */
-  private drawNoise(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.06);
-    for (let i = 0; i < 800; i++) {
-      const x = Math.random() * WIDTH;
-      const y = Math.random() * HEIGHT;
-      g.fillCircle(x, y, Math.random() * 1.5);
+  private drawHearts(): void {
+    const lives = this.getMainScreenLives();
+    for (let i = 0; i < lives; i++) {
+      const heart = this.add.image(78 + i * 82, 78, 'heart-pixel');
+      heart.setOrigin(0.5);
+      heart.setDisplaySize(62, 62);
+      heart.setDepth(DEPTH.ui);
     }
-    g.setDepth(DEPTH.background);
   }
 
-  /** Декоративные плашки в углах — как «стикеры» с сайта */
-  private drawDecoStickers(): void {
-    const { WIDTH } = GAME;
+  private createFallingStars(): void {
+    const { WIDTH, HEIGHT } = GAME;
+    for (let i = 0; i < 18; i++) {
+      const star = this.add.image(
+        Phaser.Math.Between(35, WIDTH - 35),
+        Phaser.Math.Between(-HEIGHT, HEIGHT),
+        'star-pixel'
+      );
+      const size = Phaser.Math.Between(24, 58);
+      star.setDisplaySize(size, size);
+      star.setAlpha(Phaser.Math.FloatBetween(0.55, 0.95));
+      star.setRotation(Phaser.Math.FloatBetween(-0.25, 0.25));
+      star.setDepth(DEPTH.midground);
 
-    // Стикер «Я_не_робот» в верхнем правом углу
-    const sticker1 = new PosterText(this, WIDTH - 120, 100, 'Я_НЕ_РОБОТ', {
-      bgColor: COLORS.black,
-      textColor: '#FFE600',
-      fontSize: '16px',
-      rotation: 0.12,
-      paddingX: 12,
-      paddingY: 6,
-    });
-    sticker1.setDepth(DEPTH.midground);
-    sticker1.setAlpha(0.85);
-    this.add.existing(sticker1);
-
-    // Стикер «РОК-Н-РОЛЛ» в левом нижнем
-    const sticker2 = new PosterText(this, 130, 1000, 'РОК-Н-РОЛЛ!', {
-      bgColor: COLORS.cream,
-      textColor: '#FF2E2E',
-      fontSize: '18px',
-      rotation: -0.08,
-      paddingX: 14,
-      paddingY: 6,
-    });
-    sticker2.setDepth(DEPTH.midground);
-    sticker2.setAlpha(0.9);
-    this.add.existing(sticker2);
-
-    // Стикер «КАЙФ» справа в середине
-    const sticker3 = new PosterText(this, WIDTH - 80, 880, 'КАЙФ', {
-      bgColor: COLORS.purple,
-      textColor: '#FAF7F0',
-      fontSize: '20px',
-      rotation: 0.18,
-      paddingX: 14,
-      paddingY: 6,
-    });
-    sticker3.setDepth(DEPTH.midground);
-    sticker3.setAlpha(0.85);
-    this.add.existing(sticker3);
-
-    // Лёгкое колыхание стикеров
-    [sticker1, sticker2, sticker3].forEach((s, i) => {
       this.tweens.add({
-        targets: s,
-        y: s.y + 8,
-        duration: 1500 + i * 400,
-        yoyo: true,
+        targets: star,
+        y: HEIGHT + 80,
+        x: star.x + Phaser.Math.Between(-80, 80),
+        rotation: star.rotation + Phaser.Math.FloatBetween(-0.45, 0.45),
+        duration: Phaser.Math.Between(5200, 9800),
+        delay: Phaser.Math.Between(0, 3600),
         repeat: -1,
-        ease: 'Sine.easeInOut',
+        onRepeat: () => {
+          star.setPosition(Phaser.Math.Between(35, WIDTH - 35), Phaser.Math.Between(-180, -40));
+          star.setDisplaySize(size, size);
+          star.setAlpha(Phaser.Math.FloatBetween(0.55, 0.95));
+        },
       });
+    }
+  }
+
+  private getMainScreenLives(): number {
+    if (GAME.DEBUG) return 3;
+    return GameState.hasTicket() ? 3 : 0;
+  }
+
+  private createPixelButton(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    label: string,
+    bgColor: number,
+    iconKey: string,
+    onClick: () => void
+  ): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    button.setSize(width, height);
+    button.setDepth(DEPTH.ui);
+
+    const bg = this.add.rectangle(0, 0, width, height, bgColor);
+    bg.setStrokeStyle(6, COLORS.black);
+
+    const icon = this.add.image(-width / 2 + 85, 0, iconKey);
+    icon.setDisplaySize(86, 86);
+
+    const text = this.add.text(70, 4, label, {
+      fontFamily: this.pixelFont,
+      fontSize: label.includes('\n') ? '37px' : '42px',
+      color: '#0A0A0A',
+      align: 'center',
+      lineSpacing: 10,
+    });
+    text.setOrigin(0.5);
+
+    button.add([bg, icon, text]);
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
+      Phaser.Geom.Rectangle.Contains
+    );
+    button.input!.cursor = 'pointer';
+    button.on('pointerdown', () => {
+      Haptics.trigger('tap');
+      SoundManager.playSfx('tap');
+      onClick();
+    });
+    button.on('pointerover', () => button.setScale(1.03));
+    button.on('pointerout', () => button.setScale(1));
+
+    return button;
+  }
+
+  private setPixelTexture(key: string): void {
+    this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+  }
+
+  private startPlayScenario(): void {
+    if (!GameState.hasTicket()) {
+      GameState.grantTicket();
+    }
+    this.startGame();
+  }
+
+  private openMiniGames(): void {
+    this.cameras.main.fadeOut(200, 10, 10, 10);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('DevMinigameMenuScene');
     });
   }
 

@@ -11,7 +11,7 @@
 
     <title>Make Love Adventures</title>
 
-    <!-- Шрифты: Unbounded — заголовки/постеры, Onest — UI -->
+    <!-- Шрифты: локальный Press Start 2P — пиксельный UI, Unbounded/Onest — старые экраны -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,6 +20,14 @@
     />
 
     <style>
+      @font-face {
+        font-family: 'Press Start 2P';
+        src: url('/fonts/PressStart2P-Regular.ttf') format('truetype');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+
       /* Сброс — чистый канвас, без скролла, без зума */
       *,
       *::before,

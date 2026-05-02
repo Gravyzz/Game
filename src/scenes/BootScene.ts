@@ -12,7 +12,14 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // В будущем тут грузим спрайты, атласы. Пока пусто — всё генерируется в коде.
+    this.load.svg('make-love-pizza-logo', 'assets/logo-make-love-pizza.svg');
+    this.load.image('make-love-pizza-logo-pixel', 'assets/logo-make-love-pizza-pixel.png');
+    this.load.image('heart-pixel', 'assets/heart-pixel.png');
+    this.load.image('pizza-pixel', 'assets/pizza-pixel.png');
+    this.load.image('gamepad-pixel', 'assets/gamepad-pixel.png');
+    this.load.image('star-pixel', 'assets/star-pixel.png');
+    this.load.image('sound-on-pixel', 'assets/sound-on-pixel.png');
+    this.load.image('sound-off-pixel', 'assets/sound-off-pixel.png');
   }
 
   async create(): Promise<void> {
@@ -24,6 +31,7 @@ export class BootScene extends Phaser.Scene {
           document.fonts.load('900 italic 64px Unbounded'),
           document.fonts.load('800 italic 24px Unbounded'),
           document.fonts.load('600 18px Onest'),
+          document.fonts.load('400 32px "Press Start 2P"'),
         ]),
         new Promise((resolve) => setTimeout(resolve, 3000)),
       ]);
