@@ -22,6 +22,7 @@ import { ChopChopScene } from '@minigames/ChopChop';
 import { DanceBeatScene } from '@minigames/DanceBeat';
 import { FiveDollarScene } from '@minigames/FiveDollar';
 import { RecipeMemoScene } from '@minigames/RecipeMemo';
+import { JeffreySurferScene } from '@minigames/JeffreySurfer';
 
 /**
  * Точка входа Make Love Adventures.
@@ -82,6 +83,7 @@ const config: Phaser.Types.Core.GameConfig = {
     DanceBeatScene,
     FiveDollarScene,
     RecipeMemoScene,
+    JeffreySurferScene,
   ],
 
   // Без отрисовки физических тел — нам не нужны коллизии в этой игре

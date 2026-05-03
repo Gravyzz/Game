@@ -101,6 +101,25 @@ export class DevMinigameMenuScene extends Phaser.Scene {
       classLabel.setDepth(DEPTH.ui);
     });
 
+    // Серфёр Джеффри — отдельная standalone-игра
+    const jeffreyBtn = new Button(
+      this,
+      WIDTH / 2,
+      startY + Math.ceil(MINIGAME_POOL.length / 2) * stepY + 24,
+      '🏄 СЕРФЁР ДЖЕФФРИ',
+      () => this.scene.start('JeffreySurfer'),
+      {
+        width: btnW * 2 + colGap,
+        height: btnH,
+        bgColor: 0xF4A261,
+        textColor: '#1A1209',
+        fontSize: '18px',
+        fontFamily: this.pixelFont,
+      }
+    );
+    jeffreyBtn.setDepth(DEPTH.ui);
+    this.add.existing(jeffreyBtn);
+
     // Назад на сплеш
     const backBtn = new Button(
       this,
