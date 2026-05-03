@@ -1,11 +1,9 @@
 // === DEV: minigame test menu — REMOVE BEFORE PROD ===
 import Phaser from 'phaser';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
-import { PosterText } from '@ui/PosterText';
 import { EventBus } from '@core/EventBus';
 import { MINIGAME_POOL, getDifficultyForLevel } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
@@ -21,6 +19,7 @@ import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
  */
 export class DevMinigameMenuScene extends Phaser.Scene {
   private completeHandler: ((result: MinigameResult & { sceneKey: string }) => void) | null = null;
+  private readonly pixelFont = '"Press Start 2P", monospace';
 
   constructor() {
     super({ key: 'DevMinigameMenuScene' });
@@ -29,23 +28,20 @@ export class DevMinigameMenuScene extends Phaser.Scene {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.greyDark);
-
-    const title = new PosterText(this, WIDTH / 2, 120, '🧪 ТЕСТ МИНОК', {
-      bgColor: COLORS.yellow,
-      textColor: '#0A0A0A',
-      fontSize: '36px',
-      rotation: -0.02,
-      paddingX: 24,
-      paddingY: 12,
+    const title = this.add.text(WIDTH / 2, 115, 'МИНИ ИГРЫ', {
+      fontFamily: this.pixelFont,
+      fontSize: '42px',
+      color: '#0A0A0A',
+      align: 'center',
     });
+    title.setOrigin(0.5);
     title.setDepth(DEPTH.ui);
-    this.add.existing(title);
 
-    const sub = this.add.text(WIDTH / 2, 180, 'без билета, без сессии — чисто прогон', {
-      ...TEXT_STYLES.label,
+    const sub = this.add.text(WIDTH / 2, 178, 'выбери игру', {
+      fontFamily: this.pixelFont,
       fontSize: '14px',
       color: '#FAF7F0',
+      align: 'center',
     });
     sub.setOrigin(0.5);
     sub.setAlpha(0.6);
@@ -88,15 +84,17 @@ export class DevMinigameMenuScene extends Phaser.Scene {
           bgColor: classColors[meta.class] ?? COLORS.red,
           textColor: classTextColors[meta.class] ?? '#FAF7F0',
           fontSize: '15px',
+          fontFamily: this.pixelFont,
         }
       );
       btn.setDepth(DEPTH.ui);
       this.add.existing(btn);
 
       const classLabel = this.add.text(x, y + 38, `[${meta.class}] ${meta.key}`, {
-        ...TEXT_STYLES.label,
+        fontFamily: this.pixelFont,
         fontSize: '11px',
         color: '#FAF7F0',
+        align: 'center',
       });
       classLabel.setOrigin(0.5);
       classLabel.setAlpha(0.55);
@@ -116,12 +114,13 @@ export class DevMinigameMenuScene extends Phaser.Scene {
         bgColor: COLORS.cream,
         textColor: '#0A0A0A',
         fontSize: '20px',
+        fontFamily: this.pixelFont,
       }
     );
     backBtn.setDepth(DEPTH.ui);
     this.add.existing(backBtn);
 
-    this.cameras.main.fadeIn(250, 10, 10, 10);
+    this.cameras.main.fadeIn(250, 90, 84, 249);
   }
 
   private launchMinigame(sceneKey: string, durationMs: number): void {

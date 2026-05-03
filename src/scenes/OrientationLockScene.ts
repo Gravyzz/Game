@@ -1,8 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
-import { GAME } from '@config/game';
-import { RU } from '@i18n/ru';
+import { GAME, DEPTH } from '@config/game';
 
 /**
  * Заглушка «поверни телефон, братишка».
@@ -10,47 +7,54 @@ import { RU } from '@i18n/ru';
  */
 export class OrientationLockScene extends Phaser.Scene {
   private resizeListener: () => void = () => {};
+  private readonly pixelFont = '"Press Start 2P", monospace';
 
   constructor() {
     super({ key: 'OrientationLockScene' });
   }
 
   create(): void {
-    const { WIDTH, HEIGHT } = GAME;
+    const { WIDTH } = GAME;
 
-    // Чёрный фон
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black);
+    this.textures.get('orientation-phone-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    // Пиктограмма — простой rotated phone (ASCII-art из прямоугольников,
-    // потом заменим на красивый SVG/спрайт)
-    const phone = this.add.container(WIDTH / 2, HEIGHT / 2 - 120);
-    const body = this.add.rectangle(0, 0, 180, 320, COLORS.cream).setStrokeStyle(6, COLORS.red);
-    const screen = this.add.rectangle(0, 0, 140, 260, COLORS.greyDark);
-    phone.add([body, screen]);
+    const phone = this.add.image(WIDTH / 2, 360, 'orientation-phone-pixel');
+    phone.setOrigin(0.5);
+    phone.setDisplaySize(230, 230);
+    phone.setRotation(-Math.PI / 2);
+    phone.setDepth(DEPTH.ui);
 
     // Анимируем поворот — будто телефон крутится
     this.tweens.add({
       targets: phone,
-      rotation: { from: 0, to: -Math.PI / 2 },
-      duration: 1200,
+      rotation: { from: -Math.PI / 2, to: 0 },
+      duration: 1900,
+      hold: 450,
+      repeatDelay: 450,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut',
+      ease: 'Cubic.easeInOut',
     });
 
-    // Заголовок
-    const title = this.add.text(WIDTH / 2, HEIGHT / 2 + 140, RU.orientationLock.title, {
-      ...TEXT_STYLES.title,
-      color: '#FF2E2E',
+    const title = this.add.text(WIDTH / 2, 720, 'Поверни\nтелефон!', {
+      fontFamily: this.pixelFont,
+      fontSize: '52px',
+      color: '#0A0A0A',
+      align: 'center',
+      lineSpacing: 18,
     });
     title.setOrigin(0.5);
+    title.setDepth(DEPTH.ui);
 
-    // Подпись
-    const body2 = this.add.text(WIDTH / 2, HEIGHT / 2 + 220, RU.orientationLock.body, {
-      ...TEXT_STYLES.body,
-      wordWrap: { width: WIDTH - 100 },
+    const body = this.add.text(WIDTH / 2, 900, 'эта игра только\nдля вертикальных\nустройств', {
+      fontFamily: this.pixelFont,
+      fontSize: '24px',
+      color: '#FAF7F0',
+      align: 'center',
+      lineSpacing: 10,
     });
-    body2.setOrigin(0.5);
+    body.setOrigin(0.5);
+    body.setDepth(DEPTH.ui);
 
     // Слушаем поворот
     this.resizeListener = () => {
@@ -68,4 +72,5 @@ export class OrientationLockScene extends Phaser.Scene {
       window.removeEventListener('orientationchange', this.resizeListener);
     });
   }
+
 }

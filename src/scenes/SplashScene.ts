@@ -30,40 +30,7 @@ export class SplashScene extends Phaser.Scene {
     this.setPixelTexture('heart-pixel');
     this.setPixelTexture('pizza-pixel');
     this.setPixelTexture('gamepad-pixel');
-    this.setPixelTexture('star-pixel');
     this.setPixelTexture('make-love-pizza-logo-pixel');
-
-    // ===== Фон: #5A54F9 с плавным переливом оттенков =====
-    const background = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x5a54f9);
-    background.setDepth(DEPTH.background);
-    const backgroundGlowA = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x766dff);
-    backgroundGlowA.setAlpha(0);
-    backgroundGlowA.setDepth(DEPTH.background);
-    const backgroundGlowB = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x423dd4);
-    backgroundGlowB.setAlpha(0);
-    backgroundGlowB.setDepth(DEPTH.background);
-    this.tweens.add({
-      targets: backgroundGlowA,
-      alpha: 0.55,
-      duration: 2200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
-    this.tweens.add({
-      targets: backgroundGlowB,
-      alpha: 0.38,
-      duration: 3200,
-      delay: 700,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
-    this.createFallingStars();
-
-    const frame = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH - 8, HEIGHT - 8);
-    frame.setStrokeStyle(8, COLORS.black);
-    frame.setDepth(DEPTH.background);
 
     const screenContent = this.add.container(WIDTH / 2, HEIGHT / 2);
     screenContent.setSize(WIDTH, HEIGHT);
@@ -130,7 +97,7 @@ export class SplashScene extends Phaser.Scene {
     // ===== Кнопка mute в углу =====
     attachSoundButton(this);
 
-    this.cameras.main.fadeIn(400, 255, 46, 46);
+    this.cameras.main.fadeIn(400, 90, 84, 249);
   }
 
   private drawHearts(): void {
@@ -140,37 +107,6 @@ export class SplashScene extends Phaser.Scene {
       heart.setOrigin(0.5);
       heart.setDisplaySize(62, 62);
       heart.setDepth(DEPTH.ui);
-    }
-  }
-
-  private createFallingStars(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    for (let i = 0; i < 18; i++) {
-      const star = this.add.image(
-        Phaser.Math.Between(35, WIDTH - 35),
-        Phaser.Math.Between(-HEIGHT, HEIGHT),
-        'star-pixel'
-      );
-      const size = Phaser.Math.Between(24, 58);
-      star.setDisplaySize(size, size);
-      star.setAlpha(Phaser.Math.FloatBetween(0.55, 0.95));
-      star.setRotation(Phaser.Math.FloatBetween(-0.25, 0.25));
-      star.setDepth(DEPTH.midground);
-
-      this.tweens.add({
-        targets: star,
-        y: HEIGHT + 80,
-        x: star.x + Phaser.Math.Between(-80, 80),
-        rotation: star.rotation + Phaser.Math.FloatBetween(-0.45, 0.45),
-        duration: Phaser.Math.Between(5200, 9800),
-        delay: Phaser.Math.Between(0, 3600),
-        repeat: -1,
-        onRepeat: () => {
-          star.setPosition(Phaser.Math.Between(35, WIDTH - 35), Phaser.Math.Between(-180, -40));
-          star.setDisplaySize(size, size);
-          star.setAlpha(Phaser.Math.FloatBetween(0.55, 0.95));
-        },
-      });
     }
   }
 
@@ -237,7 +173,7 @@ export class SplashScene extends Phaser.Scene {
   }
 
   private openMiniGames(): void {
-    this.cameras.main.fadeOut(200, 10, 10, 10);
+    this.cameras.main.fadeOut(200, 90, 84, 249);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('DevMinigameMenuScene');
     });
@@ -262,7 +198,7 @@ export class SplashScene extends Phaser.Scene {
       nextScene = 'MinigameRunnerScene';
     }
 
-    this.cameras.main.fadeOut(300, 10, 10, 10);
+    this.cameras.main.fadeOut(300, 90, 84, 249);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start(nextScene);
     });

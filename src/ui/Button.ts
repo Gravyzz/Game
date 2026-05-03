@@ -28,6 +28,7 @@ export class Button extends Phaser.GameObjects.Container {
       bgColor?: number;
       textColor?: string;
       fontSize?: string;
+      fontFamily?: string;
     } = {}
   ) {
     super(scene, x, y);
@@ -38,6 +39,7 @@ export class Button extends Phaser.GameObjects.Container {
     const bgColor = options.bgColor ?? COLORS.yellow;
     const textColor = options.textColor ?? '#0A0A0A';
     const fontSize  = options.fontSize  ?? '24px';
+    const fontFamily = options.fontFamily ?? TEXT_STYLES.button.fontFamily;
 
     // Фон — прямоугольник с лёгким наклоном для постерности
     this.bg = scene.add.rectangle(0, 0, width, height, bgColor);
@@ -46,6 +48,7 @@ export class Button extends Phaser.GameObjects.Container {
     // Текст
     this.label = scene.add.text(0, 0, text, {
       ...TEXT_STYLES.button,
+      fontFamily,
       fontSize,
       color: textColor,
     });

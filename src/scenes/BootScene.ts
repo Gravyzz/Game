@@ -18,6 +18,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('pizza-pixel', 'assets/pizza-pixel.png');
     this.load.image('gamepad-pixel', 'assets/gamepad-pixel.png');
     this.load.image('star-pixel', 'assets/star-pixel.png');
+    this.load.image('orientation-phone-pixel', 'assets/orientation-phone-pixel.png');
     this.load.image('sound-on-pixel', 'assets/sound-on-pixel.png');
     this.load.image('sound-off-pixel', 'assets/sound-off-pixel.png');
   }

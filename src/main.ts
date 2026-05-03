@@ -36,7 +36,8 @@ import { RecipeMemoScene } from '@minigames/RecipeMemo';
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'app',
-  backgroundColor: '#0A0A0A',
+  backgroundColor: 'rgba(0, 0, 0, 0)',
+  transparent: true,
 
   scale: {
     mode: Phaser.Scale.FIT,
