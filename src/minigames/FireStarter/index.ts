@@ -25,12 +25,25 @@ import { Haptics } from '@core/Haptics';
  *  - Скорость маркера: 1.0× → 2.2×.
  */
 
-const ROUNDS_PER_GAME = 3;
-const WIN_THRESHOLD = 2; // нужно ≥ 2 попадания из 3
-const MAX_MISSES = 1;
+const ROUNDS_PER_GAME = 10;
+const WIN_THRESHOLD = 10; // нужно пройти все 10 попаданий
+const MAX_MISSES = 0; // одна жизнь
+const TOTAL_TIME_MS = 50_000;
 
 const BAR_WIDTH = 600;
 const BAR_HEIGHT = 36;
+
+// Прогрессия от 1-го к 10-му раунду
+const ZONE_RATIO_START = 0.32;
+const ZONE_RATIO_END = 0.14;
+const SPEED_START = 1.0;
+const SPEED_END = 2.5;
+
+// С какого раунда (0-индекс) зона начинает двигаться
+const MOVING_ZONE_FROM_ROUND = 5;
+// Период полного цикла осцилляции зоны (мс)
+const ZONE_PERIOD_START = 2600;
+const ZONE_PERIOD_END = 1700;
 
 export class FireStarterScene extends BaseMinigame {
   private currentRound = 0;
@@ -51,6 +64,13 @@ export class FireStarterScene extends BaseMinigame {
   private barLeft = 0;
   private barRight = 0;
 
+  // Параметры движения зоны на текущем раунде
+  private zoneMoving = false;
+  private zoneAmplitude = 0;
+  private zonePeriodMs = ZONE_PERIOD_START;
+  private zonePhase = 0;
+  private zoneAnchorX = 0;
+
   private accepting = false;
   private timeLeftMs = 0;
   private timerEvent: Phaser.Time.TimerEvent | null = null;
@@ -62,7 +82,6 @@ export class FireStarterScene extends BaseMinigame {
 
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
-    const diff = this.initData.difficulty;
 
     // Фон — красный
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.red);
@@ -130,7 +149,7 @@ export class FireStarterScene extends BaseMinigame {
       color: '#FAF7F0',
     }).setOrigin(0, 0.5).setDepth(DEPTH.ui);
 
-    // Сама шкала — градиент-ish с 3 зон
+    // Сама шкала
     this.bar = this.add.rectangle(WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, COLORS.cream);
     this.bar.setStrokeStyle(4, COLORS.black);
     this.bar.setDepth(DEPTH.gameplay);
@@ -138,6 +157,8 @@ export class FireStarterScene extends BaseMinigame {
     // Зелёная зона — позиция и размер вычисляются перед каждым раундом
     const zoneWidth = this.computeZoneWidth(diff);
     this.greenZone = this.add.rectangle(WIDTH / 2, barY, zoneWidth, BAR_HEIGHT - 8, COLORS.win);
+    this.greenZone = this.add.rectangle(WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT - 8, COLORS.win);
+    this.greenZone.displayWidth = BAR_WIDTH * ZONE_RATIO_START;
     this.greenZone.setDepth(DEPTH.gameplay + 1);
 
     // Маркер
@@ -165,8 +186,7 @@ export class FireStarterScene extends BaseMinigame {
     // Тап по экрану — фиксируем результат раунда
     this.input.on('pointerdown', this.handleTap, this);
 
-    // Таймер раунда (общий)
-    this.timeLeftMs = this.initData.durationMs;
+    this.timeLeftMs = TOTAL_TIME_MS;
     this.timerEvent = this.time.addEvent({
       delay: 100,
       loop: true,
@@ -180,6 +200,18 @@ export class FireStarterScene extends BaseMinigame {
     this.startRound();
   }
 
+  override update(_time: number, delta: number): void {
+    if (!this.accepting || !this.zoneMoving) return;
+    this.zonePhase += delta;
+    const t = (this.zonePhase / this.zonePeriodMs) * Math.PI * 2;
+    const offset = Math.sin(t) * this.zoneAmplitude;
+    const newX = this.zoneAnchorX + offset;
+    const halfW = this.greenZone.displayWidth / 2;
+    this.greenZone.x = newX;
+    this.greenStart = newX - halfW;
+    this.greenEnd = newX + halfW;
+  }
+
   /** Подсветка для контраста */
   private drawBackgroundDeco(): void {
     const { WIDTH, HEIGHT } = GAME;
@@ -191,42 +223,65 @@ export class FireStarterScene extends BaseMinigame {
     g.setDepth(DEPTH.background);
   }
 
-  /** Ширина зелёной зоны 0..1 от ширины шкалы — зависит от сложности */
-  private computeZoneWidth(diff: number): number {
-    const ratio = Phaser.Math.Linear(0.32, 0.09, diff);
-    return BAR_WIDTH * ratio;
+  private getRoundProgress(): number {
+    return ROUNDS_PER_GAME <= 1 ? 0 : this.currentRound / (ROUNDS_PER_GAME - 1);
   }
 
   private updateLivesText(): void {
-    this.livesText.setText(`Раунд ${Math.min(this.currentRound + 1, ROUNDS_PER_GAME)} / ${ROUNDS_PER_GAME}    🍕 ${this.hits}    💔 ${this.misses}/${MAX_MISSES}`);
+    const round = Math.min(this.currentRound + 1, ROUNDS_PER_GAME);
+    const livesLeft = Math.max(0, MAX_MISSES + 1 - this.misses);
+    this.livesText.setText(
+      `Раунд ${round} / ${ROUNDS_PER_GAME}    🍕 ${this.hits}    ❤️ ${livesLeft}`,
+    );
   }
 
-  /** Готовим раунд: позиция зелёной зоны и старт маркера */
   private startRound(): void {
     if (this.currentRound >= ROUNDS_PER_GAME) {
       this.finish();
       return;
     }
 
-    const diff = this.initData.difficulty;
+    const p = this.getRoundProgress();
 
-    // Случайная позиция зелёной зоны (не у самых краёв)
-    const zoneWidth = this.greenZone.width;
-    const minX = this.barLeft + zoneWidth / 2 + 30;
-    const maxX = this.barRight - zoneWidth / 2 - 30;
-    const zoneCenterX = Phaser.Math.Between(minX, maxX);
-    this.greenZone.x = zoneCenterX;
-    this.greenStart = zoneCenterX - zoneWidth / 2;
-    this.greenEnd = zoneCenterX + zoneWidth / 2;
+    // Ширина зоны
+    const zoneRatio = Phaser.Math.Linear(ZONE_RATIO_START, ZONE_RATIO_END, p);
+    const zoneWidth = BAR_WIDTH * zoneRatio;
+    this.greenZone.displayWidth = zoneWidth;
+
+    // Якорь зоны (центр) — случайная позиция, не у самых краёв
+    const padding = 30;
+    const minX = this.barLeft + zoneWidth / 2 + padding;
+    const maxX = this.barRight - zoneWidth / 2 - padding;
+    this.zoneAnchorX = Phaser.Math.Between(minX, maxX);
+    this.greenZone.x = this.zoneAnchorX;
+    this.greenStart = this.zoneAnchorX - zoneWidth / 2;
+    this.greenEnd = this.zoneAnchorX + zoneWidth / 2;
+
+    // Движение зоны для поздних раундов
+    if (this.currentRound >= MOVING_ZONE_FROM_ROUND) {
+      const span = ROUNDS_PER_GAME - 1 - MOVING_ZONE_FROM_ROUND;
+      const movePhase = span <= 0 ? 1 : (this.currentRound - MOVING_ZONE_FROM_ROUND) / span;
+      this.zoneMoving = true;
+      this.zonePeriodMs = Phaser.Math.Linear(ZONE_PERIOD_START, ZONE_PERIOD_END, movePhase);
+
+      // Максимально допустимое смещение центра зоны без вылета за полосу
+      const maxAmpLeft = this.zoneAnchorX - (this.barLeft + zoneWidth / 2);
+      const maxAmpRight = (this.barRight - zoneWidth / 2) - this.zoneAnchorX;
+      const maxAmp = Math.max(0, Math.min(maxAmpLeft, maxAmpRight));
+      const ampRatio = Phaser.Math.Linear(0.25, 0.5, movePhase);
+      this.zoneAmplitude = maxAmp * ampRatio;
+      this.zonePhase = 0;
+    } else {
+      this.zoneMoving = false;
+      this.zoneAmplitude = 0;
+    }
 
     // Скорость маркера
-    const speedMul = Phaser.Math.Linear(1.0, 2.2, diff);
-    const sweepDur = 1500 / speedMul; // время прохода слева-направо
+    const speedMul = Phaser.Math.Linear(SPEED_START, SPEED_END, p);
+    const sweepDur = 1500 / speedMul;
 
-    // Сбрасываем маркер
     this.marker.x = this.barLeft;
 
-    // Тwin маркера: туда-сюда бесконечно до тапа
     if (this.markerTween) {
       this.markerTween.remove();
       this.markerTween = null;
@@ -274,14 +329,14 @@ export class FireStarterScene extends BaseMinigame {
     this.currentRound += 1;
     this.updateLivesText();
 
-    // Если уже больше допустимых промахов — досрочное поражение
+    // Любой промах = досрочное поражение (одна жизнь)
     if (this.misses > MAX_MISSES) {
       this.time.delayedCall(700, () => this.finish());
       return;
     }
 
     // Иначе — следующий раунд через паузу
-    this.time.delayedCall(900, () => this.startRound());
+    this.time.delayedCall(550, () => this.startRound());
   }
 
   private flashPizza(color: number): void {

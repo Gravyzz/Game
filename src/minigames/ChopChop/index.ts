@@ -9,72 +9,119 @@ import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 
 /**
- * NEW-03 Нарезка ингредиентов.
+ * NEW-03 Перетапай Диди.
  *
- * На разделочной доске появляется ингредиент с подписью «нарежь на X кусков».
- * Каждый свайп через тело ингредиента = 1 разрез. После каждого свайпа есть
- * пауза 250мс — кнопка «ГОТОВО» автоматически нажимается, если игрок 700мс
- * не делает следующий разрез. Если итог == X → +1 успех. Иначе → штраф.
+ * Бой за нарезку овощей в стиле Mortal Kombat.
+ * 5 раундов, кто первым набрал 3 победы — берёт матч.
  *
- * Цель: нарезать REQUIRED_INGREDIENTS успешно за durationMs.
+ * Режимы раундов:
+ *  - 1, 2, 5 — TAP: тап в любую точку = разрез.
+ *  - 3 — SWIPE: овощ прыгает по экрану, его надо «перерезать» свайпом.
+ *  - 4 — BOMB: овощ периодически меняется на 💣. Тап по бомбе = -2 к шкале.
  *
- * Сложность:
- *  - Easy: 4 ингредиента нужно, 2-3 разреза каждый.
- *  - Hard: 7 ингредиентов, 1-6 разрезов.
+ * Перки между раундами (выпадают рандомно):
+ *  - 🔪 ОСТРЫЙ НОЖ        каждый твой тап = +2
+ *  - 👆 ДВОЙНОЙ ТАП        первые 6 тапов идут x2
+ *  - 🐢 СТОПОР             Диди стартует на 1 сек позже
+ *  - 🪓 ТУПОЙ НОЖ          (-) каждый второй тап в холостую
+ *  - ⏱  СЛОМАН НОЖИК       (-) Диди тапает первые 5 сек один
  */
 
-const INGREDIENT_POOL = [
-  { emoji: '🍅', name: 'помидор',   color: COLORS.red    },
-  { emoji: '🥒', name: 'огурец',    color: 0x4ade80      },
-  { emoji: '🌶️', name: 'перец',     color: 0xff5656      },
-  { emoji: '🧅', name: 'лук',       color: 0xfff8d6      },
-  { emoji: '🥕', name: 'морковь',   color: 0xff9d3a      },
-  { emoji: '🍆', name: 'баклажан',  color: 0x7a5cff      },
-  { emoji: '🌽', name: 'кукуруза',  color: COLORS.yellow },
-  { emoji: '🥔', name: 'картошка',  color: 0xb89968      },
+const ROUNDS_PER_MATCH = 5;
+const ROUNDS_TO_WIN = 3;
+
+type RoundMode = 'tap' | 'swipe' | 'bomb';
+type PerkId = 'sharpKnife' | 'doubleTap' | 'slowDidi' | 'dullKnife' | 'didiHeadstart';
+
+interface RoundCfg {
+  target: number;
+  didiIntervalMs: number;
+  headstartMs: number;
+  mode: RoundMode;
+  label: string;
+}
+
+const ROUND_CONFIG: RoundCfg[] = [
+  { target: 12, didiIntervalMs: 430, headstartMs: 700, mode: 'tap',   label: 'ТАП-БАТЛ' },
+  { target: 15, didiIntervalMs: 380, headstartMs: 600, mode: 'tap',   label: 'ТАП-БАТЛ' },
+  { target: 14, didiIntervalMs: 360, headstartMs: 500, mode: 'swipe', label: 'СВАЙП ЧЕРЕЗ ОВОЩ' },
+  { target: 18, didiIntervalMs: 320, headstartMs: 400, mode: 'bomb',  label: 'БОМБОВЫЙ — НЕ ТАП ПО 💣' },
+  { target: 25, didiIntervalMs: 270, headstartMs: 300, mode: 'tap',   label: 'ФИНАЛ' },
 ];
 
-const SWIPE_COMMIT_MS = 800;     // если нет нового свайпа за это время — фиксируем результат
-const SWIPE_MIN_LENGTH = 40;     // минимальная длина свайпа, чтобы засчитать
-const CUT_COOLDOWN_MS = 120;     // защита от двойного срабатывания
+const VEGGIES = ['🍅', '🥒', '🌶️', '🧅', '🥕', '🍆', '🌽', '🥔'];
+
+const BAR_WIDTH = 600;
+const BAR_HEIGHT = 38;
+
+const PERKS: Record<PerkId, { emoji: string; name: string; desc: string; isCurse: boolean }> = {
+  sharpKnife:    { emoji: '🔪', name: 'ОСТРЫЙ НОЖ',    desc: 'Каждый твой тап рубит за двоих', isCurse: false },
+  doubleTap:     { emoji: '👆', name: 'ДВОЙНОЙ ТАП',   desc: 'Первые 6 тапов идут x2',          isCurse: false },
+  slowDidi:      { emoji: '🐢', name: 'СТОПОР',        desc: 'Диди тормозит ещё на 1 сек',      isCurse: false },
+  dullKnife:     { emoji: '🪓', name: 'ТУПОЙ НОЖ',     desc: 'Каждый второй тап в холостую',    isCurse: true  },
+  didiHeadstart: { emoji: '⏱',  name: 'СЛОМАН НОЖИК',  desc: 'Диди рубит 5 сек один',           isCurse: true  },
+};
+const PERK_IDS: PerkId[] = ['sharpKnife', 'doubleTap', 'slowDidi', 'dullKnife', 'didiHeadstart'];
+
+const SWIPE_MIN_LEN = 8;
+const SWIPE_COOLDOWN_MS = 130;
+const VEGGIE_RADIUS = 80;
 
 export class ChopChopScene extends BaseMinigame {
-  private board!: Phaser.GameObjects.Rectangle;
-  private currentIngredient: {
-    emoji: string;
-    name: string;
-    color: number;
-    targetCuts: number;
-    text: Phaser.GameObjects.Text;
-    halves: Phaser.GameObjects.Text[];
-    centerX: number;
-    centerY: number;
-    radius: number;
-  } | null = null;
+  // Прогресс матча
+  private currentRoundIndex = 0;
+  private playerCount = 0;
+  private didiCount = 0;
+  private playerWins = 0;
+  private didiWins = 0;
+  private currentTarget = 0;
+  private currentMode: RoundMode = 'tap';
 
-  private cuts = 0;
-  private successCount = 0;
-  private requiredSuccesses = 4;
-  private totalAttempts = 0;
-  private maxAttempts = 6;
+  // UI
+  private didiBar!: Phaser.GameObjects.Rectangle;
+  private playerBar!: Phaser.GameObjects.Rectangle;
+  private didiCountText!: Phaser.GameObjects.Text;
+  private playerCountText!: Phaser.GameObjects.Text;
+  private roundText!: Phaser.GameObjects.Text;
+  private modeText!: Phaser.GameObjects.Text;
+  private bigText!: Phaser.GameObjects.Text;
+  private scoreText!: Phaser.GameObjects.Text;
+  private didiPortrait!: Phaser.GameObjects.Text;
+  private playerPortrait!: Phaser.GameObjects.Text;
+  private veggie!: Phaser.GameObjects.Text;
+  private veggieIdx = 0;
+  private trailGfx!: Phaser.GameObjects.Graphics;
+  private perkBadgeText: Phaser.GameObjects.Text | null = null;
 
-  private successText!: Phaser.GameObjects.Text;
-  private timerText!: Phaser.GameObjects.Text;
-  private targetText!: Phaser.GameObjects.Text;
-  private cutsText!: Phaser.GameObjects.Text;
-  private nameText!: Phaser.GameObjects.Text;
+  // Таймеры
+  private didiTimer: Phaser.Time.TimerEvent | null = null;
+  private headstartTimer: Phaser.Time.TimerEvent | null = null;
+  private playerUnlockTimer: Phaser.Time.TimerEvent | null = null;
+  private bombCycleTimer: Phaser.Time.TimerEvent | null = null;
 
-  private timeLeftMs = 0;
-  private gameTimer: Phaser.Time.TimerEvent | null = null;
-  private commitTimer: Phaser.Time.TimerEvent | null = null;
+  // Состояние ввода
+  private accepting = false;
+  private playerCanTap = false;
   private finished = false;
 
-  private swipeStartX = 0;
-  private swipeStartY = 0;
-  private swiping = false;
-  private lastCutAt = 0;
+  // Свайп
+  private swipeActive = false;
+  private prevPointerX = 0;
+  private prevPointerY = 0;
+  private lastSwipeChopAt = 0;
 
-  private trailGfx!: Phaser.GameObjects.Graphics;
+  // Бомба-режим
+  private currentlyBomb = false;
+
+  // Перки
+  private nextPerk: PerkId | null = null;
+  private activePerk: PerkId | null = null;
+  private perkSharpKnife = false;
+  private perkDoubleRemaining = 0;
+  private perkSlowDidi = false;
+  private perkDullKnife = false;
+  private perkDidiHeadstart = false;
+  private dullKnifeFlip = false;
 
   constructor() {
     super({ key: 'ChopChop' });
@@ -82,288 +129,651 @@ export class ChopChopScene extends BaseMinigame {
 
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
-    const diff = this.initData.difficulty;
 
-    this.requiredSuccesses = Math.round(Phaser.Math.Linear(3, 6, diff));
-    this.maxAttempts = Math.round(Phaser.Math.Linear(5, 8, diff));
-
-    // Фон — кухонный
+    // Фон
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x2a4d3e);
     this.drawNoise();
 
     // Заголовок
-    const title = new PosterText(this, WIDTH / 2, 80, 'НАРЕЗКА', {
+    const title = new PosterText(this, WIDTH / 2, 70, 'ПЕРЕТАПАЙ ДИДИ', {
       bgColor: COLORS.yellow, textColor: '#0A0A0A',
-      fontSize: '32px', rotation: -0.025, paddingX: 22, paddingY: 10,
+      fontSize: '28px', rotation: -0.025, paddingX: 22, paddingY: 8,
     });
     title.setDepth(DEPTH.ui);
     this.add.existing(title);
 
-    // Hint
-    const hint = this.add.text(WIDTH / 2, 140, '👆 свайп через ингредиент = разрез. Точно по числу!', {
-      ...TEXT_STYLES.label, fontSize: '13px', color: '#FAF7F0',
-    });
-    hint.setOrigin(0.5);
-    hint.setDepth(DEPTH.ui);
-
-    // Доска
-    this.board = this.add.rectangle(WIDTH / 2, HEIGHT * 0.55, 540, 540, 0xc88a4a);
-    this.board.setStrokeStyle(8, 0x6e3f1d);
-    this.board.setDepth(DEPTH.midground);
-    // Доска — горизонтальная штриховка
-    const boardLines = this.add.graphics();
-    boardLines.lineStyle(2, 0x9c6c3a, 0.6);
-    for (let i = -250; i < 250; i += 30) {
-      boardLines.lineBetween(WIDTH / 2 - 250, HEIGHT * 0.55 + i, WIDTH / 2 + 250, HEIGHT * 0.55 + i);
-    }
-    boardLines.setDepth(DEPTH.midground + 1);
-
-    // HUD
-    this.successText = this.add.text(30, 30, '', {
+    // Счёт раундов
+    this.scoreText = this.add.text(WIDTH / 2, 130, '', {
       ...TEXT_STYLES.subtitle, fontSize: '20px', color: '#FAF7F0',
     });
-    this.successText.setDepth(DEPTH.ui);
+    this.scoreText.setOrigin(0.5);
+    this.scoreText.setDepth(DEPTH.ui);
 
-    this.timerText = this.add.text(WIDTH - 30, 30, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#FAF7F0',
+    // === Диди (верх) ===
+    const didiNameY = 180;
+    const didiBarY = 230;
+
+    this.didiPortrait = this.add.text(WIDTH / 2 - BAR_WIDTH / 2 - 10, didiBarY, '👨‍🍳', { fontSize: '54px' });
+    this.didiPortrait.setOrigin(1, 0.5);
+    this.didiPortrait.setDepth(DEPTH.ui);
+
+    const didiName = this.add.text(WIDTH / 2, didiNameY, 'ДИДИ', {
+      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#FF2E2E',
     });
-    this.timerText.setOrigin(1, 0);
-    this.timerText.setDepth(DEPTH.ui);
+    didiName.setOrigin(0.5);
+    didiName.setDepth(DEPTH.ui);
 
-    this.targetText = this.add.text(WIDTH / 2, 200, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '26px', color: '#FFE600',
+    const didiBarBg = this.add.rectangle(WIDTH / 2, didiBarY, BAR_WIDTH, BAR_HEIGHT, 0x1a1a1a);
+    didiBarBg.setStrokeStyle(4, COLORS.black);
+    didiBarBg.setDepth(DEPTH.gameplay);
+
+    this.didiBar = this.add.rectangle(WIDTH / 2 + BAR_WIDTH / 2 - 3, didiBarY, BAR_WIDTH, BAR_HEIGHT - 6, COLORS.red);
+    this.didiBar.setOrigin(1, 0.5);
+    this.didiBar.displayWidth = 0;
+    this.didiBar.setDepth(DEPTH.gameplay + 1);
+
+    this.didiCountText = this.add.text(WIDTH / 2, didiBarY, '', {
+      ...TEXT_STYLES.subtitle, fontSize: '16px', color: '#FAF7F0',
     });
-    this.targetText.setOrigin(0.5);
-    this.targetText.setDepth(DEPTH.ui);
+    this.didiCountText.setOrigin(0.5);
+    this.didiCountText.setDepth(DEPTH.ui);
 
-    this.cutsText = this.add.text(WIDTH / 2, HEIGHT * 0.92, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#FAF7F0',
+    // === Центр ===
+    this.roundText = this.add.text(WIDTH / 2, 310, '', {
+      ...TEXT_STYLES.subtitle, fontSize: '20px', color: '#FFE600',
     });
-    this.cutsText.setOrigin(0.5);
-    this.cutsText.setDepth(DEPTH.ui);
+    this.roundText.setOrigin(0.5);
+    this.roundText.setDepth(DEPTH.ui);
 
-    this.nameText = this.add.text(WIDTH / 2, 240, '', {
+    this.modeText = this.add.text(WIDTH / 2, 345, '', {
       ...TEXT_STYLES.label, fontSize: '14px', color: '#FAF7F0',
     });
-    this.nameText.setOrigin(0.5);
-    this.nameText.setDepth(DEPTH.ui);
+    this.modeText.setOrigin(0.5);
+    this.modeText.setDepth(DEPTH.ui);
+
+    this.bigText = this.add.text(WIDTH / 2, HEIGHT * 0.5, '', {
+      ...TEXT_STYLES.hero, fontSize: '60px', color: '#FFE600',
+    });
+    this.bigText.setOrigin(0.5);
+    this.bigText.setDepth(DEPTH.modal);
+
+    this.veggie = this.add.text(WIDTH / 2, HEIGHT * 0.62, '🍅', { fontSize: '120px' });
+    this.veggie.setOrigin(0.5);
+    this.veggie.setDepth(DEPTH.gameplay);
+    this.veggie.setVisible(false);
 
     this.trailGfx = this.add.graphics();
     this.trailGfx.setDepth(DEPTH.effects);
 
-    // Инпут — свайпы
+    // === Игрок (низ) ===
+    const playerNameY = HEIGHT - 320;
+    const playerBarY = HEIGHT - 270;
+
+    this.playerPortrait = this.add.text(WIDTH / 2 + BAR_WIDTH / 2 + 10, playerBarY, '🧑‍🍳', { fontSize: '54px' });
+    this.playerPortrait.setOrigin(0, 0.5);
+    this.playerPortrait.setDepth(DEPTH.ui);
+
+    const playerName = this.add.text(WIDTH / 2, playerNameY, 'ТЫ', {
+      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#4ADE80',
+    });
+    playerName.setOrigin(0.5);
+    playerName.setDepth(DEPTH.ui);
+
+    const playerBarBg = this.add.rectangle(WIDTH / 2, playerBarY, BAR_WIDTH, BAR_HEIGHT, 0x1a1a1a);
+    playerBarBg.setStrokeStyle(4, COLORS.black);
+    playerBarBg.setDepth(DEPTH.gameplay);
+
+    this.playerBar = this.add.rectangle(WIDTH / 2 - BAR_WIDTH / 2 + 3, playerBarY, BAR_WIDTH, BAR_HEIGHT - 6, COLORS.win);
+    this.playerBar.setOrigin(0, 0.5);
+    this.playerBar.displayWidth = 0;
+    this.playerBar.setDepth(DEPTH.gameplay + 1);
+
+    this.playerCountText = this.add.text(WIDTH / 2, playerBarY, '', {
+      ...TEXT_STYLES.subtitle, fontSize: '16px', color: '#FAF7F0',
+    });
+    this.playerCountText.setOrigin(0.5);
+    this.playerCountText.setDepth(DEPTH.ui);
+
+    // Кнопка ТАП — визуальная
+    const tapZone = this.add.rectangle(WIDTH / 2, HEIGHT - 130, BAR_WIDTH + 60, 130, COLORS.yellow);
+    tapZone.setStrokeStyle(6, COLORS.black);
+    tapZone.setDepth(DEPTH.gameplay);
+    const tapLabel = this.add.text(WIDTH / 2, HEIGHT - 130, 'ТАП-ТАП-ТАП!', {
+      ...TEXT_STYLES.hero, fontSize: '40px', color: '#0A0A0A',
+    });
+    tapLabel.setOrigin(0.5);
+    tapLabel.setDepth(DEPTH.gameplay + 1);
+
+    // Инпут
     this.input.on('pointerdown', this.onPointerDown, this);
-    this.input.on('pointerup',   this.onPointerUp,   this);
+    this.input.on('pointermove', this.onPointerMove, this);
+    this.input.on('pointerup', this.onPointerUp, this);
 
-    this.timeLeftMs = this.initData.durationMs;
-    this.gameTimer = this.time.addEvent({
-      delay: 200,
-      loop: true,
-      callback: this.onTick,
-      callbackScope: this,
-    });
-
-    this.updateHud();
-    this.spawnIngredient();
     this.cameras.main.fadeIn(250, 10, 10, 10);
+    this.updateUi();
+    this.startRound();
   }
 
-  private spawnIngredient(): void {
-    if (this.totalAttempts >= this.maxAttempts) {
-      this.finish();
+  // ========== РАУНД ==========
+
+  private startRound(): void {
+    if (this.finished) return;
+    if (this.currentRoundIndex >= ROUNDS_PER_MATCH) {
+      this.finishMatch();
       return;
     }
+    const cfg = ROUND_CONFIG[this.currentRoundIndex];
+    this.currentTarget = cfg.target;
+    this.currentMode = cfg.mode;
+    this.playerCount = 0;
+    this.didiCount = 0;
+    this.veggieIdx = Phaser.Math.Between(0, VEGGIES.length - 1);
+    this.veggie.setText(VEGGIES[this.veggieIdx]);
+    this.veggie.setScale(1);
 
-    const diff = this.initData.difficulty;
-    const minCuts = 1;
-    const maxCuts = Math.round(Phaser.Math.Linear(3, 6, diff));
-    const targetCuts = Phaser.Math.Between(minCuts + 1, maxCuts);
+    // Перк применяем строго на этот раунд
+    this.resetPerks();
+    if (this.nextPerk) {
+      this.activePerk = this.nextPerk;
+      this.nextPerk = null;
+      this.applyPerkEffects(this.activePerk);
+    } else {
+      this.activePerk = null;
+    }
 
-    const def = INGREDIENT_POOL[Math.floor(Math.random() * INGREDIENT_POOL.length)];
-    const cx = GAME.WIDTH / 2;
-    const cy = GAME.HEIGHT * 0.55;
+    this.setBig('', '#FFE600');
+    this.roundText.setText(`РАУНД ${this.currentRoundIndex + 1} / ${ROUNDS_PER_MATCH}  •  цель ${cfg.target}`);
+    this.modeText.setText(cfg.label);
 
-    const text = this.add.text(cx, cy, def.emoji, { fontSize: '200px' });
-    text.setOrigin(0.5);
-    text.setDepth(DEPTH.gameplay);
+    this.updatePerkBadge();
+    this.updateUi();
+    this.setupRoundVisual();
 
-    // Появление
-    text.setScale(0);
-    this.tweens.add({
-      targets: text,
-      scale: 1,
-      duration: 280,
-      ease: 'Back.easeOut',
+    this.accepting = false;
+    this.playerCanTap = false;
+
+    this.showCountdown(() => {
+      if (this.finished) return;
+      this.veggie.setVisible(true);
+      this.accepting = true;
+      this.startGameplayTimers(cfg);
+    });
+  }
+
+  private setupRoundVisual(): void {
+    const { WIDTH, HEIGHT } = GAME;
+    if (this.currentMode === 'swipe') {
+      this.placeVeggieRandom();
+      this.veggie.setVisible(false); // покажется после countdown
+    } else {
+      this.veggie.x = WIDTH / 2;
+      this.veggie.y = HEIGHT * 0.62;
+      this.veggie.setVisible(false);
+    }
+  }
+
+  private startGameplayTimers(cfg: RoundCfg): void {
+    if (this.finished) return;
+
+    // «Сломан ножик» — игрок 5 сек смотрит, Диди работает
+    if (this.perkDidiHeadstart) {
+      this.playerCanTap = false;
+      this.setBig('НОЖИК СЛОМАЛСЯ…', '#EF4444');
+      this.tweens.add({
+        targets: this.bigText, alpha: { from: 1, to: 0.4 },
+        duration: 4500, ease: 'Sine.easeIn',
+      });
+      this.playerUnlockTimer = this.time.delayedCall(5000, () => {
+        if (this.finished) return;
+        this.playerCanTap = true;
+        this.setBig('', '#FFE600');
+      });
+    } else {
+      this.playerCanTap = true;
+    }
+
+    // Старт Диди
+    let didiDelay = cfg.headstartMs;
+    if (this.perkSlowDidi) didiDelay += 1000;
+    if (this.perkDidiHeadstart) didiDelay = 100;
+
+    this.headstartTimer = this.time.delayedCall(didiDelay, () => {
+      if (this.finished || !this.accepting) return;
+      this.didiTimer = this.time.addEvent({
+        delay: cfg.didiIntervalMs,
+        loop: true,
+        callback: this.onDidiTick,
+        callbackScope: this,
+      });
     });
 
-    this.currentIngredient = {
-      emoji: def.emoji,
-      name: def.name,
-      color: def.color,
-      targetCuts,
-      text,
-      halves: [],
-      centerX: cx,
-      centerY: cy,
-      radius: 110,
+    if (this.currentMode === 'bomb') {
+      this.scheduleBombSwap();
+    }
+  }
+
+  private showCountdown(onDone: () => void): void {
+    this.veggie.setVisible(false);
+    const seq = ['3', '2', '1', 'НАРЕЗАЙ!'];
+    const colors = ['#FAF7F0', '#FFE600', '#FF2E2E', '#4ADE80'];
+    let i = 0;
+    const tick = () => {
+      if (this.finished) return;
+      this.setBig(seq[i], colors[i]);
+      this.bigText.setScale(1.6);
+      this.tweens.add({
+        targets: this.bigText, scale: 1, duration: 320, ease: 'Back.easeOut',
+      });
+      i++;
+      if (i < seq.length) {
+        this.time.delayedCall(450, tick);
+      } else {
+        this.time.delayedCall(380, () => {
+          if (this.finished) return;
+          this.setBig('', '#FFE600');
+          onDone();
+        });
+      }
     };
-    this.cuts = 0;
-    this.targetText.setText(`нарежь на ${targetCuts} кусков`);
-    this.nameText.setText(def.name.toUpperCase());
-    this.cutsText.setText(this.cutsLabel());
+    tick();
   }
 
-  private cutsLabel(): string {
-    return `разрезов: ${this.cuts}`;
+  // ========== ПЕРКИ ==========
+
+  private resetPerks(): void {
+    this.perkSharpKnife = false;
+    this.perkDoubleRemaining = 0;
+    this.perkSlowDidi = false;
+    this.perkDullKnife = false;
+    this.perkDidiHeadstart = false;
+    this.dullKnifeFlip = false;
   }
 
-  private onPointerDown(pointer: Phaser.Input.Pointer): void {
-    this.swipeStartX = pointer.x;
-    this.swipeStartY = pointer.y;
-    this.swiping = true;
-    this.trailGfx.clear();
+  private applyPerkEffects(id: PerkId): void {
+    switch (id) {
+      case 'sharpKnife':    this.perkSharpKnife = true; break;
+      case 'doubleTap':     this.perkDoubleRemaining = 6; break;
+      case 'slowDidi':      this.perkSlowDidi = true; break;
+      case 'dullKnife':     this.perkDullKnife = true; break;
+      case 'didiHeadstart': this.perkDidiHeadstart = true; break;
+    }
   }
 
-  private onPointerUp(pointer: Phaser.Input.Pointer): void {
-    if (!this.swiping) return;
-    this.swiping = false;
-    this.trailGfx.clear();
+  private updatePerkBadge(): void {
+    const { WIDTH } = GAME;
+    if (this.perkBadgeText) {
+      this.perkBadgeText.destroy();
+      this.perkBadgeText = null;
+    }
+    if (!this.activePerk) return;
+    const p = PERKS[this.activePerk];
+    this.perkBadgeText = this.add.text(WIDTH / 2, 380,
+      `${p.emoji} ${p.name}`,
+      { ...TEXT_STYLES.label, fontSize: '14px', color: p.isCurse ? '#EF4444' : '#4ADE80' });
+    this.perkBadgeText.setOrigin(0.5);
+    this.perkBadgeText.setDepth(DEPTH.ui);
+  }
 
-    const dx = pointer.x - this.swipeStartX;
-    const dy = pointer.y - this.swipeStartY;
+  private pickRandomPerk(): PerkId {
+    return PERK_IDS[Phaser.Math.Between(0, PERK_IDS.length - 1)];
+  }
+
+  private showPerkCard(perkId: PerkId, onDone: () => void): void {
+    const { WIDTH, HEIGHT } = GAME;
+    const p = PERKS[perkId];
+
+    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.65);
+    overlay.setDepth(DEPTH.modal);
+
+    const cardBg = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 540, 360, COLORS.cream);
+    cardBg.setStrokeStyle(8, p.isCurse ? COLORS.lose : COLORS.win);
+    cardBg.setDepth(DEPTH.modal + 1);
+
+    const tag = this.add.text(WIDTH / 2, HEIGHT / 2 - 130,
+      p.isCurse ? 'ПОДЛЯНА' : 'БУФФ',
+      { ...TEXT_STYLES.subtitle, fontSize: '20px', color: p.isCurse ? '#EF4444' : '#0A8C45' });
+    tag.setOrigin(0.5);
+    tag.setDepth(DEPTH.modal + 2);
+
+    const emoji = this.add.text(WIDTH / 2, HEIGHT / 2 - 50, p.emoji, { fontSize: '96px' });
+    emoji.setOrigin(0.5);
+    emoji.setDepth(DEPTH.modal + 2);
+
+    const name = this.add.text(WIDTH / 2, HEIGHT / 2 + 50, p.name,
+      { ...TEXT_STYLES.hero, fontSize: '34px', color: '#0A0A0A' });
+    name.setOrigin(0.5);
+    name.setDepth(DEPTH.modal + 2);
+
+    const desc = this.add.text(WIDTH / 2, HEIGHT / 2 + 110, p.desc,
+      { ...TEXT_STYLES.label, fontSize: '16px', color: '#1A1A1A' });
+    desc.setOrigin(0.5);
+    desc.setDepth(DEPTH.modal + 2);
+
+    cardBg.setScale(0);
+    this.tweens.add({
+      targets: [cardBg, tag, emoji, name, desc],
+      scale: { from: 0, to: 1 }, duration: 350, ease: 'Back.easeOut',
+    });
+
+    SoundManager.playSfx(p.isCurse ? 'miss' : 'perfect');
+    Haptics.trigger(p.isCurse ? 'miss' : 'perfect');
+
+    this.time.delayedCall(2200, () => {
+      this.tweens.add({
+        targets: [overlay, cardBg, tag, emoji, name, desc],
+        alpha: 0, duration: 250,
+        onComplete: () => {
+          overlay.destroy();
+          cardBg.destroy();
+          tag.destroy();
+          emoji.destroy();
+          name.destroy();
+          desc.destroy();
+          onDone();
+        },
+      });
+    });
+  }
+
+  // ========== ИНПУТ ==========
+
+  private onPointerDown(p: Phaser.Input.Pointer): void {
+    if (!this.accepting || this.finished) return;
+    if (this.currentMode === 'swipe') {
+      this.swipeActive = true;
+      this.prevPointerX = p.x;
+      this.prevPointerY = p.y;
+      this.trailGfx.clear();
+      return;
+    }
+    this.handleTap();
+  }
+
+  private onPointerMove(p: Phaser.Input.Pointer): void {
+    if (!this.accepting || this.finished) return;
+    if (this.currentMode !== 'swipe' || !this.swipeActive) return;
+
+    const dx = p.x - this.prevPointerX;
+    const dy = p.y - this.prevPointerY;
     const len = Math.sqrt(dx * dx + dy * dy);
-    if (len < SWIPE_MIN_LENGTH) return;
+    if (len < SWIPE_MIN_LEN) return;
 
-    const ing = this.currentIngredient;
-    if (!ing) return;
+    if (this.playerCanTap
+        && this.lineIntersectsCircle(this.prevPointerX, this.prevPointerY, p.x, p.y, this.veggie.x, this.veggie.y, VEGGIE_RADIUS)
+        && this.time.now - this.lastSwipeChopAt > SWIPE_COOLDOWN_MS) {
+      this.lastSwipeChopAt = this.time.now;
+      this.handleSwipeChop();
+    }
 
-    // Проверяем, проходит ли отрезок через окружность ингредиента
-    if (!this.lineIntersectsCircle(this.swipeStartX, this.swipeStartY, pointer.x, pointer.y, ing.centerX, ing.centerY, ing.radius)) {
+    // След от свайпа
+    this.trailGfx.lineStyle(5, 0xFAF7F0, 0.7);
+    this.trailGfx.lineBetween(this.prevPointerX, this.prevPointerY, p.x, p.y);
+
+    this.prevPointerX = p.x;
+    this.prevPointerY = p.y;
+  }
+
+  private onPointerUp(): void {
+    if (this.currentMode === 'swipe') {
+      this.swipeActive = false;
+      this.trailGfx.clear();
+    }
+  }
+
+  // ========== ОБРАБОТЧИКИ ==========
+
+  private handleTap(): void {
+    if (!this.playerCanTap) return;
+
+    // Бомба-режим: если на экране 💣 — штраф
+    if (this.currentMode === 'bomb' && this.currentlyBomb) {
+      this.handleBombHit();
       return;
     }
 
-    // Защита от двойных срабатываний
-    if (this.time.now - this.lastCutAt < CUT_COOLDOWN_MS) return;
-    this.lastCutAt = this.time.now;
+    // Тупой нож: каждый второй тап игнорируется
+    if (this.perkDullKnife) {
+      this.dullKnifeFlip = !this.dullKnifeFlip;
+      if (!this.dullKnifeFlip) {
+        this.flashVeggieMiss();
+        return;
+      }
+    }
 
-    this.registerCut();
+    let value = 1;
+    if (this.perkSharpKnife) value = 2;
+    if (this.perkDoubleRemaining > 0) {
+      value *= 2;
+      this.perkDoubleRemaining -= 1;
+    }
+    this.applyChop(value);
+    this.feedbackTap();
   }
 
-  private registerCut(): void {
-    const ing = this.currentIngredient;
-    if (!ing) return;
+  private handleSwipeChop(): void {
+    if (this.perkDullKnife) {
+      this.dullKnifeFlip = !this.dullKnifeFlip;
+      if (!this.dullKnifeFlip) {
+        this.flashVeggieMiss();
+        this.placeVeggieRandom();
+        return;
+      }
+    }
 
-    this.cuts += 1;
-    this.cutsText.setText(this.cutsLabel());
+    let value = 1;
+    if (this.perkSharpKnife) value = 2;
+    if (this.perkDoubleRemaining > 0) {
+      value *= 2;
+      this.perkDoubleRemaining -= 1;
+    }
+    this.applyChop(value);
+    this.feedbackTap();
+    this.placeVeggieRandom();
+  }
+
+  private handleBombHit(): void {
+    this.playerCount = Math.max(0, this.playerCount - 2);
+    this.currentlyBomb = false;
+    SoundManager.playSfx('miss');
+    Haptics.trigger('miss');
+    this.cameras.main.shake(180, 0.015);
+    this.cameras.main.flash(180, 220, 50, 50);
+    this.setBig('-2', '#EF4444');
+    this.bigText.setScale(1.4);
+    this.tweens.add({
+      targets: this.bigText, scale: 1, alpha: 0, duration: 600,
+      onComplete: () => { this.setBig('', '#FFE600'); },
+    });
+    // Спрятать бомбу — следующий цикл вернёт овощ
+    this.veggie.setText('💥');
+    this.updateUi();
+  }
+
+  private applyChop(value: number): void {
+    this.playerCount += value;
+    this.updateUi();
+    if (this.playerCount >= this.currentTarget) {
+      this.endRound('player');
+    }
+  }
+
+  private feedbackTap(): void {
     SoundManager.playSfx('tap');
     Haptics.trigger('tap');
-
-    // Эффект: рисуем «след» среза и трясём ингредиент
     this.tweens.add({
-      targets: ing.text,
-      scale: 0.92,
-      duration: 80,
-      yoyo: true,
+      targets: this.veggie, scale: { from: 0.78, to: 1 },
+      duration: 110, ease: 'Quad.easeOut',
     });
-    const flash = this.add.rectangle(ing.centerX, ing.centerY, ing.radius * 2.4, 6, COLORS.cream);
-    flash.setRotation(Math.random() * Math.PI);
+    this.tweens.add({
+      targets: this.playerPortrait, scale: { from: 1.18, to: 1 },
+      duration: 130, ease: 'Quad.easeOut',
+    });
+    this.spawnSlash();
+
+    if (this.currentMode === 'tap' && this.playerCount % 3 === 0) {
+      this.veggieIdx = (this.veggieIdx + 1) % VEGGIES.length;
+      this.veggie.setText(VEGGIES[this.veggieIdx]);
+    }
+  }
+
+  private flashVeggieMiss(): void {
+    SoundManager.playSfx('miss');
+    Haptics.trigger('miss');
+    this.tweens.add({
+      targets: this.veggie, alpha: { from: 1, to: 0.4 }, duration: 80, yoyo: true,
+    });
+  }
+
+  private spawnSlash(): void {
+    const cx = this.veggie.x;
+    const cy = this.veggie.y;
+    const flash = this.add.rectangle(cx, cy, 220, 6, COLORS.cream);
+    flash.setRotation((Math.random() - 0.5) * Math.PI);
     flash.setDepth(DEPTH.effects);
     this.tweens.add({
-      targets: flash, alpha: 0, duration: 250,
+      targets: flash, alpha: 0, duration: 220,
       onComplete: () => flash.destroy(),
     });
+  }
 
-    // Сбрасываем commit-таймер на новое окно ожидания
-    if (this.commitTimer) this.commitTimer.remove();
-    this.commitTimer = this.time.delayedCall(SWIPE_COMMIT_MS, () => this.commitIngredient());
+  private onDidiTick(): void {
+    if (!this.accepting || this.finished) return;
+    this.didiCount += 1;
 
-    // Защита от перерезания: если уже сильно превысил — фиксируем сразу
-    if (this.cuts > ing.targetCuts + 2) {
-      this.commitIngredient();
+    this.tweens.add({
+      targets: this.didiPortrait, scale: { from: 1.12, to: 1 },
+      duration: 140, ease: 'Quad.easeOut',
+    });
+
+    this.updateUi();
+
+    if (this.didiCount >= this.currentTarget) {
+      this.endRound('didi');
     }
   }
 
-  private commitIngredient(): void {
-    const ing = this.currentIngredient;
-    if (!ing) return;
-    this.currentIngredient = null;
+  // ========== РЕЖИМЫ ==========
 
-    if (this.commitTimer) {
-      this.commitTimer.remove();
-      this.commitTimer = null;
-    }
+  private placeVeggieRandom(): void {
+    const { WIDTH, HEIGHT } = GAME;
+    const minX = WIDTH * 0.18;
+    const maxX = WIDTH * 0.82;
+    const minY = HEIGHT * 0.42;
+    const maxY = HEIGHT * 0.78;
+    this.veggie.x = Phaser.Math.Between(minX, maxX);
+    this.veggie.y = Phaser.Math.Between(minY, maxY);
+    this.veggieIdx = (this.veggieIdx + 1) % VEGGIES.length;
+    this.veggie.setText(VEGGIES[this.veggieIdx]);
+    this.veggie.setScale(0);
+    this.veggie.setVisible(true);
+    this.tweens.add({
+      targets: this.veggie, scale: 1, duration: 200, ease: 'Back.easeOut',
+    });
+  }
 
-    const success = this.cuts === ing.targetCuts;
-    this.totalAttempts += 1;
-    if (success) {
-      this.successCount += 1;
+  private scheduleBombSwap(): void {
+    if (this.finished || !this.accepting) return;
+    const delay = Phaser.Math.Between(700, 1100);
+    this.bombCycleTimer = this.time.delayedCall(delay, () => {
+      if (this.finished || !this.accepting) return;
+      const wantBomb = Phaser.Math.Between(0, 99) < 28;
+      if (wantBomb && !this.currentlyBomb) {
+        this.currentlyBomb = true;
+        this.veggie.setText('💣');
+        this.veggie.setScale(0.8);
+        this.tweens.add({
+          targets: this.veggie, scale: 1, duration: 180, ease: 'Back.easeOut',
+        });
+      } else {
+        this.currentlyBomb = false;
+        this.veggieIdx = (this.veggieIdx + 1) % VEGGIES.length;
+        this.veggie.setText(VEGGIES[this.veggieIdx]);
+      }
+      this.scheduleBombSwap();
+    });
+  }
+
+  // ========== UI ==========
+
+  private setBig(text: string, color: string): void {
+    this.tweens.killTweensOf(this.bigText);
+    this.bigText.setAlpha(1);
+    this.bigText.setText(text);
+    this.bigText.setColor(color);
+  }
+
+  private updateUi(): void {
+    const target = this.currentTarget || 1;
+    const fillP = Math.min(1, this.playerCount / target);
+    const fillD = Math.min(1, this.didiCount / target);
+    this.playerBar.displayWidth = (BAR_WIDTH - 6) * fillP;
+    this.didiBar.displayWidth = (BAR_WIDTH - 6) * fillD;
+    this.playerCountText.setText(`${this.playerCount} / ${target}`);
+    this.didiCountText.setText(`${this.didiCount} / ${target}`);
+    this.scoreText.setText(`ТЫ ${this.playerWins}  :  ${this.didiWins} ДИДИ`);
+  }
+
+  // ========== ФИНАЛ РАУНДА ==========
+
+  private endRound(winner: 'player' | 'didi'): void {
+    this.accepting = false;
+    this.playerCanTap = false;
+    if (this.didiTimer) { this.didiTimer.remove(); this.didiTimer = null; }
+    if (this.headstartTimer) { this.headstartTimer.remove(); this.headstartTimer = null; }
+    if (this.playerUnlockTimer) { this.playerUnlockTimer.remove(); this.playerUnlockTimer = null; }
+    if (this.bombCycleTimer) { this.bombCycleTimer.remove(); this.bombCycleTimer = null; }
+    this.currentlyBomb = false;
+    this.swipeActive = false;
+    this.trailGfx.clear();
+
+    if (winner === 'player') {
+      this.playerWins += 1;
       SoundManager.playSfx('perfect');
-      Haptics.trigger('perfect');
+      Haptics.trigger('win');
+      this.setBig('K.O.', '#4ADE80');
     } else {
+      this.didiWins += 1;
       SoundManager.playSfx('miss');
       Haptics.trigger('miss');
+      this.setBig('ДИДИ ВЫРВАЛСЯ', '#EF4444');
     }
-
-    // Анимация исчезновения / разлёта
     this.tweens.add({
-      targets: ing.text,
-      scale: success ? 0 : 1.4,
-      alpha: 0,
-      angle: success ? 0 : 90,
-      duration: 350,
-      ease: 'Quad.easeIn',
-      onComplete: () => ing.text.destroy(),
+      targets: this.bigText, scale: { from: 1.6, to: 1 },
+      duration: 350, ease: 'Back.easeOut',
     });
+    this.cameras.main.shake(280, 0.012);
+    this.updateUi();
 
-    // Подсказка под доской
-    const fx = this.add.text(
-      GAME.WIDTH / 2, GAME.HEIGHT * 0.55,
-      success ? `ИДЕАЛЬНО! ${ing.targetCuts}/${ing.targetCuts}` : `ПРОМАХ ${this.cuts}/${ing.targetCuts}`,
-      { ...TEXT_STYLES.subtitle, fontSize: '24px', color: success ? '#4ADE80' : '#EF4444' }
-    );
-    fx.setOrigin(0.5);
-    fx.setDepth(DEPTH.modal);
-    this.tweens.add({
-      targets: fx, y: fx.y - 80, alpha: 0, duration: 800,
-      onComplete: () => fx.destroy(),
-    });
+    this.currentRoundIndex += 1;
 
-    this.updateHud();
-
-    if (this.successCount >= this.requiredSuccesses) {
-      this.time.delayedCall(500, () => this.finish());
+    // Финал матча
+    if (this.playerWins >= ROUNDS_TO_WIN || this.didiWins >= ROUNDS_TO_WIN) {
+      this.time.delayedCall(1100, () => this.finishMatch());
       return;
     }
-    if (this.totalAttempts >= this.maxAttempts) {
-      this.time.delayedCall(500, () => this.finish());
+    if (this.currentRoundIndex >= ROUNDS_PER_MATCH) {
+      this.time.delayedCall(1100, () => this.finishMatch());
       return;
     }
 
-    this.time.delayedCall(500, () => this.spawnIngredient());
+    // Перк перед следующим раундом
+    this.time.delayedCall(900, () => {
+      const next = this.pickRandomPerk();
+      this.nextPerk = next;
+      this.showPerkCard(next, () => this.startRound());
+    });
   }
 
-  private updateHud(): void {
-    this.successText.setText(`✅ ${this.successCount}/${this.requiredSuccesses}   попытка ${Math.min(this.totalAttempts + 1, this.maxAttempts)}/${this.maxAttempts}`);
-  }
-
-  private onTick(): void {
-    this.timeLeftMs -= 200;
-    const sec = Math.max(0, Math.ceil(this.timeLeftMs / 1000));
-    this.timerText.setText(`⏱ ${sec}`);
-    if (this.timeLeftMs <= 0) {
-      this.finish();
-    }
-  }
-
-  private finish(): void {
+  private finishMatch(): void {
     if (this.finished) return;
     this.finished = true;
 
-    if (this.gameTimer)   this.gameTimer.remove();
-    if (this.commitTimer) this.commitTimer.remove();
-    this.swiping = false;
+    if (this.didiTimer) this.didiTimer.remove();
+    if (this.headstartTimer) this.headstartTimer.remove();
+    if (this.playerUnlockTimer) this.playerUnlockTimer.remove();
+    if (this.bombCycleTimer) this.bombCycleTimer.remove();
 
-    const win = this.successCount >= this.requiredSuccesses;
+    const win = this.playerWins > this.didiWins;
     if (win) { SoundManager.playSfx('win'); Haptics.trigger('win'); }
     else     { SoundManager.playSfx('lose'); Haptics.trigger('lose'); }
 
@@ -373,37 +783,30 @@ export class ChopChopScene extends BaseMinigame {
     const msg = this.add.text(
       WIDTH / 2, HEIGHT / 2,
       win ? RU.minigame.win : RU.minigame.lose,
-      { ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444' }
+      { ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444' },
     );
     msg.setOrigin(0.5);
     msg.setDepth(DEPTH.modal + 1);
 
-    const score = Math.round((this.successCount / Math.max(1, this.requiredSuccesses)) * 100);
+    const score = Math.round((this.playerWins / ROUNDS_PER_MATCH) * 100);
     this.time.delayedCall(900, () => {
       this.complete({
         outcome: win ? 'win' : 'lose',
         score: Math.min(100, score),
-        metadata: { successes: this.successCount, attempts: this.totalAttempts },
+        metadata: { playerWins: this.playerWins, didiWins: this.didiWins },
       });
     });
   }
 
-  shutdown(): void {
-    this.input.off('pointerdown', this.onPointerDown, this);
-    this.input.off('pointerup',   this.onPointerUp,   this);
-    if (this.gameTimer)   this.gameTimer.remove();
-    if (this.commitTimer) this.commitTimer.remove();
-  }
+  // ========== УТИЛИТЫ ==========
 
-  /** Геометрия: пересекает ли отрезок (a,b) окружность (cx,cy,r). Покрывает и случай,
-   *  когда один или оба конца отрезка находятся внутри окружности. */
+  /** Пересекает ли отрезок (a,b) окружность (cx,cy,r) — учитывает и случай,
+   *  когда один или оба конца внутри круга. */
   private lineIntersectsCircle(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, r: number): boolean {
-    // Один из концов внутри окружности — тогда отрезок гарантированно её затрагивает
     const dax = ax - cx, day = ay - cy;
     const dbx = bx - cx, dby = by - cy;
     if (dax * dax + day * day <= r * r) return true;
     if (dbx * dbx + dby * dby <= r * r) return true;
-
     const dx = bx - ax;
     const dy = by - ay;
     const fx = ax - cx;
@@ -427,5 +830,15 @@ export class ChopChopScene extends BaseMinigame {
       g.fillCircle(Math.random() * WIDTH, Math.random() * HEIGHT, Math.random() * 1.5);
     }
     g.setDepth(DEPTH.background);
+  }
+
+  shutdown(): void {
+    this.input.off('pointerdown', this.onPointerDown, this);
+    this.input.off('pointermove', this.onPointerMove, this);
+    this.input.off('pointerup', this.onPointerUp, this);
+    if (this.didiTimer) this.didiTimer.remove();
+    if (this.headstartTimer) this.headstartTimer.remove();
+    if (this.playerUnlockTimer) this.playerUnlockTimer.remove();
+    if (this.bombCycleTimer) this.bombCycleTimer.remove();
   }
 }
