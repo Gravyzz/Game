@@ -12,17 +12,11 @@ import { Haptics } from '@core/Haptics';
  * MG-03 Фаерстартер: тайминг печи.
  *
  * Геймплей:
- *  - На экране печь и горизонтальный индикатор прожарки.
- *  - Маркер снуёт по индикатору слева-направо и обратно с растущей скоростью.
- *  - В середине шкалы — узкая «зелёная зона» идеальной прожарки.
- *  - Игрок тапает в любую точку экрана, чтобы «вытащить пиццу».
- *  - Один тап в зелёной зоне = пицца идеальная (+1).
- *  - Тап мимо = сырая или сгоревшая (−1 жизнь).
- *  - Раунд состоит из ROUNDS_PER_GAME пиццы. Хотя бы WIN_THRESHOLD идеальных = WIN.
- *
- * Сложность (difficulty 0..1):
- *  - Ширина зелёной зоны: 32% (easy) → 9% (hard).
- *  - Скорость маркера: 1.0× → 2.2×.
+ *  - 10 раундов на одной жизни, общий таймер 50 секунд.
+ *  - С каждым раундом маркер ускоряется, а зелёная зона сужается.
+ *  - С 6-го раунда зона сама начинает ходить по шкале — сначала медленно
+ *    с малой амплитудой, к 10-му раунду заметно быстрее и шире.
+ *  - Любой промах — поражение, время вышло без 10 попаданий — поражение.
  */
 
 const ROUNDS_PER_GAME = 10;
@@ -154,9 +148,7 @@ export class FireStarterScene extends BaseMinigame {
     this.bar.setStrokeStyle(4, COLORS.black);
     this.bar.setDepth(DEPTH.gameplay);
 
-    // Зелёная зона — позиция и размер вычисляются перед каждым раундом
-    const zoneWidth = this.computeZoneWidth(diff);
-    this.greenZone = this.add.rectangle(WIDTH / 2, barY, zoneWidth, BAR_HEIGHT - 8, COLORS.win);
+    // Зона создаётся на полную ширину шкалы; реальный размер задаём через displayWidth
     this.greenZone = this.add.rectangle(WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT - 8, COLORS.win);
     this.greenZone.displayWidth = BAR_WIDTH * ZONE_RATIO_START;
     this.greenZone.setDepth(DEPTH.gameplay + 1);
@@ -186,6 +178,7 @@ export class FireStarterScene extends BaseMinigame {
     // Тап по экрану — фиксируем результат раунда
     this.input.on('pointerdown', this.handleTap, this);
 
+    // Общий таймер на всю минку — 50 секунд
     this.timeLeftMs = TOTAL_TIME_MS;
     this.timerEvent = this.time.addEvent({
       delay: 100,
@@ -235,6 +228,7 @@ export class FireStarterScene extends BaseMinigame {
     );
   }
 
+  /** Готовим раунд: размер и позиция зоны, скорость маркера, осцилляция зоны */
   private startRound(): void {
     if (this.currentRound >= ROUNDS_PER_GAME) {
       this.finish();

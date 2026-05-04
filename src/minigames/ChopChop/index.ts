@@ -24,7 +24,7 @@ import { Haptics } from '@core/Haptics';
  *  - 👆 ДВОЙНОЙ ТАП        первые 6 тапов идут x2
  *  - 🐢 СТОПОР             Диди стартует на 1 сек позже
  *  - 🪓 ТУПОЙ НОЖ          (-) каждый второй тап в холостую
- *  - ⏱  СЛОМАН НОЖИК       (-) Диди тапает первые 5 сек один
+ *  - ⏱  СЛОМАН НОЖИК       (-) Диди тапает первые 2 сек один
  */
 
 const ROUNDS_PER_MATCH = 5;
@@ -59,13 +59,22 @@ const PERKS: Record<PerkId, { emoji: string; name: string; desc: string; isCurse
   doubleTap:     { emoji: '👆', name: 'ДВОЙНОЙ ТАП',   desc: 'Первые 6 тапов идут x2',          isCurse: false },
   slowDidi:      { emoji: '🐢', name: 'СТОПОР',        desc: 'Диди тормозит ещё на 1 сек',      isCurse: false },
   dullKnife:     { emoji: '🪓', name: 'ТУПОЙ НОЖ',     desc: 'Каждый второй тап в холостую',    isCurse: true  },
-  didiHeadstart: { emoji: '⏱',  name: 'СЛОМАН НОЖИК',  desc: 'Диди рубит 5 сек один',           isCurse: true  },
+  didiHeadstart: { emoji: '⏱',  name: 'СЛОМАН НОЖИК',  desc: 'Диди рубит 2 сек один',           isCurse: true  },
 };
 const PERK_IDS: PerkId[] = ['sharpKnife', 'doubleTap', 'slowDidi', 'dullKnife', 'didiHeadstart'];
 
-const SWIPE_MIN_LEN = 8;
-const SWIPE_COOLDOWN_MS = 130;
-const VEGGIE_RADIUS = 80;
+const SWIPE_MIN_LEN = 5;
+const SWIPE_COOLDOWN_MS = 120;
+const VEGGIE_RADIUS = 88;
+
+// Пиксельный шрифт — как на главном меню
+const PIXEL_FONT = '"Press Start 2P", monospace';
+
+// Зона спавна овощей в swipe-режиме (фиксированная, видимая рамкой)
+const SPAWN_X_MIN = 70;
+const SPAWN_X_MAX = GAME.WIDTH - 70;
+const SPAWN_Y_MIN = 410;
+const SPAWN_Y_MAX = 920;
 
 export class ChopChopScene extends BaseMinigame {
   // Прогресс матча
@@ -92,6 +101,9 @@ export class ChopChopScene extends BaseMinigame {
   private veggieIdx = 0;
   private trailGfx!: Phaser.GameObjects.Graphics;
   private perkBadgeText: Phaser.GameObjects.Text | null = null;
+  private spawnFrame!: Phaser.GameObjects.Graphics;
+  private tapZoneBg!: Phaser.GameObjects.Rectangle;
+  private tapZoneLabel!: Phaser.GameObjects.Text;
 
   // Таймеры
   private didiTimer: Phaser.Time.TimerEvent | null = null;
@@ -142,9 +154,9 @@ export class ChopChopScene extends BaseMinigame {
     title.setDepth(DEPTH.ui);
     this.add.existing(title);
 
-    // Счёт раундов
+    // Счёт раундов — пиксельный шрифт как на мейн-меню
     this.scoreText = this.add.text(WIDTH / 2, 130, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '20px', color: '#FAF7F0',
+      fontFamily: PIXEL_FONT, fontSize: '18px', color: '#FAF7F0',
     });
     this.scoreText.setOrigin(0.5);
     this.scoreText.setDepth(DEPTH.ui);
@@ -157,8 +169,8 @@ export class ChopChopScene extends BaseMinigame {
     this.didiPortrait.setOrigin(1, 0.5);
     this.didiPortrait.setDepth(DEPTH.ui);
 
-    const didiName = this.add.text(WIDTH / 2, didiNameY, 'ДИДИ', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#FF2E2E',
+    const didiName = this.add.text(WIDTH / 2, didiNameY, 'DIDI', {
+      fontFamily: PIXEL_FONT, fontSize: '22px', color: '#FF2E2E',
     });
     didiName.setOrigin(0.5);
     didiName.setDepth(DEPTH.ui);
@@ -173,26 +185,26 @@ export class ChopChopScene extends BaseMinigame {
     this.didiBar.setDepth(DEPTH.gameplay + 1);
 
     this.didiCountText = this.add.text(WIDTH / 2, didiBarY, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '16px', color: '#FAF7F0',
+      fontFamily: PIXEL_FONT, fontSize: '14px', color: '#FAF7F0',
     });
     this.didiCountText.setOrigin(0.5);
     this.didiCountText.setDepth(DEPTH.ui);
 
     // === Центр ===
     this.roundText = this.add.text(WIDTH / 2, 310, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '20px', color: '#FFE600',
+      fontFamily: PIXEL_FONT, fontSize: '16px', color: '#FFE600',
     });
     this.roundText.setOrigin(0.5);
     this.roundText.setDepth(DEPTH.ui);
 
     this.modeText = this.add.text(WIDTH / 2, 345, '', {
-      ...TEXT_STYLES.label, fontSize: '14px', color: '#FAF7F0',
+      fontFamily: PIXEL_FONT, fontSize: '12px', color: '#FAF7F0',
     });
     this.modeText.setOrigin(0.5);
     this.modeText.setDepth(DEPTH.ui);
 
     this.bigText = this.add.text(WIDTH / 2, HEIGHT * 0.5, '', {
-      ...TEXT_STYLES.hero, fontSize: '60px', color: '#FFE600',
+      fontFamily: PIXEL_FONT, fontSize: '48px', color: '#FFE600',
     });
     this.bigText.setOrigin(0.5);
     this.bigText.setDepth(DEPTH.modal);
@@ -201,6 +213,11 @@ export class ChopChopScene extends BaseMinigame {
     this.veggie.setOrigin(0.5);
     this.veggie.setDepth(DEPTH.gameplay);
     this.veggie.setVisible(false);
+
+    // Видимая рамка зоны спавна для свайп-режима
+    this.spawnFrame = this.add.graphics();
+    this.spawnFrame.setDepth(DEPTH.midground);
+    this.spawnFrame.setVisible(false);
 
     this.trailGfx = this.add.graphics();
     this.trailGfx.setDepth(DEPTH.effects);
@@ -213,8 +230,8 @@ export class ChopChopScene extends BaseMinigame {
     this.playerPortrait.setOrigin(0, 0.5);
     this.playerPortrait.setDepth(DEPTH.ui);
 
-    const playerName = this.add.text(WIDTH / 2, playerNameY, 'ТЫ', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#4ADE80',
+    const playerName = this.add.text(WIDTH / 2, playerNameY, 'YOU', {
+      fontFamily: PIXEL_FONT, fontSize: '22px', color: '#4ADE80',
     });
     playerName.setOrigin(0.5);
     playerName.setDepth(DEPTH.ui);
@@ -229,20 +246,20 @@ export class ChopChopScene extends BaseMinigame {
     this.playerBar.setDepth(DEPTH.gameplay + 1);
 
     this.playerCountText = this.add.text(WIDTH / 2, playerBarY, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '16px', color: '#FAF7F0',
+      fontFamily: PIXEL_FONT, fontSize: '14px', color: '#FAF7F0',
     });
     this.playerCountText.setOrigin(0.5);
     this.playerCountText.setDepth(DEPTH.ui);
 
-    // Кнопка ТАП — визуальная
-    const tapZone = this.add.rectangle(WIDTH / 2, HEIGHT - 130, BAR_WIDTH + 60, 130, COLORS.yellow);
-    tapZone.setStrokeStyle(6, COLORS.black);
-    tapZone.setDepth(DEPTH.gameplay);
-    const tapLabel = this.add.text(WIDTH / 2, HEIGHT - 130, 'ТАП-ТАП-ТАП!', {
-      ...TEXT_STYLES.hero, fontSize: '40px', color: '#0A0A0A',
+    // Кнопка ТАП — визуальная, в стилистике пиксельных кнопок мейн-меню
+    this.tapZoneBg = this.add.rectangle(WIDTH / 2, HEIGHT - 130, BAR_WIDTH + 60, 130, 0x69bd45);
+    this.tapZoneBg.setStrokeStyle(6, COLORS.black);
+    this.tapZoneBg.setDepth(DEPTH.gameplay);
+    this.tapZoneLabel = this.add.text(WIDTH / 2, HEIGHT - 130, 'TAP TAP TAP', {
+      fontFamily: PIXEL_FONT, fontSize: '32px', color: '#0A0A0A',
     });
-    tapLabel.setOrigin(0.5);
-    tapLabel.setDepth(DEPTH.gameplay + 1);
+    this.tapZoneLabel.setOrigin(0.5);
+    this.tapZoneLabel.setDepth(DEPTH.gameplay + 1);
 
     // Инпут
     this.input.on('pointerdown', this.onPointerDown, this);
@@ -303,27 +320,92 @@ export class ChopChopScene extends BaseMinigame {
   private setupRoundVisual(): void {
     const { WIDTH, HEIGHT } = GAME;
     if (this.currentMode === 'swipe') {
+      this.drawSpawnFrame();
+      this.spawnFrame.setVisible(true);
+      this.spawnFrame.setAlpha(1);
+      this.tweens.killTweensOf(this.spawnFrame);
+      this.tweens.add({
+        targets: this.spawnFrame, alpha: { from: 0.55, to: 1 },
+        duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+      this.tapZoneBg.setVisible(false);
+      this.tapZoneLabel.setVisible(false);
       this.placeVeggieRandom();
-      this.veggie.setVisible(false); // покажется после countdown
+      this.veggie.setVisible(false);
     } else {
+      this.tweens.killTweensOf(this.spawnFrame);
+      this.spawnFrame.setVisible(false);
+      this.tapZoneBg.setVisible(true);
+      this.tapZoneLabel.setVisible(true);
+      this.tapZoneLabel.setText(this.currentMode === 'bomb' ? 'NO BOMB!' : 'TAP TAP TAP');
+      this.tapZoneBg.setFillStyle(this.currentMode === 'bomb' ? 0xff8a3a : 0x69bd45);
       this.veggie.x = WIDTH / 2;
       this.veggie.y = HEIGHT * 0.62;
       this.veggie.setVisible(false);
     }
   }
 
+  /** Пиксельный «арена-фрейм» для зоны спавна — четыре уголка-скобки + штрих по периметру */
+  private drawSpawnFrame(): void {
+    const g = this.spawnFrame;
+    g.clear();
+    const x = SPAWN_X_MIN;
+    const y = SPAWN_Y_MIN;
+    const w = SPAWN_X_MAX - SPAWN_X_MIN;
+    const h = SPAWN_Y_MAX - SPAWN_Y_MIN;
+
+    // Лёгкая подложка
+    g.fillStyle(0x000000, 0.18);
+    g.fillRect(x, y, w, h);
+
+    // Пунктирная жёлтая рамка по периметру
+    const dash = 14;
+    const gap = 10;
+    g.lineStyle(3, COLORS.yellow, 0.7);
+    // Верх / низ
+    for (let dx = 0; dx < w; dx += dash + gap) {
+      const x1 = x + dx;
+      const x2 = Math.min(x + dx + dash, x + w);
+      g.lineBetween(x1, y, x2, y);
+      g.lineBetween(x1, y + h, x2, y + h);
+    }
+    // Лево / право
+    for (let dy = 0; dy < h; dy += dash + gap) {
+      const y1 = y + dy;
+      const y2 = Math.min(y + dy + dash, y + h);
+      g.lineBetween(x, y1, x, y2);
+      g.lineBetween(x + w, y1, x + w, y2);
+    }
+
+    // Толстые угловые скобки — как в аркадных таргетах
+    const c = 26;
+    g.lineStyle(6, COLORS.yellow, 1);
+    // top-left
+    g.lineBetween(x, y, x + c, y);
+    g.lineBetween(x, y, x, y + c);
+    // top-right
+    g.lineBetween(x + w - c, y, x + w, y);
+    g.lineBetween(x + w, y, x + w, y + c);
+    // bottom-left
+    g.lineBetween(x, y + h - c, x, y + h);
+    g.lineBetween(x, y + h, x + c, y + h);
+    // bottom-right
+    g.lineBetween(x + w - c, y + h, x + w, y + h);
+    g.lineBetween(x + w, y + h - c, x + w, y + h);
+  }
+
   private startGameplayTimers(cfg: RoundCfg): void {
     if (this.finished) return;
 
-    // «Сломан ножик» — игрок 5 сек смотрит, Диди работает
+    // «Сломан ножик» — игрок 2 сек смотрит, Диди работает
     if (this.perkDidiHeadstart) {
       this.playerCanTap = false;
       this.setBig('НОЖИК СЛОМАЛСЯ…', '#EF4444');
       this.tweens.add({
         targets: this.bigText, alpha: { from: 1, to: 0.4 },
-        duration: 4500, ease: 'Sine.easeIn',
+        duration: 1700, ease: 'Sine.easeIn',
       });
-      this.playerUnlockTimer = this.time.delayedCall(5000, () => {
+      this.playerUnlockTimer = this.time.delayedCall(2000, () => {
         if (this.finished) return;
         this.playerCanTap = true;
         this.setBig('', '#FFE600');
@@ -418,61 +500,137 @@ export class ChopChopScene extends BaseMinigame {
     return PERK_IDS[Phaser.Math.Between(0, PERK_IDS.length - 1)];
   }
 
+  /** Рулетка перков а-ля казино: карточка быстро прокручивает варианты, замедляется и
+   *  останавливается на финальном перке, после чего раскрывается описание. */
   private showPerkCard(perkId: PerkId, onDone: () => void): void {
     const { WIDTH, HEIGHT } = GAME;
-    const p = PERKS[perkId];
 
-    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.65);
+    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.7);
     overlay.setDepth(DEPTH.modal);
 
-    const cardBg = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 540, 360, COLORS.cream);
-    cardBg.setStrokeStyle(8, p.isCurse ? COLORS.lose : COLORS.win);
+    // Рамка карточки в стилистике пиксельных кнопок мейн-меню
+    const cardBg = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 540, 380, COLORS.cream);
+    cardBg.setStrokeStyle(8, COLORS.yellow);
     cardBg.setDepth(DEPTH.modal + 1);
 
-    const tag = this.add.text(WIDTH / 2, HEIGHT / 2 - 130,
-      p.isCurse ? 'ПОДЛЯНА' : 'БУФФ',
-      { ...TEXT_STYLES.subtitle, fontSize: '20px', color: p.isCurse ? '#EF4444' : '#0A8C45' });
-    tag.setOrigin(0.5);
-    tag.setDepth(DEPTH.modal + 2);
+    const titleTop = this.add.text(WIDTH / 2, HEIGHT / 2 - 150, 'РУЛЕТКА', {
+      fontFamily: PIXEL_FONT, fontSize: '20px', color: '#0A0A0A',
+    });
+    titleTop.setOrigin(0.5);
+    titleTop.setDepth(DEPTH.modal + 2);
 
-    const emoji = this.add.text(WIDTH / 2, HEIGHT / 2 - 50, p.emoji, { fontSize: '96px' });
+    // «Окошко» рулетки — мигающая полоса как у слот-машины
+    const slotBg = this.add.rectangle(WIDTH / 2, HEIGHT / 2 - 30, 440, 180, 0x1a1a1a);
+    slotBg.setStrokeStyle(6, COLORS.black);
+    slotBg.setDepth(DEPTH.modal + 1);
+
+    const emoji = this.add.text(WIDTH / 2, HEIGHT / 2 - 50, '', { fontSize: '96px' });
     emoji.setOrigin(0.5);
     emoji.setDepth(DEPTH.modal + 2);
 
-    const name = this.add.text(WIDTH / 2, HEIGHT / 2 + 50, p.name,
-      { ...TEXT_STYLES.hero, fontSize: '34px', color: '#0A0A0A' });
+    const name = this.add.text(WIDTH / 2, HEIGHT / 2 + 30, '', {
+      fontFamily: PIXEL_FONT, fontSize: '20px', color: '#FAF7F0',
+    });
     name.setOrigin(0.5);
     name.setDepth(DEPTH.modal + 2);
 
-    const desc = this.add.text(WIDTH / 2, HEIGHT / 2 + 110, p.desc,
-      { ...TEXT_STYLES.label, fontSize: '16px', color: '#1A1A1A' });
+    const desc = this.add.text(WIDTH / 2, HEIGHT / 2 + 130, '', {
+      fontFamily: 'Onest, system-ui, sans-serif', fontSize: '16px', color: '#1A1A1A',
+      align: 'center', wordWrap: { width: 480 },
+    });
     desc.setOrigin(0.5);
     desc.setDepth(DEPTH.modal + 2);
+    desc.setAlpha(0);
 
+    // Появление карточки
     cardBg.setScale(0);
+    slotBg.setScale(0);
     this.tweens.add({
-      targets: [cardBg, tag, emoji, name, desc],
-      scale: { from: 0, to: 1 }, duration: 350, ease: 'Back.easeOut',
+      targets: [cardBg, slotBg, titleTop],
+      scale: { from: 0, to: 1 }, duration: 320, ease: 'Back.easeOut',
     });
 
-    SoundManager.playSfx(p.isCurse ? 'miss' : 'perfect');
-    Haptics.trigger(p.isCurse ? 'miss' : 'perfect');
+    // Прокрутка
+    const finalIdx = PERK_IDS.indexOf(perkId);
+    // 3 полных оборота + дотягиваемся до финального индекса
+    const totalSteps = PERK_IDS.length * 3 + finalIdx + 1;
+    let step = 0;
 
-    this.time.delayedCall(2200, () => {
+    const cleanup = () => {
       this.tweens.add({
-        targets: [overlay, cardBg, tag, emoji, name, desc],
+        targets: [overlay, cardBg, slotBg, titleTop, emoji, name, desc],
         alpha: 0, duration: 250,
         onComplete: () => {
           overlay.destroy();
           cardBg.destroy();
-          tag.destroy();
+          slotBg.destroy();
+          titleTop.destroy();
           emoji.destroy();
           name.destroy();
           desc.destroy();
           onDone();
         },
       });
-    });
+    };
+
+    const tick = () => {
+      if (this.finished) { cleanup(); return; }
+      const cur = PERK_IDS[step % PERK_IDS.length];
+      const p = PERKS[cur];
+      emoji.setText(p.emoji);
+      name.setText(p.name);
+      name.setColor(p.isCurse ? '#FF6B6B' : '#5DFF8E');
+      slotBg.setStrokeStyle(6, p.isCurse ? COLORS.lose : COLORS.win);
+
+      // Тик-пульс
+      this.tweens.killTweensOf(emoji);
+      emoji.setScale(1.0);
+      this.tweens.add({
+        targets: emoji, scale: { from: 1.18, to: 1 }, duration: 90,
+      });
+
+      SoundManager.playSfx('tap');
+      Haptics.trigger('tap');
+
+      step += 1;
+      if (step >= totalSteps) {
+        // Финальная остановка
+        const final = PERKS[perkId];
+        emoji.setText(final.emoji);
+        name.setText(final.name);
+        name.setColor(final.isCurse ? '#FF6B6B' : '#5DFF8E');
+        slotBg.setStrokeStyle(6, final.isCurse ? COLORS.lose : COLORS.win);
+
+        const tag = final.isCurse ? 'ПОДЛЯНА' : 'БУФФ';
+        titleTop.setText(tag);
+        titleTop.setColor(final.isCurse ? '#EF4444' : '#0A8C45');
+
+        this.tweens.killTweensOf(emoji);
+        emoji.setScale(1);
+        this.tweens.add({
+          targets: emoji, scale: { from: 1.6, to: 1 },
+          duration: 450, ease: 'Back.easeOut',
+        });
+        desc.setText(final.desc);
+        this.tweens.add({
+          targets: desc, alpha: { from: 0, to: 1 }, duration: 380, delay: 200,
+        });
+        SoundManager.playSfx(final.isCurse ? 'miss' : 'perfect');
+        Haptics.trigger(final.isCurse ? 'miss' : 'perfect');
+        this.cameras.main.shake(220, 0.008);
+
+        this.time.delayedCall(1700, cleanup);
+        return;
+      }
+
+      // Кривая замедления: 50мс → ~340мс
+      const t = step / totalSteps;
+      const delay = 50 + Math.pow(t, 2.4) * 290;
+      this.time.delayedCall(delay, tick);
+    };
+
+    // Запускаем рулетку чуть позже, чтобы успела появиться карточка
+    this.time.delayedCall(280, tick);
   }
 
   // ========== ИНПУТ ==========
@@ -484,6 +642,15 @@ export class ChopChopScene extends BaseMinigame {
       this.prevPointerX = p.x;
       this.prevPointerY = p.y;
       this.trailGfx.clear();
+      // Прямое касание ровно по овощу тоже считается за разрез
+      const dx = p.x - this.veggie.x;
+      const dy = p.y - this.veggie.y;
+      if (this.playerCanTap
+          && dx * dx + dy * dy <= VEGGIE_RADIUS * VEGGIE_RADIUS
+          && this.time.now - this.lastSwipeChopAt > SWIPE_COOLDOWN_MS) {
+        this.lastSwipeChopAt = this.time.now;
+        this.handleSwipeChop();
+      }
       return;
     }
     this.handleTap();
@@ -505,9 +672,17 @@ export class ChopChopScene extends BaseMinigame {
       this.handleSwipeChop();
     }
 
-    // След от свайпа
-    this.trailGfx.lineStyle(5, 0xFAF7F0, 0.7);
+    // След от свайпа — толстый «нож»
+    this.trailGfx.lineStyle(8, COLORS.yellow, 0.85);
     this.trailGfx.lineBetween(this.prevPointerX, this.prevPointerY, p.x, p.y);
+    this.trailGfx.lineStyle(3, COLORS.cream, 1);
+    this.trailGfx.lineBetween(this.prevPointerX, this.prevPointerY, p.x, p.y);
+    this.trailGfx.setAlpha(1);
+    this.tweens.killTweensOf(this.trailGfx);
+    this.tweens.add({
+      targets: this.trailGfx, alpha: 0, duration: 220, delay: 90,
+      onComplete: () => this.trailGfx.clear(),
+    });
 
     this.prevPointerX = p.x;
     this.prevPointerY = p.y;
@@ -655,13 +830,19 @@ export class ChopChopScene extends BaseMinigame {
   // ========== РЕЖИМЫ ==========
 
   private placeVeggieRandom(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const minX = WIDTH * 0.18;
-    const maxX = WIDTH * 0.82;
-    const minY = HEIGHT * 0.42;
-    const maxY = HEIGHT * 0.78;
-    this.veggie.x = Phaser.Math.Between(minX, maxX);
-    this.veggie.y = Phaser.Math.Between(minY, maxY);
+    // Чтобы овощ не вылезал за рамку — отступ от краёв
+    const padding = VEGGIE_RADIUS;
+    const prevX = this.veggie.x;
+    const prevY = this.veggie.y;
+    let nx = prevX, ny = prevY;
+    // Стараемся не спавнить в той же точке — несколько попыток
+    for (let i = 0; i < 6; i++) {
+      nx = Phaser.Math.Between(SPAWN_X_MIN + padding, SPAWN_X_MAX - padding);
+      ny = Phaser.Math.Between(SPAWN_Y_MIN + padding, SPAWN_Y_MAX - padding);
+      if (Math.hypot(nx - prevX, ny - prevY) > VEGGIE_RADIUS * 2) break;
+    }
+    this.veggie.x = nx;
+    this.veggie.y = ny;
     this.veggieIdx = (this.veggieIdx + 1) % VEGGIES.length;
     this.veggie.setText(VEGGIES[this.veggieIdx]);
     this.veggie.setScale(0);

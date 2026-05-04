@@ -11,19 +11,45 @@ import { Haptics } from '@core/Haptics';
 /**
  * NEW-06 Перепутанные рецепты.
  *
- * Memory/Concentration: открой две карточки. Если у обеих на лицевой стороне
- * один и тот же значок-«пиццарисунок» — пара. Найди все пары до конца таймера.
+ * Memory из 3 раундов:
+ *  - Раунд 1: 8 карт (4 пары), 35 сек.
+ *  - Раунд 2: 12 карт (6 пар),  50 сек.
+ *  - Раунд 3: 16 карт (8 пар),  65 сек.
  *
- *  - Каждая карточка имеет icon (один из небольшого набора) и текстовую плашку.
- *  - 3-6 пар в зависимости от сложности.
- *  - Неверная пара → −2 сек таймера. Верная пара с первой попытки → +3 сек.
+ * В начале каждого раунда все карты открываются на 2.5 / 3 / 3.5 сек, чтобы игрок
+ * успел запомнить (и просто понял, во что играет).
  *
- * Сложность:
- *  - Easy: 3 пары (6 карт), таймер ~30c.
- *  - Hard: 6 пар (12 карт), таймер ~30c, иконки похожие.
+ * Совпавшая пара: +3 сек.
+ * Промах: каждый неверный ход = −10 сек, начиная с первого.
+ *
+ * Кнопка «ПОДСМОТРЕТЬ» — открывает все ещё не найденные карты на 0.9 сек.
+ * Первый подсмотр — бесплатно. Каждый следующий — −20 сек таймера.
+ *
+ * Победа: пройти все 3 раунда. Поражение: таймер дошёл до нуля в любом раунде.
  */
 
-const PAIR_ICONS = ['🍕', '🌮', '🍔', '🥪', '🌯', '🍱', '🥡', '🍜'];
+const PAIR_ICONS = ['🍕', '🌮', '🍔', '🥪', '🌯', '🍱', '🥡', '🍜', '🥗', '🍝'];
+
+interface RoundCfg {
+  pairs: number;
+  cols: number;
+  rows: number;
+  durationMs: number;
+  previewMs: number;
+}
+
+const ROUND_CONFIGS: RoundCfg[] = [
+  { pairs: 4, cols: 4, rows: 2, durationMs: 35_000, previewMs: 600 },
+  { pairs: 6, cols: 4, rows: 3, durationMs: 50_000, previewMs: 900 },
+  { pairs: 8, cols: 4, rows: 4, durationMs: 65_000, previewMs: 1300 },
+];
+
+const TOTAL_ROUNDS = ROUND_CONFIGS.length;
+const PEEK_DURATION_MS = 900;
+const PEEK_PENALTY_MS = 20_000; // штраф за каждый подсмотр после первого
+const MISTAKE_PENALTY_MS = 10_000;
+const MATCH_BONUS_MS = 3_000;
+const FLIP_BACK_MS = 1000;
 
 interface Card {
   pairId: number;
@@ -39,24 +65,37 @@ interface Card {
 }
 
 export class RecipeMemoScene extends BaseMinigame {
+  // Состояние раунда
+  private roundIndex = 0;
+  private currentCfg!: RoundCfg;
   private cards: Card[] = [];
   private firstFlipped: Card | null = null;
   private secondFlipped: Card | null = null;
   private busy = false;
 
+  // Состояние матча
+  private peeksUsed = 0;
+  private mistakesThisRound = 0;
+  private matchedPairs = 0;
+  private totalMistakes = 0;
+
+  // Таймер
+  private timeLeftMs = 0;
+  private gameTimer: Phaser.Time.TimerEvent | null = null;
+  private peekTimer: Phaser.Time.TimerEvent | null = null;
+
+  // UI
   private timerText!: Phaser.GameObjects.Text;
   private timerBar!: Phaser.GameObjects.Rectangle;
   private timerBarBg!: Phaser.GameObjects.Rectangle;
   private statusText!: Phaser.GameObjects.Text;
+  private mistakesText!: Phaser.GameObjects.Text;
+  private peekBtn!: Phaser.GameObjects.Rectangle;
+  private peekLabel!: Phaser.GameObjects.Text;
+  private bannerOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private bannerText: Phaser.GameObjects.Text | null = null;
 
-  private timeLeftMs = 0;
-  private totalTimeMs = 0;
-  private gameTimer: Phaser.Time.TimerEvent | null = null;
   private finished = false;
-
-  private matchedPairs = 0;
-  private totalPairs = 3;
-  private mistakes = 0;
 
   constructor() {
     super({ key: 'RecipeMemo' });
@@ -64,11 +103,6 @@ export class RecipeMemoScene extends BaseMinigame {
 
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
-    const diff = this.initData.difficulty;
-
-    this.totalPairs = Math.round(Phaser.Math.Linear(3, 6, diff));
-    this.totalTimeMs = this.initData.durationMs;
-    this.timeLeftMs = this.totalTimeMs;
 
     // Фон — пробковая доска
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x6b4a2e);
@@ -82,7 +116,7 @@ export class RecipeMemoScene extends BaseMinigame {
     title.setDepth(DEPTH.ui);
     this.add.existing(title);
 
-    const hint = this.add.text(WIDTH / 2, 140, '👆 переверни 2 карточки. Найди все пары!', {
+    const hint = this.add.text(WIDTH / 2, 130, '👆 переверни 2 одинаковые карточки', {
       ...TEXT_STYLES.label, fontSize: '14px', color: '#FAF7F0',
     });
     hint.setOrigin(0.5);
@@ -90,10 +124,10 @@ export class RecipeMemoScene extends BaseMinigame {
 
     // Таймер-бар
     const barW = WIDTH - 80;
-    this.timerBarBg = this.add.rectangle(WIDTH / 2, 180, barW, 14, COLORS.greyDark);
+    this.timerBarBg = this.add.rectangle(WIDTH / 2, 170, barW, 14, COLORS.greyDark);
     this.timerBarBg.setStrokeStyle(2, COLORS.black);
     this.timerBarBg.setDepth(DEPTH.ui);
-    this.timerBar = this.add.rectangle(WIDTH / 2 - barW / 2, 180, barW, 10, COLORS.win);
+    this.timerBar = this.add.rectangle(WIDTH / 2 - barW / 2, 170, barW, 10, COLORS.win);
     this.timerBar.setOrigin(0, 0.5);
     this.timerBar.setDepth(DEPTH.ui + 1);
 
@@ -108,11 +142,79 @@ export class RecipeMemoScene extends BaseMinigame {
     });
     this.statusText.setDepth(DEPTH.ui);
 
-    // ===== Сетка карточек =====
-    const totalCards = this.totalPairs * 2;
-    const { cols, rows } = this.gridFor(totalCards);
+    this.mistakesText = this.add.text(WIDTH / 2, 200, '', {
+      ...TEXT_STYLES.label, fontSize: '14px', color: '#FAF7F0',
+    });
+    this.mistakesText.setOrigin(0.5);
+    this.mistakesText.setDepth(DEPTH.ui);
 
-    const icons = this.shuffle([...PAIR_ICONS]).slice(0, this.totalPairs);
+    // Кнопка «ПОДСМОТРЕТЬ»
+    this.peekBtn = this.add.rectangle(WIDTH / 2, HEIGHT - 90, WIDTH - 100, 80, COLORS.yellow);
+    this.peekBtn.setStrokeStyle(6, COLORS.black);
+    this.peekBtn.setDepth(DEPTH.ui);
+    this.peekBtn.setInteractive({ useHandCursor: true });
+    this.peekBtn.on('pointerdown', () => this.onPeek());
+
+    this.peekLabel = this.add.text(WIDTH / 2, HEIGHT - 90, '', {
+      ...TEXT_STYLES.button, fontSize: '24px', color: '#0A0A0A',
+    });
+    this.peekLabel.setOrigin(0.5);
+    this.peekLabel.setDepth(DEPTH.ui + 1);
+
+    this.cameras.main.fadeIn(250, 10, 10, 10);
+    this.startRound();
+  }
+
+  // ========== РАУНД ==========
+
+  private startRound(): void {
+    if (this.finished) return;
+    if (this.roundIndex >= TOTAL_ROUNDS) {
+      this.finish(true);
+      return;
+    }
+
+    // Чистим предыдущие карты
+    this.cards.forEach((c) => c.container.destroy());
+    this.cards = [];
+    this.firstFlipped = null;
+    this.secondFlipped = null;
+
+    this.currentCfg = ROUND_CONFIGS[this.roundIndex];
+    this.matchedPairs = 0;
+    this.mistakesThisRound = 0;
+    this.timeLeftMs = this.currentCfg.durationMs;
+
+    this.buildGrid(this.currentCfg);
+    this.updateHud();
+
+    // Превью: баннер на закрытых картах → открыть → подержать previewMs → закрыть → старт
+    this.busy = true;
+    this.cards.forEach((c) => this.setCardFace(c, false));
+    this.showBanner(`РАУНД ${this.roundIndex + 1} / ${TOTAL_ROUNDS}`, 900, () => {
+      if (this.finished) return;
+      this.cards.forEach((c) => {
+        if (!c.matched) this.setCardFace(c, true);
+      });
+      this.time.delayedCall(this.currentCfg.previewMs, () => {
+        if (this.finished) return;
+        this.cards.forEach((c) => {
+          if (!c.matched) this.flipCard(c, false);
+        });
+        this.time.delayedCall(280, () => {
+          if (this.finished) return;
+          this.busy = false;
+          this.startTimer();
+        });
+      });
+    });
+  }
+
+  private buildGrid(cfg: RoundCfg): void {
+    const { WIDTH, HEIGHT } = GAME;
+    const total = cfg.pairs * 2;
+
+    const icons = this.shuffle([...PAIR_ICONS]).slice(0, cfg.pairs);
     const deck: { icon: string; pairId: number }[] = [];
     icons.forEach((icon, i) => {
       deck.push({ icon, pairId: i });
@@ -120,38 +222,30 @@ export class RecipeMemoScene extends BaseMinigame {
     });
     const shuffledDeck = this.shuffle(deck);
 
-    const cardW = Math.min(180, (WIDTH - 80 - (cols - 1) * 14) / cols);
-    const cardH = Math.min(220, (HEIGHT * 0.65 - (rows - 1) * 14) / rows);
-    const gridW = cols * cardW + (cols - 1) * 14;
-    const gridH = rows * cardH + (rows - 1) * 14;
-    const startX = WIDTH / 2 - gridW / 2 + cardW / 2;
-    const startY = HEIGHT / 2 - gridH / 2 + cardH / 2 + 40;
+    // Доступная зона: между HUD сверху и кнопкой «подсмотреть» снизу
+    const gridTop = 240;
+    const gridBottom = HEIGHT - 160;
+    const gridArea = gridBottom - gridTop;
 
-    shuffledDeck.forEach((d, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = startX + col * (cardW + 14);
-      const y = startY + row * (cardH + 14);
+    const gap = 14;
+    const sideMargin = 40;
+    const maxCardW = 180;
+    const maxCardH = 240;
+    const cardW = Math.min(maxCardW, (WIDTH - sideMargin * 2 - (cfg.cols - 1) * gap) / cfg.cols);
+    const cardH = Math.min(maxCardH, (gridArea - (cfg.rows - 1) * gap) / cfg.rows);
+
+    const gridW = cfg.cols * cardW + (cfg.cols - 1) * gap;
+    const gridH = cfg.rows * cardH + (cfg.rows - 1) * gap;
+    const startX = WIDTH / 2 - gridW / 2 + cardW / 2;
+    const startY = gridTop + (gridArea - gridH) / 2 + cardH / 2;
+
+    shuffledDeck.slice(0, total).forEach((d, i) => {
+      const col = i % cfg.cols;
+      const row = Math.floor(i / cfg.cols);
+      const x = startX + col * (cardW + gap);
+      const y = startY + row * (cardH + gap);
       this.makeCard(d.pairId, d.icon, x, y, cardW, cardH);
     });
-
-    this.timeLeftMs = this.totalTimeMs;
-    this.gameTimer = this.time.addEvent({
-      delay: 100,
-      loop: true,
-      callback: this.onTick,
-      callbackScope: this,
-    });
-
-    this.updateStatus();
-    this.cameras.main.fadeIn(250, 10, 10, 10);
-  }
-
-  private gridFor(n: number): { cols: number; rows: number } {
-    if (n <= 6)  return { cols: 3, rows: 2 };
-    if (n <= 8)  return { cols: 4, rows: 2 };
-    if (n <= 10) return { cols: 5, rows: 2 };
-    return { cols: 4, rows: 3 };
   }
 
   private makeCard(pairId: number, icon: string, x: number, y: number, w: number, h: number): void {
@@ -170,7 +264,7 @@ export class RecipeMemoScene extends BaseMinigame {
     });
     backLabel.setOrigin(0.5);
 
-    // «Лицо» — иконка пиццы
+    // «Лицо» — иконка
     const front = this.add.rectangle(0, 0, w, h, COLORS.red);
     front.setStrokeStyle(3, COLORS.black);
     front.setVisible(false);
@@ -189,11 +283,49 @@ export class RecipeMemoScene extends BaseMinigame {
     };
 
     container.on('pointerdown', () => this.onCardClick(card));
-
     this.cards.push(card);
   }
 
+  private startTimer(): void {
+    if (this.gameTimer) this.gameTimer.remove();
+    this.gameTimer = this.time.addEvent({
+      delay: 100,
+      loop: true,
+      callback: this.onTick,
+      callbackScope: this,
+    });
+  }
+
+  private onTick(): void {
+    if (this.finished || this.busy && this.peeksOpen()) {
+      // время не идёт во время превью раунда (busy без peek)
+    }
+    if (this.finished) return;
+    this.timeLeftMs -= 100;
+    const sec = Math.max(0, Math.ceil(this.timeLeftMs / 1000));
+    this.timerText.setText(`⏱ ${sec}`);
+
+    const ratio = Math.max(0, this.timeLeftMs / this.currentCfg.durationMs);
+    this.timerBar.width = (GAME.WIDTH - 80) * Math.min(1, ratio);
+    if (ratio < 0.25) this.timerBar.setFillStyle(COLORS.lose);
+    else if (ratio < 0.5) this.timerBar.setFillStyle(COLORS.yellow);
+    else this.timerBar.setFillStyle(COLORS.win);
+
+    if (this.timeLeftMs <= 0) {
+      this.finish(false);
+    }
+  }
+
+  /** Помощник: сейчас открыт ли «подсмотр». Сейчас не используется напрямую,
+   *  но оставлено как точка расширения. */
+  private peeksOpen(): boolean {
+    return this.peekTimer !== null;
+  }
+
+  // ========== ОТКРЫТИЕ КАРТ ==========
+
   private onCardClick(card: Card): void {
+    if (this.finished) return;
     if (this.busy) return;
     if (card.flipped || card.matched) return;
     if (this.firstFlipped && this.secondFlipped) return;
@@ -212,58 +344,64 @@ export class RecipeMemoScene extends BaseMinigame {
 
     if (this.firstFlipped.pairId === card.pairId) {
       // Совпадение
-      this.time.delayedCall(380, () => {
-        if (this.firstFlipped) this.firstFlipped.matched = true;
-        if (this.secondFlipped) this.secondFlipped.matched = true;
-        SoundManager.playSfx('perfect');
-        Haptics.trigger('perfect');
-        this.matchedPairs += 1;
-        // Бонус +3 сек
-        this.timeLeftMs = Math.min(this.totalTimeMs + 5000, this.timeLeftMs + 3000);
-
-        // Анимация: оба светятся зелёным
-        if (this.firstFlipped) this.flashCard(this.firstFlipped, COLORS.win);
-        if (this.secondFlipped) this.flashCard(this.secondFlipped, COLORS.win);
-
-        this.firstFlipped = null;
-        this.secondFlipped = null;
-        this.busy = false;
-        this.updateStatus();
-        this.checkWin();
-      });
+      this.time.delayedCall(380, () => this.handleMatch());
     } else {
-      // Несовпадение → переворачиваем обратно через паузу
-      this.time.delayedCall(900, () => {
-        if (this.firstFlipped) this.flipCard(this.firstFlipped, false);
-        if (this.secondFlipped) this.flipCard(this.secondFlipped, false);
-        SoundManager.playSfx('miss');
-        Haptics.trigger('miss');
-        this.mistakes += 1;
-        // Штраф −2 сек
-        this.timeLeftMs = Math.max(0, this.timeLeftMs - 2000);
-
-        this.firstFlipped = null;
-        this.secondFlipped = null;
-        this.busy = false;
-        this.updateStatus();
-      });
+      // Несовпадение
+      this.time.delayedCall(FLIP_BACK_MS, () => this.handleMismatch());
     }
   }
 
+  private handleMatch(): void {
+    if (this.finished) return;
+    if (this.firstFlipped) this.firstFlipped.matched = true;
+    if (this.secondFlipped) this.secondFlipped.matched = true;
+    SoundManager.playSfx('perfect');
+    Haptics.trigger('perfect');
+    this.matchedPairs += 1;
+    this.timeLeftMs = Math.min(this.currentCfg.durationMs + 8_000, this.timeLeftMs + MATCH_BONUS_MS);
+
+    if (this.firstFlipped) this.flashCard(this.firstFlipped, COLORS.win);
+    if (this.secondFlipped) this.flashCard(this.secondFlipped, COLORS.win);
+
+    this.firstFlipped = null;
+    this.secondFlipped = null;
+    this.busy = false;
+    this.updateHud();
+    this.checkRoundComplete();
+  }
+
+  private handleMismatch(): void {
+    if (this.finished) return;
+    if (this.firstFlipped) this.flipCard(this.firstFlipped, false);
+    if (this.secondFlipped) this.flipCard(this.secondFlipped, false);
+    SoundManager.playSfx('miss');
+    Haptics.trigger('miss');
+    this.mistakesThisRound += 1;
+    this.totalMistakes += 1;
+
+    // Штраф −10 сек за каждый неверный ход, с самого первого
+    this.timeLeftMs = Math.max(0, this.timeLeftMs - MISTAKE_PENALTY_MS);
+    this.spawnPenaltyToast(`−${MISTAKE_PENALTY_MS / 1000} СЕК`);
+
+    this.firstFlipped = null;
+    this.secondFlipped = null;
+    this.busy = false;
+    this.updateHud();
+
+    if (this.timeLeftMs <= 0) {
+      this.finish(false);
+    }
+  }
+
+  /** Анимация переворота. Если toFront=true, открываем «лицо» иконкой; иначе скрываем. */
   private flipCard(card: Card, toFront: boolean): void {
     card.flipped = toFront;
-    // Анимация: scaleX -> 0 -> 1 со сменой видимости
     this.tweens.add({
       targets: card.container,
       scaleX: 0,
       duration: 120,
       onComplete: () => {
-        // Видимость всех элементов рубашки и лица — через явные ссылки в карточке.
-        card.back.setVisible(!toFront);
-        card.backLines.setVisible(!toFront);
-        card.backLabel.setVisible(!toFront);
-        card.front.setVisible(toFront);
-        card.iconText.setVisible(toFront);
+        this.setCardFace(card, toFront);
         this.tweens.add({
           targets: card.container,
           scaleX: 1,
@@ -271,6 +409,16 @@ export class RecipeMemoScene extends BaseMinigame {
         });
       },
     });
+  }
+
+  /** Без анимации показывает либо рубашку, либо лицо. Используется для превью раунда. */
+  private setCardFace(card: Card, toFront: boolean): void {
+    card.flipped = toFront;
+    card.back.setVisible(!toFront);
+    card.backLines.setVisible(!toFront);
+    card.backLabel.setVisible(!toFront);
+    card.front.setVisible(toFront);
+    card.iconText.setVisible(toFront);
   }
 
   private flashCard(card: Card, color: number): void {
@@ -283,68 +431,170 @@ export class RecipeMemoScene extends BaseMinigame {
     });
   }
 
-  private updateStatus(): void {
-    this.statusText.setText(`✅ ${this.matchedPairs}/${this.totalPairs}   ❌ ${this.mistakes}`);
-  }
-
-  private checkWin(): void {
-    if (this.matchedPairs >= this.totalPairs) {
-      this.finish(true);
+  private checkRoundComplete(): void {
+    if (this.matchedPairs >= this.currentCfg.pairs) {
+      this.busy = true;
+      this.showBanner(`РАУНД ${this.roundIndex + 1} ✓`, 900, () => {
+        if (this.gameTimer) this.gameTimer.remove();
+        this.roundIndex += 1;
+        this.startRound();
+      });
     }
   }
 
-  private onTick(): void {
-    this.timeLeftMs -= 100;
-    const sec = Math.max(0, Math.ceil(this.timeLeftMs / 1000));
-    this.timerText.setText(`⏱ ${sec}`);
+  // ========== ПОДСМОТРЕТЬ ==========
 
-    const ratio = Math.max(0, this.timeLeftMs / this.totalTimeMs);
-    this.timerBar.width = (GAME.WIDTH - 80) * Math.min(1, ratio);
-    if (ratio < 0.25) this.timerBar.setFillStyle(COLORS.lose);
-    else if (ratio < 0.5) this.timerBar.setFillStyle(COLORS.yellow);
-    else this.timerBar.setFillStyle(COLORS.win);
+  private onPeek(): void {
+    if (this.finished) return;
+    if (this.busy) return;
+    if (this.peekTimer) return; // уже идёт показ
 
-    if (this.timeLeftMs <= 0) {
-      this.finish(this.matchedPairs >= this.totalPairs);
+    // Первый подсмотр — бесплатный, остальные снимают по 20 сек
+    const willCharge = this.peeksUsed >= 1;
+    if (willCharge) {
+      this.timeLeftMs = Math.max(0, this.timeLeftMs - PEEK_PENALTY_MS);
+      this.spawnPenaltyToast(`−${PEEK_PENALTY_MS / 1000} СЕК`);
+      if (this.timeLeftMs <= 0) {
+        this.finish(false);
+        return;
+      }
+    }
+    this.peeksUsed += 1;
+    this.busy = true;
+    SoundManager.playSfx(willCharge ? 'miss' : 'tap');
+    Haptics.trigger(willCharge ? 'miss' : 'tap');
+
+    // Если у игрока что-то открыто, гасим выбор без штрафа
+    this.firstFlipped = null;
+    this.secondFlipped = null;
+
+    this.cards.forEach((c) => {
+      if (!c.matched && !c.flipped) {
+        this.flipCard(c, true);
+      }
+    });
+
+    this.peekTimer = this.time.delayedCall(PEEK_DURATION_MS, () => {
+      this.cards.forEach((c) => {
+        if (!c.matched && c.flipped) {
+          this.flipCard(c, false);
+        }
+      });
+      this.time.delayedCall(280, () => {
+        this.busy = false;
+        this.peekTimer = null;
+      });
+    });
+
+    this.updateHud();
+  }
+
+  // ========== UI ==========
+
+  private updateHud(): void {
+    this.statusText.setText(`✓ ${this.matchedPairs}/${this.currentCfg.pairs}`);
+
+    // Каждый промах — минус 10 сек, с самого первого
+    this.mistakesText.setText(`✗ ${this.mistakesThisRound} промахов  •  −10 сек/ход`);
+    this.mistakesText.setColor(this.mistakesThisRound > 0 ? '#FF8A8A' : '#FAF7F0');
+
+    if (this.peeksUsed === 0) {
+      this.peekLabel.setText('🔍 ПОДСМОТРЕТЬ  •  БЕСПЛАТНО');
+      this.peekBtn.setFillStyle(COLORS.yellow);
+      this.peekLabel.setColor('#0A0A0A');
+    } else {
+      this.peekLabel.setText(`🔍 ПОДСМОТРЕТЬ  •  −${PEEK_PENALTY_MS / 1000} СЕК`);
+      this.peekBtn.setFillStyle(0xff8a3a);
+      this.peekLabel.setColor('#0A0A0A');
     }
   }
+
+  private spawnPenaltyToast(label: string): void {
+    const { WIDTH, HEIGHT } = GAME;
+    const toast = this.add.text(WIDTH / 2, HEIGHT / 2, label, {
+      ...TEXT_STYLES.hero, fontSize: '64px', color: '#EF4444',
+    });
+    toast.setOrigin(0.5);
+    toast.setDepth(DEPTH.modal + 2);
+    this.cameras.main.shake(180, 0.012);
+    this.tweens.add({
+      targets: toast, y: HEIGHT / 2 - 80, alpha: 0, duration: 700,
+      onComplete: () => toast.destroy(),
+    });
+  }
+
+  private showBanner(text: string, duration: number, onDone: () => void): void {
+    const { WIDTH, HEIGHT } = GAME;
+    if (this.bannerOverlay) this.bannerOverlay.destroy();
+    if (this.bannerText) this.bannerText.destroy();
+
+    this.bannerOverlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, 200, COLORS.black, 0.55);
+    this.bannerOverlay.setDepth(DEPTH.modal);
+    this.bannerText = this.add.text(WIDTH / 2, HEIGHT / 2, text, {
+      ...TEXT_STYLES.hero, fontSize: '52px', color: '#FFE600',
+    });
+    this.bannerText.setOrigin(0.5);
+    this.bannerText.setDepth(DEPTH.modal + 1);
+    this.bannerText.setScale(0.7);
+    this.tweens.add({
+      targets: this.bannerText, scale: 1, duration: 250, ease: 'Back.easeOut',
+    });
+
+    this.time.delayedCall(duration, () => {
+      this.tweens.add({
+        targets: [this.bannerOverlay, this.bannerText], alpha: 0, duration: 220,
+        onComplete: () => {
+          if (this.bannerOverlay) { this.bannerOverlay.destroy(); this.bannerOverlay = null; }
+          if (this.bannerText) { this.bannerText.destroy(); this.bannerText = null; }
+          onDone();
+        },
+      });
+    });
+  }
+
+  // ========== ФИНАЛ ==========
 
   private finish(win: boolean): void {
     if (this.finished) return;
     this.finished = true;
 
     if (this.gameTimer) this.gameTimer.remove();
+    if (this.peekTimer) this.peekTimer.remove();
     this.busy = true;
 
     if (win) { SoundManager.playSfx('win'); Haptics.trigger('win'); }
     else     { SoundManager.playSfx('lose'); Haptics.trigger('lose'); }
 
     const { WIDTH, HEIGHT } = GAME;
-    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.6);
+    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.65);
     overlay.setDepth(DEPTH.modal);
     const msg = this.add.text(
       WIDTH / 2, HEIGHT / 2,
       win ? RU.minigame.win : RU.minigame.lose,
-      { ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444' }
+      { ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444' },
     );
     msg.setOrigin(0.5);
     msg.setDepth(DEPTH.modal + 1);
 
+    // Скор: победа — за минусом ошибок, поражение — пропорционально пройденным раундам
     const score = win
-      ? Math.max(40, 100 - this.mistakes * 8)
-      : Math.round((this.matchedPairs / this.totalPairs) * 50);
+      ? Math.max(40, 100 - this.totalMistakes * 6)
+      : Math.round((this.roundIndex / TOTAL_ROUNDS) * 50 + (this.matchedPairs / Math.max(1, this.currentCfg.pairs)) * 10);
     this.time.delayedCall(900, () => {
       this.complete({
         outcome: win ? 'win' : 'lose',
         score: Math.min(100, score),
-        metadata: { matched: this.matchedPairs, mistakes: this.mistakes },
+        metadata: { round: this.roundIndex + 1, mistakes: this.totalMistakes, peeksUsed: this.peeksUsed },
       });
     });
   }
 
   shutdown(): void {
     if (this.gameTimer) this.gameTimer.remove();
+    if (this.peekTimer) this.peekTimer.remove();
   }
+
+  // ========== УТИЛИТЫ ==========
 
   private shuffle<T>(arr: T[]): T[] {
     const a = [...arr];
