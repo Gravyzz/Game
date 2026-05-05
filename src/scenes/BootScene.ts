@@ -35,6 +35,23 @@ export class BootScene extends Phaser.Scene {
     this.load.image('firestarter-picture', 'assets/firestarter/picture.png');
     this.load.image('firestarter-plant', 'assets/firestarter/plant.png');
     this.load.image('firestarter-lamp', 'assets/firestarter/lamp.png');
+    this.load.image('recipe-card-cover', 'assets/recipememo/card-cover.png');
+    this.load.image('recipe-card-face', 'assets/recipememo/card-face.png');
+    this.load.image('recipe-5s', 'assets/recipememo/5s.png');
+    this.load.image('recipe-cola', 'assets/recipememo/cola.png');
+    this.load.image('recipe-cookie', 'assets/recipememo/cookie.png');
+    this.load.image('recipe-frenchfries', 'assets/recipememo/frenchfries.png');
+    this.load.image('recipe-magnifer', 'assets/recipememo/magnifer.png');
+    this.load.image('recipe-pasta', 'assets/recipememo/pasta.png');
+    this.load.image('recipe-pepperoni', 'assets/recipememo/pepperoni.png');
+    this.load.image('recipe-roll', 'assets/recipememo/roll.png');
+    this.load.image('recipe-runaway', 'assets/recipememo/runaway.png');
+    this.load.image('recipe-sand-watch', 'assets/recipememo/sand-watch.png');
+    this.load.image('recipe-balloon-b', 'assets/recipememo/balloon-b.png');
+    this.load.image('recipe-balloon-y', 'assets/recipememo/balloon-y.png');
+    this.load.image('recipe-balloon-g', 'assets/recipememo/balloon-g.png');
+    this.load.image('recipe-balloon-o', 'assets/recipememo/balloon-o.png');
+    this.load.image('recipe-balloon-r', 'assets/recipememo/balloon-r.png');
   }
 
   async create(): Promise<void> {

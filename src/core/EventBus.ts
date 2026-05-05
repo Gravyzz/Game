@@ -9,6 +9,7 @@ import Phaser from 'phaser';
  * Зарегистрированные события:
  *   'minigame:complete' { outcome, score, metadata } — минка закончилась
  *   'session:start'                                  — началась новая сессия
+ *   'session:lives:changed' { livesLeft }            — изменились общие жизни сессии
  *   'session:end'    { outcome, prize? }             — сессия завершилась
  *   'analytics'      { name, payload }               — событие для будущей аналитики
  */

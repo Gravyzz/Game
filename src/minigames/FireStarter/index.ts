@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { SessionState } from '@core/SessionState';
 
 /**
  * MG-03 Фаерстартер: тайминг печи.
@@ -20,7 +21,7 @@ import { Haptics } from '@core/Haptics';
 const ROUNDS_PER_GAME = 10;
 const WIN_THRESHOLD = 10; // нужно пройти все 10 попаданий
 const TOTAL_LIVES = 3;
-const MAX_MISSES = TOTAL_LIVES - 1;
+const MAX_MISSES = 0;
 const TOTAL_TIME_MS = 50_000;
 
 const BAR_WIDTH = 640;
@@ -285,7 +286,7 @@ export class FireStarterScene extends BaseMinigame {
 
   private updateHud(): void {
     const round = Math.min(this.currentRound + 1, ROUNDS_PER_GAME);
-    const livesLeft = Math.max(0, MAX_MISSES + 1 - this.misses);
+    const livesLeft = SessionState.getLivesLeft();
     this.hearts.forEach((heart, i) => heart.setVisible(i < livesLeft));
     this.roundText.setText(`раунд\n${round}/${ROUNDS_PER_GAME}`);
   }
@@ -397,7 +398,7 @@ export class FireStarterScene extends BaseMinigame {
     this.updateHud();
     this.playResultRain(result);
 
-    // Любой промах = досрочное поражение (одна жизнь)
+    // Любой промах = проигрыш мини-игры; общую жизнь списывает MinigameRunnerScene
     if (this.misses > MAX_MISSES) {
       this.time.delayedCall(RESULT_RAIN_MS, () => this.finish());
       return;
