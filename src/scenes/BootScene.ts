@@ -21,6 +21,20 @@ export class BootScene extends Phaser.Scene {
     this.load.image('orientation-phone-pixel', 'assets/orientation-phone-pixel.png');
     this.load.image('sound-on-pixel', 'assets/sound-on-pixel.png');
     this.load.image('sound-off-pixel', 'assets/sound-off-pixel.png');
+    this.load.image('firestarter-oven-1', 'assets/firestarter/oven-1.png');
+    this.load.image('firestarter-oven-2', 'assets/firestarter/oven-2.png');
+    this.load.image('firestarter-oven-3', 'assets/firestarter/oven-3.png');
+    this.load.image('firestarter-smoke-1', 'assets/firestarter/smoke-1.png');
+    this.load.image('firestarter-smoke-2', 'assets/firestarter/smoke-2.png');
+    this.load.image('firestarter-pizza-raw', 'assets/firestarter/pizza-raw.png');
+    this.load.image('firestarter-pizza-ok', 'assets/firestarter/pizza-ok.png');
+    this.load.image('firestarter-pizza-coal', 'assets/firestarter/pizza-coal.png');
+    this.load.image('firestarter-result-coal', 'assets/firestarter/coal.png');
+    this.load.image('firestarter-result-ice', 'assets/firestarter/ice.png');
+    this.load.image('firestarter-result-ok', 'assets/firestarter/ok.png');
+    this.load.image('firestarter-picture', 'assets/firestarter/picture.png');
+    this.load.image('firestarter-plant', 'assets/firestarter/plant.png');
+    this.load.image('firestarter-lamp', 'assets/firestarter/lamp.png');
   }
 
   async create(): Promise<void> {
@@ -48,15 +62,6 @@ export class BootScene extends Phaser.Scene {
       setTimeout(() => htmlLoader.remove(), 500);
     }
 
-    // Проверяем ориентацию ПЕРЕД сплэшем — если landscape, сразу в lock
-    if (this.isLandscape()) {
-      this.scene.start('OrientationLockScene');
-    } else {
-      this.scene.start('SplashScene');
-    }
-  }
-
-  private isLandscape(): boolean {
-    return window.innerWidth > window.innerHeight;
+    this.scene.start('SplashScene');
   }
 }

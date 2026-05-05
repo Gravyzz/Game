@@ -94,19 +94,6 @@ export class TutorialScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    // ===== Слушаем поворот =====
-    const onResize = () => {
-      if (window.innerWidth > window.innerHeight) {
-        this.scene.start('OrientationLockScene');
-      }
-    };
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
-    });
-
     attachSoundButton(this);
 
     this.cameras.main.fadeIn(300, 250, 247, 240);

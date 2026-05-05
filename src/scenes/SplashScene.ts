@@ -81,19 +81,6 @@ export class SplashScene extends Phaser.Scene {
     );
     screenContent.add(miniGamesBtn);
 
-    // ===== Слушаем поворот: ушли в landscape — улетаем в lock =====
-    const onResize = () => {
-      if (window.innerWidth > window.innerHeight) {
-        this.scene.start('OrientationLockScene');
-      }
-    };
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
-    });
-
     // ===== Кнопка mute в углу =====
     attachSoundButton(this);
 
