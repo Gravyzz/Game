@@ -8,478 +8,673 @@ import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 
+// ─── layout ──────────────────────────────────────────────────────────────────
+const W        = GAME.WIDTH;
+const H        = GAME.HEIGHT;
+const CX       = W / 2;
+const CY       = 490;          // salami centre y
+const RADIUS   = 145;          // salami radius
+const KNIFE_Y0 = 1090;         // knife resting position
+
+// Cached texture keys (живут в TextureManager, шарятся между ре-стартами сцены)
+const TEX_NOISE  = 'pa_noise_v2';
+const TEX_SALAMI = 'pa_salami_v2';
+const TEX_KNIFE  = 'pa_knife_v2';        // одна текстура для летящего и воткнутого
+
+// Воткнутый нож рисуется НИЖЕ круга — лезвие прячется под колбасой
+const D_STUCK = DEPTH.midground + 5;
+
+// origin Y для ножа — точка крепления = граница лезвия и гарды
+const KNIFE_OY = 96 / 148;
+
+// ─── stages ──────────────────────────────────────────────────────────────────
+interface Stage {
+  name:        'EASY' | 'MEDIUM' | 'HARD';
+  color:       string;
+  rotSpeed:    number;  // rad/s
+  goal:        number;  // ножей, чтобы пройти стейдж
+  minAngle:    number;  // мин. угловая дистанция между ножами (rad)
+  knifeSpd:    number;  // px/s — скорость броска
+  flipEnabled: boolean;
+  flipMin:     number;  // ms
+  flipMax:     number;  // ms
+}
+
+const STAGES: Stage[] = [
+  {
+    name: 'EASY',  color: '#4ADE80',
+    rotSpeed: 1.4, goal: 6,  minAngle: 0.26, knifeSpd: 1500,
+    flipEnabled: false, flipMin: 0,    flipMax: 0,
+  },
+  {
+    name: 'MEDIUM', color: '#FFE600',
+    rotSpeed: 2.1, goal: 8,  minAngle: 0.22, knifeSpd: 1700,
+    flipEnabled: false, flipMin: 0,    flipMax: 0,
+  },
+  {
+    name: 'HARD',  color: '#FF2E2E',
+    rotSpeed: 2.7, goal: 10, minAngle: 0.19, knifeSpd: 1900,
+    flipEnabled: true,  flipMin: 2400, flipMax: 3800,
+  },
+];
+
+const TOTAL_STAGES = STAGES.length;
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+function angleDiff(a: number, b: number): number {
+  let d = ((a - b) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  if (d > Math.PI) d = Math.PI * 2 - d;
+  return d;
+}
+
+interface StuckKnife {
+  localAngle: number;
+  sprite:     Phaser.GameObjects.Image;
+}
+
 /**
- * NEW-02 Сборка пиццы.
+ * КОЛБАСКА НА НОЖАХ — knife-hit в пиццерийной теме.
  *
- * По экрану слева направо ползёт «конвейер» ингредиентов.
- * Сверху — рецепт (3-5 нужных ингредиентов).
- * Игрок перетаскивает ингредиент с конвейера на пиццу-основу внизу.
- *  - Нужный по рецепту → +1 успех, отмечаем слот.
- *  - Лишний → −1 жизнь.
- * Цель: заполнить рецепт за отведённое время.
+ * 3 стейджа в серии: EASY → MEDIUM → HARD. Каждый — отдельная цель по ножам.
+ * Жизни переносятся между стейджами; +1 в награду между стейджами.
  *
- * Сложность:
- *  - Easy: 3 слота, скорость 60 px/s, мало мусора.
- *  - Hard: 5 слотов, скорость 130 px/s, много мусора + ананасы.
+ * Графика запекается в текстуры (1 спрайт на нож/колбасу/шум) —
+ * минимум draw calls, плавные тёплые твины.
  */
-
-const ALL_INGREDIENTS = [
-  { key: 'tomato',     emoji: '🍅', label: 'помидор'   },
-  { key: 'cheese',     emoji: '🧀', label: 'сыр'       },
-  { key: 'pepperoni',  emoji: '🍖', label: 'пепперони' },
-  { key: 'mushroom',   emoji: '🍄', label: 'грибы'     },
-  { key: 'olive',      emoji: '🫒', label: 'оливки'    },
-  { key: 'pepper',     emoji: '🌶️', label: 'перец'     },
-  { key: 'onion',      emoji: '🧅', label: 'лук'       },
-  { key: 'corn',       emoji: '🌽', label: 'кукуруза'  },
-] as const;
-
-const FORBIDDEN_KEY = 'pineapple';
-const FORBIDDEN = { key: FORBIDDEN_KEY, emoji: '🍍', label: 'ананас' } as const;
-
-interface ConveyorItem {
-  key: string;
-  emoji: string;
-  container: Phaser.GameObjects.Container;
-  bg: Phaser.GameObjects.Rectangle;
-  text: Phaser.GameObjects.Text;
-  vx: number;
-  alive: boolean;
-  beingDragged: boolean;
-}
-
-interface RecipeSlot {
-  key: string;
-  emoji: string;
-  filled: boolean;
-  display: Phaser.GameObjects.Container;
-  bg: Phaser.GameObjects.Rectangle;
-  iconText: Phaser.GameObjects.Text;
-}
-
 export class PizzaAssemblyScene extends BaseMinigame {
-  private items: ConveyorItem[] = [];
-  private recipe: RecipeSlot[] = [];
+  private stageIdx = 0;
+  private stage!:   Stage;
 
-  private speed = 80;
-  private spawnInterval = 1100;
-  private decoyChance = 0.55;
+  private circleRot = 0;
+  private rotSpeed  = 0;        // меняется плавным твином при смене стейджа
 
-  private lives = 3;
-  private livesText!: Phaser.GameObjects.Text;
-  private timerText!: Phaser.GameObjects.Text;
+  private salami!: Phaser.GameObjects.Image;
+  private stuck:   StuckKnife[] = [];
+  private stageStuck = 0;
 
-  private timeLeftMs = 0;
-  private spawnTimer: Phaser.Time.TimerEvent | null = null;
-  private gameTimer: Phaser.Time.TimerEvent | null = null;
-  private finished = false;
+  private knife: Phaser.GameObjects.Image | null = null;
+  private knifeY = KNIFE_Y0;
+  private flying = false;
+  private canThrow = true;
 
-  private pizzaBaseX = 0;
-  private pizzaBaseY = 0;
-  private pizzaCircle!: Phaser.GameObjects.Arc;
+  private lives    = 3;
+  private maxLives = 3;
+  private done     = false;
+  private inTransition = false;
 
-  private draggingItem: ConveyorItem | null = null;
-  private dragOffsetX = 0;
-  private dragOffsetY = 0;
+  private livesLbl!: Phaser.GameObjects.Text;
+  private progLbl!:  Phaser.GameObjects.Text;
+  private stageLbl!: Phaser.GameObjects.Text;
 
-  private conveyorY = 0;
-  private conveyorBeltGfx!: Phaser.GameObjects.Graphics;
+  private flipEvt?: Phaser.Time.TimerEvent;
 
-  constructor() {
-    super({ key: 'PizzaAssembly' });
-  }
+  constructor() { super({ key: 'PizzaAssembly' }); }
+
+  // ─── lifecycle ─────────────────────────────────────────────────────────────
 
   create(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const diff = this.initData.difficulty;
+    this.stageIdx     = 0;
+    this.stage        = STAGES[0];
+    this.circleRot    = 0;
+    this.rotSpeed     = this.stage.rotSpeed;
+    this.maxLives     = 3;
+    this.lives        = this.maxLives;
+    this.stuck        = [];
+    this.stageStuck   = 0;
+    this.done         = false;
+    this.flying       = false;
+    this.canThrow     = false;        // включается после intro-баннера
+    this.inTransition = true;
 
-    this.speed = Phaser.Math.Linear(60, 130, diff);
-    this.spawnInterval = Math.round(Phaser.Math.Linear(1100, 700, diff));
-    this.decoyChance = Phaser.Math.Linear(0.3, 0.6, diff);
-    const slotsCount = Math.round(Phaser.Math.Linear(3, 5, diff));
+    this.bakeTextures();
 
-    // Фон
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.cream);
-    this.drawNoise();
+    // Фон + запечённый шум
+    this.add.rectangle(CX, H / 2, W, H, COLORS.cream).setDepth(DEPTH.background);
+    this.add.image(CX, H / 2, TEX_NOISE).setDepth(DEPTH.background);
 
-    // Заголовок
-    const title = new PosterText(this, WIDTH / 2, 60, 'СБОРКА ПИЦЦЫ', {
-      bgColor: COLORS.red,
-      textColor: '#FAF7F0',
-      fontSize: '28px',
-      rotation: -0.025,
-      paddingX: 20,
-      paddingY: 10,
+    const title = new PosterText(this, CX, 65, 'КОЛБАСКА НА НОЖАХ', {
+      bgColor: COLORS.red, textColor: '#FAF7F0',
+      fontSize: '26px', rotation: -0.025, paddingX: 18, paddingY: 10,
     });
     title.setDepth(DEPTH.ui);
     this.add.existing(title);
 
-    // ===== Рецепт сверху =====
-    const recipeLabel = this.add.text(WIDTH / 2, 110, 'РЕЦЕПТ:', {
-      ...TEXT_STYLES.subtitle, fontSize: '16px', color: '#0A0A0A',
-    });
-    recipeLabel.setOrigin(0.5);
-    recipeLabel.setDepth(DEPTH.ui);
+    // Бейдж стейджа (название тира + N/3)
+    this.stageLbl = this.add
+      .text(CX, 102, '', {
+        ...TEXT_STYLES.subtitle, fontSize: '16px', color: this.stage.color,
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(DEPTH.ui);
 
-    const ingredients = this.shuffle([...ALL_INGREDIENTS]);
-    const chosen = ingredients.slice(0, slotsCount);
-    const slotW = 80;
-    const totalW = slotW * slotsCount + (slotsCount - 1) * 10;
-    const startX = WIDTH / 2 - totalW / 2 + slotW / 2;
+    this.livesLbl = this.add
+      .text(36, 130, '', { ...TEXT_STYLES.subtitle, fontSize: '26px', color: '#0A0A0A' })
+      .setDepth(DEPTH.ui);
 
-    for (let i = 0; i < slotsCount; i++) {
-      const ing = chosen[i];
-      const x = startX + i * (slotW + 10);
-      const y = 165;
+    this.progLbl = this.add
+      .text(CX, 130, '', { ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#0A0A0A' })
+      .setOrigin(0.5, 0)
+      .setDepth(DEPTH.ui);
 
-      const container = this.add.container(x, y);
-      const bg = this.add.rectangle(0, 0, slotW, slotW, COLORS.greyLight, 0.5);
-      bg.setStrokeStyle(3, COLORS.black);
-      const iconText = this.add.text(0, 0, ing.emoji, { fontSize: '52px' });
-      iconText.setOrigin(0.5);
-      iconText.setAlpha(0.4);
-      container.add([bg, iconText]);
-      container.setDepth(DEPTH.ui);
+    // Колбаса
+    this.salami = this.add.image(CX, CY, TEX_SALAMI).setDepth(DEPTH.gameplay);
 
-      this.recipe.push({
-        key: ing.key,
-        emoji: ing.emoji,
-        filled: false,
-        display: container,
-        bg,
-        iconText,
-      });
-    }
+    this.refreshStageLabel();
+    this.updateHUD();
 
-    // ===== Конвейер =====
-    this.conveyorY = HEIGHT * 0.42;
-    const beltBg = this.add.rectangle(WIDTH / 2, this.conveyorY, WIDTH - 40, 130, COLORS.greyDark);
-    beltBg.setStrokeStyle(4, COLORS.black);
-    beltBg.setDepth(DEPTH.midground);
-
-    this.conveyorBeltGfx = this.add.graphics();
-    this.conveyorBeltGfx.setDepth(DEPTH.midground + 1);
-
-    // ===== Пицца-основа =====
-    this.pizzaBaseX = WIDTH / 2;
-    this.pizzaBaseY = HEIGHT * 0.74;
-    const baseCircle = this.add.circle(this.pizzaBaseX, this.pizzaBaseY, 175, 0xf0c994);
-    baseCircle.setStrokeStyle(8, 0x8b5a2b);
-    baseCircle.setDepth(DEPTH.gameplay);
-    // Соус
-    this.pizzaCircle = this.add.circle(this.pizzaBaseX, this.pizzaBaseY, 140, COLORS.red, 0.85);
-    this.pizzaCircle.setDepth(DEPTH.gameplay + 1);
-
-    const baseHint = this.add.text(this.pizzaBaseX, this.pizzaBaseY + 220, '👆 тяни ингредиент сюда', {
-      ...TEXT_STYLES.label, fontSize: '14px', color: '#0A0A0A',
-    });
-    baseHint.setOrigin(0.5);
-    baseHint.setDepth(DEPTH.ui);
-
-    // HUD
-    this.livesText = this.add.text(30, 30, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#0A0A0A',
-    });
-    this.livesText.setDepth(DEPTH.ui);
-    this.timerText = this.add.text(WIDTH - 30, 30, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#0A0A0A',
-    });
-    this.timerText.setOrigin(1, 0);
-    this.timerText.setDepth(DEPTH.ui);
-
-    // Глобальный pointer для драга
-    this.input.on('pointermove', this.onPointerMove, this);
-    this.input.on('pointerup',   this.onPointerUp,   this);
-
-    this.timeLeftMs = this.initData.durationMs;
-    this.spawnTimer = this.time.addEvent({
-      delay: this.spawnInterval,
-      loop: true,
-      callback: this.spawnItem,
-      callbackScope: this,
-    });
-    this.gameTimer = this.time.addEvent({
-      delay: 200,
-      loop: true,
-      callback: this.onTick,
-      callbackScope: this,
+    const hint = this.add
+      .text(CX, KNIFE_Y0 + 90, 'ТАП → БРОСИТЬ НОЖ', {
+        ...TEXT_STYLES.label, fontSize: '18px', color: '#0A0A0A',
+      })
+      .setOrigin(0.5)
+      .setDepth(DEPTH.ui);
+    this.tweens.add({
+      targets: hint, alpha: 0, delay: 1800, duration: 700,
+      onComplete: () => hint.destroy(),
     });
 
-    this.updateLives();
-    this.cameras.main.fadeIn(250, 10, 10, 10);
+    this.input.on('pointerdown', this.onTap, this);
+    this.cameras.main.fadeIn(300, 10, 10, 10);
+
+    // Intro-баннер первого стейджа, потом старт
+    this.showStageBanner(this.stage, true, () => {
+      if (this.stage.flipEnabled) this.scheduleFlip();
+      this.spawnKnife();
+      this.canThrow     = true;
+      this.inTransition = false;
+    });
   }
 
   override update(_t: number, dtMs: number): void {
-    const dt = dtMs / 1000;
+    if (this.done) return;
 
-    // Анимация ленты конвейера — движущиеся диагональные полосы
-    this.drawBelt(dt);
+    // Clamp dt — защита от скачков (таб в фоне, лаг в браузере)
+    const dt = Math.min(dtMs, 33) / 1000;
 
-    for (const item of this.items) {
-      if (!item.alive || item.beingDragged) continue;
-      item.container.x += item.vx * dt;
-      if (item.container.x > GAME.WIDTH + 60) {
-        item.alive = false;
-        item.container.destroy();
+    // Вращение колбасы (rotSpeed может твиниться при смене стейджа)
+    this.circleRot += this.rotSpeed * dt;
+    this.salami.setRotation(this.circleRot);
+
+    // Воткнутые ножи — на орбите вокруг колбасы
+    const len = this.stuck.length;
+    for (let i = 0; i < len; i++) {
+      const k  = this.stuck[i];
+      const ga = k.localAngle + this.circleRot;
+      const cs = Math.cos(ga);
+      const sn = Math.sin(ga);
+      k.sprite.setPosition(CX + cs * RADIUS, CY + sn * RADIUS);
+      k.sprite.setRotation(ga - Math.PI / 2);
+    }
+
+    // Летящий нож
+    if (this.flying && this.knife) {
+      this.knifeY -= this.stage.knifeSpd * dt;
+      this.knife.setY(this.knifeY);
+
+      if (this.knifeY <= CY + RADIUS) {
+        this.knifeY = CY + RADIUS;     // защёлкиваем точно на ободе — без подёргивания
+        this.knife.setY(this.knifeY);
+        this.landKnife();
       }
     }
-    this.items = this.items.filter(i => i.alive);
   }
 
-  private beltOffset = 0;
-  private drawBelt(dt: number): void {
-    this.beltOffset += this.speed * dt;
-    if (this.beltOffset > 40) this.beltOffset -= 40;
-    this.conveyorBeltGfx.clear();
-    this.conveyorBeltGfx.lineStyle(3, COLORS.yellow, 0.6);
-    const beltLeft = 40;
-    const beltRight = GAME.WIDTH - 40;
-    for (let x = beltLeft - 40 + this.beltOffset; x < beltRight; x += 40) {
-      this.conveyorBeltGfx.lineBetween(x, this.conveyorY + 50, x + 24, this.conveyorY + 70);
+  shutdown(): void {
+    this.input.off('pointerdown', this.onTap, this);
+    this.flipEvt?.remove();
+    this.tweens.killAll();
+  }
+
+  // ─── texture baking ────────────────────────────────────────────────────────
+
+  private bakeTextures(): void {
+    const tex = this.textures;
+
+    // Шум фона
+    if (!tex.exists(TEX_NOISE)) {
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      g.fillStyle(0x000000, 0.04);
+      for (let i = 0; i < 200; i++) {
+        g.fillCircle(Math.random() * W, Math.random() * H, Math.random() * 1.5);
+      }
+      g.generateTexture(TEX_NOISE, W, H);
+      g.destroy();
+    }
+
+    // Колбаса
+    if (!tex.exists(TEX_SALAMI)) {
+      const PAD = 8;
+      const D   = (RADIUS + PAD) * 2;
+      const cx  = D / 2;
+      const cy  = D / 2;
+      const g   = this.make.graphics({ x: 0, y: 0 }, false);
+
+      // тело
+      g.fillStyle(0xb33a2a);
+      g.fillCircle(cx, cy, RADIUS);
+      g.lineStyle(8, 0x7a2218);
+      g.strokeCircle(cx, cy, RADIUS);
+
+      // жиринки
+      g.fillStyle(0xf5e6d3, 0.75);
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        g.fillCircle(
+          cx + Math.cos(a) * RADIUS * 0.52,
+          cy + Math.sin(a) * RADIUS * 0.52,
+          12,
+        );
+      }
+
+      // внутреннее кольцо + центр
+      g.fillStyle(0xe07060, 0.9);
+      g.fillCircle(cx, cy, Math.round(RADIUS * 0.34));
+      g.fillStyle(0xc84030);
+      g.fillCircle(cx, cy, 20);
+
+      g.generateTexture(TEX_SALAMI, D, D);
+      g.destroy();
+
+      // Линейная фильтрация → плавная картинка при повороте
+      tex.get(TEX_SALAMI).setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
+
+    // Нож (одна текстура для летящего и воткнутого, чтобы не было «прыжка»
+    // при превращении flying → stuck — просто перестаём двигать тот же спрайт).
+    // Bbox оригинала: y=-96..+52, итого 148. Origin = 96 от верха.
+    if (!tex.exists(TEX_KNIFE)) {
+      const TW = 24, TH = 148;
+      const cx = TW / 2;
+      const g  = this.make.graphics({ x: 0, y: 0 }, false);
+
+      // blade y=0..96
+      g.fillStyle(0xc8d0d8);
+      g.fillRect(cx - 4.5, 0, 9, 96);
+      g.lineStyle(1.5, 0x8899aa);
+      g.strokeRect(cx - 4.5, 0, 9, 96);
+
+      // guard y=98..106
+      g.fillStyle(0x889999);
+      g.fillRect(cx - 12, 98, 24, 8);
+
+      // handle y=104..148
+      g.fillStyle(0x7b4a2a);
+      g.fillRect(cx - 7, 104, 14, 44);
+      g.lineStyle(2, 0x4e2e18);
+      g.strokeRect(cx - 7, 104, 14, 44);
+
+      // wraps
+      g.fillStyle(0x5a3018, 0.7);
+      g.fillRect(cx - 8, 116, 16, 5);
+      g.fillRect(cx - 8, 132, 16, 5);
+
+      g.generateTexture(TEX_KNIFE, TW, TH);
+      g.destroy();
+
+      tex.get(TEX_KNIFE).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
   }
 
-  private spawnItem(): void {
-    // С decoyChance — мусорный (не нужный по рецепту), иначе — случайный из недостающих
-    let key: string;
-    let emoji: string;
+  // ─── construction ──────────────────────────────────────────────────────────
 
-    const missing = this.recipe.filter(s => !s.filled);
-    const isDecoy = Math.random() < this.decoyChance || missing.length === 0;
-    const isPineapple = isDecoy && Math.random() < 0.18;
+  private spawnKnife(): void {
+    const k = this.add
+      .image(CX, KNIFE_Y0, TEX_KNIFE)
+      .setOrigin(0.5, KNIFE_OY)
+      .setDepth(DEPTH.gameplay + 5)
+      .setAlpha(0)
+      .setScale(0.7);
 
-    if (isPineapple) {
-      key = FORBIDDEN.key;
-      emoji = FORBIDDEN.emoji;
-    } else if (isDecoy) {
-      // Приманка: всё из ALL_INGREDIENTS, кроме того, что вообще присутствует в рецепте
-      // (включая уже filled — иначе игрок будет тянуть и попадать в штраф «дубль»,
-      //  что запутывает после нескольких успешных).
-      const recipeKeys = new Set(this.recipe.map(s => s.key));
-      const decoys = ALL_INGREDIENTS.filter(i => !recipeKeys.has(i.key));
-      const pick = decoys.length > 0
-        ? decoys[Math.floor(Math.random() * decoys.length)]
-        : ALL_INGREDIENTS[Math.floor(Math.random() * ALL_INGREDIENTS.length)];
-      key = pick.key; emoji = pick.emoji;
-    } else {
-      const pick = missing[Math.floor(Math.random() * missing.length)];
-      key = pick.key; emoji = pick.emoji;
-    }
-
-    const startX = -60;
-    const y = this.conveyorY;
-
-    const container = this.add.container(startX, y);
-    const bg = this.add.rectangle(0, 0, 86, 86, COLORS.cream, 1);
-    bg.setStrokeStyle(3, COLORS.black);
-    const text = this.add.text(0, 0, emoji, { fontSize: '60px' });
-    text.setOrigin(0.5);
-    container.add([bg, text]);
-    container.setSize(86, 86);
-    container.setInteractive({ useHandCursor: true, draggable: false });
-    container.setDepth(DEPTH.gameplay);
-
-    const item: ConveyorItem = {
-      key, emoji, container, bg, text,
-      vx: this.speed,
-      alive: true,
-      beingDragged: false,
-    };
-
-    container.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.startDrag(item, pointer);
+    // Плавный fade-in + scale-up без overshoot
+    this.tweens.add({
+      targets: k,
+      alpha:   1,
+      scale:   1,
+      duration: 220,
+      ease: 'Cubic.easeOut',
     });
 
-    this.items.push(item);
+    this.knife  = k;
+    this.knifeY = KNIFE_Y0;
+    this.flying = false;
   }
 
-  // ===== Drag & Drop =====
+  // ─── input & flight ────────────────────────────────────────────────────────
 
-  private startDrag(item: ConveyorItem, pointer: Phaser.Input.Pointer): void {
-    if (!item.alive || this.draggingItem) return;
-    this.draggingItem = item;
-    item.beingDragged = true;
-    item.container.setDepth(DEPTH.modal);
-    item.bg.setStrokeStyle(4, COLORS.yellow);
-    this.dragOffsetX = item.container.x - pointer.x;
-    this.dragOffsetY = item.container.y - pointer.y;
+  private onTap(): void {
+    if (!this.canThrow || this.flying || this.done || this.inTransition) return;
+    this.flying   = true;
+    this.canThrow = false;
     SoundManager.playSfx('tap');
   }
 
-  private onPointerMove(pointer: Phaser.Input.Pointer): void {
-    if (!this.draggingItem) return;
-    this.draggingItem.container.x = pointer.x + this.dragOffsetX;
-    this.draggingItem.container.y = pointer.y + this.dragOffsetY;
-  }
+  private landKnife(): void {
+    this.flying = false;
+    const ABS_ANGLE = Math.PI / 2;
 
-  private onPointerUp(): void {
-    if (!this.draggingItem) return;
-    const item = this.draggingItem;
-    this.draggingItem = null;
-
-    // Проверяем, попал ли в пиццу
-    const dx = item.container.x - this.pizzaBaseX;
-    const dy = item.container.y - this.pizzaBaseY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist <= 175) {
-      this.dropOnPizza(item);
-    } else {
-      // Не попал — возвращаем на конвейер
-      this.returnToConveyor(item);
+    let hit = false;
+    const min = this.stage.minAngle;
+    for (let i = 0; i < this.stuck.length; i++) {
+      if (angleDiff(ABS_ANGLE, this.stuck[i].localAngle + this.circleRot) < min) {
+        hit = true;
+        break;
+      }
     }
+
+    if (hit) this.onCollision();
+    else     this.onStick();
   }
 
-  private dropOnPizza(item: ConveyorItem): void {
-    item.beingDragged = false;
-    item.alive = false;
+  // ─── outcomes ──────────────────────────────────────────────────────────────
 
-    // Запрещённый ингредиент — штраф
-    if (item.key === FORBIDDEN_KEY) {
-      this.takeDamage('🍍 НЕТ АНАНАСАМ!');
-      item.container.destroy();
+  private onStick(): void {
+    // Тот же спрайт превращается из «летящего» в «воткнутый» — без destroy/create.
+    const k = this.knife;
+    if (!k) return;
+    this.knife = null;
+
+    const localAngle = Math.PI / 2 - this.circleRot;
+    k.setDepth(D_STUCK);
+
+    // Тонкий «втык» — лёгкий пульс scale без overshoot
+    this.tweens.add({
+      targets: k,
+      scale: { from: 1.08, to: 1 },
+      duration: 160,
+      ease: 'Cubic.easeOut',
+    });
+
+    this.stuck.push({ localAngle, sprite: k });
+    this.stageStuck++;
+
+    SoundManager.playSfx('perfect');
+    Haptics.trigger('perfect');
+    this.spawnImpactRing();
+    this.updateHUD();
+
+    if (this.stageStuck >= this.stage.goal) {
+      this.completeStage();
       return;
     }
 
-    const slot = this.recipe.find(s => !s.filled && s.key === item.key);
-    if (slot) {
-      // Правильный ингредиент → отмечаем слот, оставляем на пицце
-      slot.filled = true;
-      slot.iconText.setAlpha(1);
-      slot.bg.setFillStyle(COLORS.win, 0.4);
-
-      SoundManager.playSfx('perfect');
-      Haptics.trigger('perfect');
-
-      // Анимация: ингредиент остаётся на пицце с разбросом
-      const offX = (Math.random() - 0.5) * 180;
-      const offY = (Math.random() - 0.5) * 180;
-      this.tweens.add({
-        targets: item.container,
-        x: this.pizzaBaseX + offX,
-        y: this.pizzaBaseY + offY,
-        scale: 0.7,
-        duration: 200,
-        ease: 'Back.easeOut',
-      });
-      // Делаем интерактив отключённым
-      item.container.disableInteractive();
-      item.container.setDepth(DEPTH.gameplay + 5);
-
-      this.checkWin();
-    } else {
-      // Лишний (или дубль уже заполненного) → штраф
-      this.takeDamage('ЭТОГО НЕТ В РЕЦЕПТЕ');
-      item.container.destroy();
-    }
-  }
-
-  private returnToConveyor(item: ConveyorItem): void {
-    item.beingDragged = false;
-    item.bg.setStrokeStyle(3, COLORS.black);
-    item.container.setDepth(DEPTH.gameplay);
-    this.tweens.add({
-      targets: item.container,
-      y: this.conveyorY,
-      duration: 200,
-      ease: 'Sine.easeOut',
+    this.time.delayedCall(180, () => {
+      if (!this.done && !this.inTransition) {
+        this.spawnKnife();
+        this.canThrow = true;
+      }
     });
   }
 
-  private takeDamage(reason: string): void {
-    this.lives -= 1;
+  private onCollision(): void {
+    this.lives--;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
-    this.updateLives();
+    this.cameras.main.shake(160, 0.012);
 
-    const fx = this.add.text(GAME.WIDTH / 2, this.pizzaBaseY - 200, reason, {
-      ...TEXT_STYLES.subtitle, fontSize: '24px', color: '#EF4444',
-    });
-    fx.setOrigin(0.5);
-    fx.setDepth(DEPTH.modal);
+    const flash = this.add.rectangle(CX, H / 2, W, H, 0xff0000, 0.28).setDepth(DEPTH.effects);
     this.tweens.add({
-      targets: fx, y: fx.y - 80, alpha: 0, duration: 800,
-      onComplete: () => fx.destroy(),
+      targets: flash, alpha: 0, duration: 280, ease: 'Sine.easeOut',
+      onComplete: () => flash.destroy(),
     });
-    this.cameras.main.shake(150, 0.012);
 
-    if (this.lives <= 0) this.finish(false);
+    this.tweens.add({
+      targets: this.knife,
+      y: KNIFE_Y0 + 110,
+      alpha: 0,
+      angle: 22,
+      duration: 360,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        this.knife?.destroy();
+        this.knife = null;
+        this.updateHUD();
+
+        if (this.lives <= 0) {
+          this.finish(false);
+        } else {
+          this.time.delayedCall(220, () => {
+            if (!this.done && !this.inTransition) {
+              this.spawnKnife();
+              this.canThrow = true;
+            }
+          });
+        }
+      },
+    });
   }
 
-  private updateLives(): void {
-    this.livesText.setText('❤️'.repeat(Math.max(0, this.lives)) + '🖤'.repeat(Math.max(0, 3 - this.lives)));
-  }
+  // ─── stage transitions ─────────────────────────────────────────────────────
 
-  private checkWin(): void {
-    if (this.recipe.every(s => s.filled)) {
-      this.finish(true);
+  private completeStage(): void {
+    this.inTransition = true;
+    this.canThrow     = false;
+    this.flipEvt?.remove();
+
+    // Победный «STAGE CLEAR»
+    const banner = this.add
+      .text(CX, H / 2, 'СТЕЙДЖ ПРОЙДЕН!', {
+        ...TEXT_STYLES.hero, fontSize: '46px', color: '#4ADE80',
+      })
+      .setOrigin(0.5)
+      .setDepth(DEPTH.toast)
+      .setAlpha(0)
+      .setScale(0.85);
+
+    SoundManager.playSfx('win');
+    Haptics.trigger('win');
+
+    this.tweens.add({
+      targets: banner, alpha: 1, scale: 1,
+      duration: 280, ease: 'Cubic.easeOut',
+    });
+    this.tweens.add({
+      targets: banner, alpha: 0, y: H / 2 - 20,
+      delay: 700, duration: 350, ease: 'Sine.easeIn',
+      onComplete: () => banner.destroy(),
+    });
+
+    // Унесём воткнутые ножи плавно «в стороны»
+    for (const k of this.stuck) {
+      const dx = Math.cos(k.localAngle + this.circleRot);
+      const dy = Math.sin(k.localAngle + this.circleRot);
+      this.tweens.add({
+        targets: k.sprite,
+        x: '+=' + dx * 220,
+        y: '+=' + dy * 220,
+        alpha: 0,
+        scale: 0.6,
+        duration: 600,
+        ease: 'Cubic.easeIn',
+        onComplete: () => k.sprite.destroy(),
+      });
     }
+
+    // Бонус-жизнь, если есть куда
+    const bonusLife = this.lives < this.maxLives;
+    if (bonusLife) this.lives++;
+
+    this.time.delayedCall(900, () => {
+      if (this.done) return;
+      this.stuck      = [];
+      this.stageStuck = 0;
+      this.stageIdx++;
+
+      if (this.stageIdx >= TOTAL_STAGES) {
+        this.finish(true);
+        return;
+      }
+
+      const next = STAGES[this.stageIdx];
+      this.stage = next;
+      this.refreshStageLabel();
+      this.updateHUD();
+
+      // Плавно меняем скорость вращения
+      const targetRot = next.rotSpeed;
+      this.tweens.add({
+        targets: this,
+        rotSpeed: targetRot,
+        duration: 700,
+        ease: 'Cubic.easeInOut',
+      });
+
+      // Баннер нового стейджа
+      this.showStageBanner(next, false, () => {
+        if (this.done) return;
+        if (next.flipEnabled) this.scheduleFlip();
+        this.spawnKnife();
+        this.canThrow     = true;
+        this.inTransition = false;
+      });
+    });
   }
 
-  private onTick(): void {
-    this.timeLeftMs -= 200;
-    const sec = Math.max(0, Math.ceil(this.timeLeftMs / 1000));
-    this.timerText.setText(`⏱ ${sec}`);
-    if (this.timeLeftMs <= 0) {
-      this.finish(this.recipe.every(s => s.filled));
-    }
+  private showStageBanner(stage: Stage, isIntro: boolean, after: () => void): void {
+    const label = `${stage.name}  ${this.stageIdx + 1}/${TOTAL_STAGES}`;
+
+    const txt = this.add
+      .text(CX, H / 2, label, {
+        ...TEXT_STYLES.hero, fontSize: '64px', color: stage.color,
+      })
+      .setOrigin(0.5)
+      .setDepth(DEPTH.toast)
+      .setAlpha(0)
+      .setScale(0.7);
+
+    const inDelay = isIntro ? 250 : 0;
+
+    this.tweens.add({
+      targets: txt, alpha: 1, scale: 1,
+      delay: inDelay, duration: 360, ease: 'Cubic.easeOut',
+    });
+    this.tweens.add({
+      targets: txt, alpha: 0, y: H / 2 - 30,
+      delay: inDelay + 750, duration: 400, ease: 'Sine.easeIn',
+      onComplete: () => {
+        txt.destroy();
+        after();
+      },
+    });
   }
+
+  private refreshStageLabel(): void {
+    this.stageLbl
+      .setText(`${this.stage.name}  ${this.stageIdx + 1}/${TOTAL_STAGES}`)
+      .setColor(this.stage.color);
+  }
+
+  // ─── HARD modifiers ────────────────────────────────────────────────────────
+
+  private scheduleFlip(): void {
+    const delay = Phaser.Math.Between(this.stage.flipMin, this.stage.flipMax);
+    this.flipEvt = this.time.delayedCall(delay, () => {
+      if (this.done || this.inTransition) return;
+      this.flipDirection();
+      this.scheduleFlip();
+    });
+  }
+
+  private flipDirection(): void {
+    // Плавный «тормоз → разворот → разгон» через твин
+    const startSpeed = this.rotSpeed;
+    const target     = -startSpeed;
+
+    this.tweens.add({
+      targets: this,
+      rotSpeed: target,
+      duration: 480,
+      ease: 'Sine.easeInOut',
+    });
+
+    this.cameras.main.shake(50, 0.004);
+
+    const arrow = this.add
+      .text(CX, CY - RADIUS - 55, target > 0 ? '→ РАЗВОРОТ' : '← РАЗВОРОТ', {
+        ...TEXT_STYLES.subtitle, fontSize: '30px', color: '#FF2E2E',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0)
+      .setDepth(DEPTH.toast);
+    this.tweens.add({
+      targets: arrow, alpha: 1, duration: 180, ease: 'Sine.easeOut',
+    });
+    this.tweens.add({
+      targets: arrow, alpha: 0, y: arrow.y - 50,
+      delay: 400, duration: 500, ease: 'Sine.easeIn',
+      onComplete: () => arrow.destroy(),
+    });
+  }
+
+  // ─── small fx ──────────────────────────────────────────────────────────────
+
+  private spawnImpactRing(): void {
+    // Круг на ободе колбасы — расходящаяся волна
+    const ring = this.add
+      .circle(CX, CY + RADIUS, 18, 0xfaf7f0, 0)
+      .setStrokeStyle(3, 0xfaf7f0, 0.9)
+      .setDepth(DEPTH.effects);
+
+    this.tweens.add({
+      targets: ring,
+      scale: 2.2,
+      alpha: 0,
+      duration: 380,
+      ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+  }
+
+  // ─── HUD ───────────────────────────────────────────────────────────────────
+
+  private updateHUD(): void {
+    this.livesLbl.setText(
+      '❤️'.repeat(Math.max(0, this.lives)) +
+      '🖤'.repeat(Math.max(0, this.maxLives - this.lives)),
+    );
+    this.progLbl.setText(`🔪 ${this.stageStuck} / ${this.stage.goal}`);
+  }
+
+  // ─── finish ────────────────────────────────────────────────────────────────
 
   private finish(win: boolean): void {
-    if (this.finished) return;
-    this.finished = true;
+    if (this.done) return;
+    this.done = true;
 
-    if (this.spawnTimer) this.spawnTimer.remove();
-    if (this.gameTimer)  this.gameTimer.remove();
+    this.flipEvt?.remove();
+    this.input.off('pointerdown', this.onTap, this);
 
-    if (win) { SoundManager.playSfx('win'); Haptics.trigger('win'); }
+    if (win) { SoundManager.playSfx('win');  Haptics.trigger('win');  }
     else     { SoundManager.playSfx('lose'); Haptics.trigger('lose'); }
 
-    const { WIDTH, HEIGHT } = GAME;
-    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.6);
-    overlay.setDepth(DEPTH.modal);
-    const msg = this.add.text(
-      WIDTH / 2, HEIGHT / 2,
-      win ? RU.minigame.win : RU.minigame.lose,
-      { ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444' }
-    );
-    msg.setOrigin(0.5);
-    msg.setDepth(DEPTH.modal + 1);
+    this.add.rectangle(CX, H / 2, W, H, COLORS.black, 0.65).setDepth(DEPTH.modal);
+    this.add
+      .text(CX, H / 2, win ? RU.minigame.win : RU.minigame.lose, {
+        ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444',
+      })
+      .setOrigin(0.5)
+      .setDepth(DEPTH.modal + 1);
 
-    const filled = this.recipe.filter(s => s.filled).length;
-    const score = win ? Math.round(60 + this.lives * 12) : Math.round((filled / this.recipe.length) * 40);
+    // Score: насколько глубоко прошёл + сколько жизней осталось
+    const totalGoal = STAGES.reduce((s, st) => s + st.goal, 0);
+    const totalDone = STAGES.slice(0, this.stageIdx).reduce((s, st) => s + st.goal, 0)
+                    + this.stageStuck;
+    const baseFrac  = totalDone / totalGoal;
+    const score = win
+      ? Math.round(60 + (this.lives / this.maxLives) * 40)
+      : Math.round(baseFrac * 50);
+
     this.time.delayedCall(900, () => {
       this.complete({
         outcome: win ? 'win' : 'lose',
         score,
-        metadata: { filled, total: this.recipe.length, lives: this.lives },
+        metadata: {
+          stageReached: this.stageIdx + 1,
+          totalStages:  TOTAL_STAGES,
+          totalDone,
+          totalGoal,
+          lives:        this.lives,
+        },
       });
     });
-  }
-
-  shutdown(): void {
-    this.input.off('pointermove', this.onPointerMove, this);
-    this.input.off('pointerup',   this.onPointerUp,   this);
-    if (this.spawnTimer) this.spawnTimer.remove();
-    if (this.gameTimer)  this.gameTimer.remove();
-  }
-
-  private shuffle<T>(arr: T[]): T[] {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  private drawNoise(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.04);
-    for (let i = 0; i < 500; i++) {
-      g.fillCircle(Math.random() * WIDTH, Math.random() * HEIGHT, Math.random() * 1.5);
-    }
-    g.setDepth(DEPTH.background);
   }
 }
