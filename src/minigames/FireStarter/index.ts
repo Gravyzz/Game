@@ -21,7 +21,6 @@ import { SessionState } from '@core/SessionState';
 const ROUNDS_PER_GAME = 10;
 const WIN_THRESHOLD = 10; // нужно пройти все 10 попаданий
 const TOTAL_LIVES = 3;
-const MAX_MISSES = 0;
 const TOTAL_TIME_MS = 50_000;
 
 const BAR_WIDTH = 640;
@@ -79,6 +78,7 @@ export class FireStarterScene extends BaseMinigame {
   private timeLeftMs = 0;
   private timerEvent: Phaser.Time.TimerEvent | null = null;
   private finished = false;
+  private keyHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor() {
     super({ key: 'FireStarter' });
@@ -163,6 +163,14 @@ export class FireStarterScene extends BaseMinigame {
 
     // Тап по экрану — фиксируем результат раунда
     this.input.on('pointerdown', this.handleTap, this);
+
+    // SPACE на клавиатуре — то же самое что тап
+    this.keyHandler = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      e.preventDefault();
+      this.handleTap();
+    };
+    window.addEventListener('keydown', this.keyHandler);
 
     // Общий таймер на всю минку — 50 секунд
     this.timeLeftMs = TOTAL_TIME_MS;
@@ -548,7 +556,6 @@ export class FireStarterScene extends BaseMinigame {
       this.bumpPizza();
     } else {
       this.misses += 1;
-      SessionState.loseLife();
       SoundManager.playSfx('miss');
       Haptics.trigger('miss');
       this.statusText.setText(result === 'coal' ? 'Угольки!' : 'Сырая!');
@@ -558,8 +565,9 @@ export class FireStarterScene extends BaseMinigame {
     this.updateHud();
     this.playResultRain(result);
 
-    // Промах снимает глобальное сердце. Игра завершается только когда сердец не осталось.
-    if (this.misses > MAX_MISSES && SessionState.getLivesLeft() <= 0) {
+    // Внутри минки одна жизнь: любой промах — конец матча.
+    // Сессионную жизнь спишет раннер (lifeAlreadyLost: false в metadata).
+    if (this.misses > 0) {
       this.time.delayedCall(RESULT_RAIN_MS, () => this.finish());
       return;
     }
@@ -656,7 +664,9 @@ export class FireStarterScene extends BaseMinigame {
     if (this.markerTween) this.markerTween.remove();
     if (this.timerEvent) this.timerEvent.remove();
 
-    const win = this.hits >= WIN_THRESHOLD && this.misses <= MAX_MISSES;
+    // Победа = добил 10 успешных раундов. Сессионные жизни уже списаны промахами;
+    // их учёт делается раннером и не должен здесь убивать выигрыш.
+    const win = this.hits >= WIN_THRESHOLD;
     const score = Math.min(100, Math.round((this.hits / ROUNDS_PER_GAME) * 100));
 
     if (win) {
@@ -673,13 +683,17 @@ export class FireStarterScene extends BaseMinigame {
       this.complete({
         outcome: win ? 'win' : 'lose',
         score,
-        metadata: { hits: this.hits, misses: this.misses, lifeAlreadyLost: !win },
+        metadata: { hits: this.hits, misses: this.misses, lifeAlreadyLost: false },
       });
     });
   }
 
   shutdown(): void {
     this.input.off('pointerdown', this.handleTap, this);
+    if (this.keyHandler) {
+      window.removeEventListener('keydown', this.keyHandler);
+      this.keyHandler = null;
+    }
     if (this.markerTween) this.markerTween.remove();
     if (this.timerEvent) this.timerEvent.remove();
     if (this.ovenFrameEvent) this.ovenFrameEvent.remove();

@@ -99,54 +99,25 @@ export const MINIGAME_POOL: MinigameMeta[] = [
     class: 'medium',
   },
 
-  // ===== HARD =====
-  {
-    key: 'RhythmBattle',
-    i18nKey: 'RhythmBattle',
-    hintI18nKey: 'RhythmBattle',
-    durationMs: 35_000,
-    class: 'hard',
-  },
-  {
-    key: 'NightDelivery',
-    i18nKey: 'NightDelivery',
-    hintI18nKey: 'NightDelivery',
-    durationMs: 45_000,
-    class: 'hard',
-  },
 ];
 
-/**
- * Классы сложности для каждого из 4 слотов сессии.
- * Драматургическая дуга: лёгкий вход → разгон → кульминация → финальный спринт.
- */
-const SLOT_CLASSES: MinigameClass[] = ['easy', 'medium', 'hard', 'hard'];
+/** Сколько минок в одной сессии (4 слота) */
+const SESSION_LENGTH = 4;
 
 /**
- * Генерирует уникальную последовательность из 4 минок для одной сессии.
+ * Генерирует уникальную последовательность из {@link SESSION_LENGTH} минок для сессии.
  *
- * Алгоритм:
- *  1. Для каждого слота берём класс из SLOT_CLASSES.
- *  2. Из пула выбираем случайную минку нужного класса, которая ещё не использована.
- *  3. Если пул класса исчерпан (мало игр) — берём любую оставшуюся неиспользованную.
- *
- * Гарантирует отсутствие дубликатов внутри одной сессии.
+ * Алгоритм: чистый рандом — берём весь пул, тасуем, отрезаем первые N.
+ * Поле `class` в записях остаётся для будущих фильтров, но в выборку не влияет.
+ * Гарантия: внутри одной сессии минки не повторяются.
  */
 export function generateSessionSequence(): MinigameMeta[] {
-  const sequence: MinigameMeta[] = [];
-  const used = new Set<string>();
-
-  for (const slotClass of SLOT_CLASSES) {
-    const byClass   = MINIGAME_POOL.filter(m => m.class === slotClass && !used.has(m.key));
-    const fallback  = MINIGAME_POOL.filter(m => !used.has(m.key));
-    const pool      = byClass.length > 0 ? byClass : fallback;
-
-    const picked = pool[Math.floor(Math.random() * pool.length)];
-    sequence.push(picked);
-    used.add(picked.key);
+  const shuffled = [...MINIGAME_POOL];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-
-  return sequence;
+  return shuffled.slice(0, SESSION_LENGTH);
 }
 
 /** Сложность 0..1 для конкретного слота (1..4) — не зависит от конкретной минки */

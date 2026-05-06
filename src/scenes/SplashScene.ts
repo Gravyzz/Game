@@ -333,18 +333,19 @@ export class SplashScene extends Phaser.Scene {
     text.setOrigin(0.5);
 
     button.add([bg, icon, text]);
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
-      Phaser.Geom.Rectangle.Contains
-    );
-    button.input!.cursor = 'pointer';
-    button.on('pointerdown', () => {
+
+    // Делаем интерактивным сам bg-прямоугольник: его собственный hitArea
+    // совпадает с видимой площадью — тап ловится по всей кнопке, включая
+    // области, перекрытые иконкой и текстом (они не интерактивны и пропускают
+    // событие к bg).
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerdown', () => {
       Haptics.trigger('tap');
       SoundManager.playSfx('tap');
       onClick();
     });
-    button.on('pointerover', () => button.setScale(1.03));
-    button.on('pointerout', () => button.setScale(1));
+    bg.on('pointerover', () => button.setScale(1.03));
+    bg.on('pointerout', () => button.setScale(1));
 
     return button;
   }
