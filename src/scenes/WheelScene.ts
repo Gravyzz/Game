@@ -9,7 +9,7 @@ import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton } from '@utils/SceneHelpers';
+import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
 import { PRIZE_POOL, pickPrizeIndex, toWonPrize, type PrizeDef } from '@config/prizes';
 import type { SessionLevel } from '@core/SessionState';
 
@@ -389,14 +389,6 @@ export class WheelScene extends Phaser.Scene {
   }
 
   private drawNoise(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.06);
-    for (let i = 0; i < 600; i++) {
-      const x = Math.random() * WIDTH;
-      const y = Math.random() * HEIGHT;
-      g.fillCircle(x, y, Math.random() * 1.5);
-    }
-    g.setDepth(DEPTH.background);
+    attachNoiseBackdrop(this, 'noise-wheel', 600);
   }
 }

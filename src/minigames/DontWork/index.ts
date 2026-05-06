@@ -7,6 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * MG-02 ДОНТВОРК: РАСКОЛБАС
@@ -223,6 +224,7 @@ export class DontWorkScene extends BaseMinigame {
     this.bakeNoise();
 
     // Background
+    paintPageBackdrop(this, COLORS.purple);
     this.add.rectangle(CX, H / 2, W, H, COLORS.purple).setDepth(DEPTH.background);
     this.add.image(CX, H / 2, TEX_NOISE).setDepth(DEPTH.background);
 

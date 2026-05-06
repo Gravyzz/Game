@@ -7,6 +7,7 @@ import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { SessionState } from '@core/SessionState';
+import { paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * NEW-06 Перепутанные рецепты.
@@ -124,6 +125,7 @@ export class RecipeMemoScene extends BaseMinigame {
     this.resetRuntimeState();
     this.preparePixelTextures();
 
+    paintPageBackdrop(this, RECIPE_BG);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, RECIPE_BG)
       .setStrokeStyle(4, COLORS.black)
       .setDepth(DEPTH.background);

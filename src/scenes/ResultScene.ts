@@ -8,7 +8,7 @@ import { PosterText } from '@ui/PosterText';
 import { SessionState } from '@core/SessionState';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton } from '@utils/SceneHelpers';
+import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
 
 /**
  * Финальный экран сессии.
@@ -283,14 +283,6 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private drawNoise(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.06);
-    for (let i = 0; i < 600; i++) {
-      const x = Math.random() * WIDTH;
-      const y = Math.random() * HEIGHT;
-      g.fillCircle(x, y, Math.random() * 1.5);
-    }
-    g.setDepth(DEPTH.background);
+    attachNoiseBackdrop(this, 'noise-result', 600);
   }
 }

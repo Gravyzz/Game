@@ -7,6 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * NEW-01 СЁРФЕР НА ВОЛНЕ — Flappy Bird в трёх стейджах.
@@ -176,6 +177,7 @@ export class SurferScene extends BaseMinigame {
     this.surferY         = (CEILING_Y + FLOOR_Y) / 2;
 
     // Sky
+    paintPageBackdrop(this, this.stage.bgSky);
     this.bgSky = this.add.rectangle(CX, H / 2, W, H, this.stage.bgSky)
       .setDepth(DEPTH.background);
 
@@ -358,6 +360,11 @@ export class SurferScene extends BaseMinigame {
 
     this.bgSky.setFillStyle(this.stage.bgSky);
     this.bgSea.setFillStyle(this.stage.bgSea);
+    const skyHex = '#' + this.stage.bgSky.toString(16).padStart(6, '0');
+    document.body.style.background = skyHex;
+    document.documentElement.style.background = skyHex;
+    const app = document.getElementById('app');
+    if (app) app.style.background = skyHex;
     this.sun.setVisible(!this.stage.hasLightning);
     if (this.stage.name === 'РИФ') this.sun.setFillStyle(0xfb923c);
     else                            this.sun.setFillStyle(COLORS.yellow);

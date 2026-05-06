@@ -126,6 +126,13 @@
         visibility: hidden;
       }
 
+      /* Когда играем минку — фон страницы перекрашивается в цвет минки,
+         декоративные звёзды и пульс-градиент скрываются. Эффект «фон во всю площадь». */
+      body.scene-backdrop #app::before,
+      body.scene-backdrop #page-stars {
+        display: none;
+      }
+
       #orientation-lock::before {
         content: '';
         position: absolute;

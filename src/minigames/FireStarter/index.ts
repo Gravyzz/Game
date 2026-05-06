@@ -6,6 +6,7 @@ import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { SessionState } from '@core/SessionState';
+import { paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * MG-03 Фаерстартер: тайминг печи.
@@ -90,6 +91,7 @@ export class FireStarterScene extends BaseMinigame {
     this.resetRuntimeState();
     this.preparePixelTextures();
 
+    paintPageBackdrop(this, FIRESTARTER_BG);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, FIRESTARTER_BG)
       .setStrokeStyle(4, COLORS.black)
       .setDepth(DEPTH.background);

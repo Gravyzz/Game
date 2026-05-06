@@ -7,6 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * NEW-04 Танцпол — Simon-says на стрелках.
@@ -91,6 +92,7 @@ export class DanceBeatScene extends BaseMinigame {
     const { WIDTH, HEIGHT } = GAME;
 
     // Фон
+    paintPageBackdrop(this, 0x121023);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x121023);
     this.drawDiscoFloor();
 
@@ -452,14 +454,19 @@ export class DanceBeatScene extends BaseMinigame {
 
   private drawDiscoFloor(): void {
     const { WIDTH, HEIGHT } = GAME;
-    const g = this.add.graphics();
-    for (let i = 0; i < 80; i++) {
-      const x = Math.random() * WIDTH;
-      const y = Math.random() * HEIGHT;
-      const r = Math.random() * 2.4 + 0.4;
-      g.fillStyle(0x7a5cff, 0.06 + Math.random() * 0.05);
-      g.fillCircle(x, y, r);
+    const key = 'dancebeat-disco';
+    if (!this.textures.exists(key)) {
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      for (let i = 0; i < 80; i++) {
+        const x = Math.random() * WIDTH;
+        const y = Math.random() * HEIGHT;
+        const r = Math.random() * 2.4 + 0.4;
+        g.fillStyle(0x7a5cff, 0.06 + Math.random() * 0.05);
+        g.fillCircle(x, y, r);
+      }
+      g.generateTexture(key, WIDTH, HEIGHT);
+      g.destroy();
     }
-    g.setDepth(DEPTH.background);
+    this.add.image(WIDTH / 2, HEIGHT / 2, key).setDepth(DEPTH.background);
   }
 }

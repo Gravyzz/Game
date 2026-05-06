@@ -7,6 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { attachNoiseBackdrop, paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * NEW-03 Перетапай Диди.
@@ -143,6 +144,7 @@ export class ChopChopScene extends BaseMinigame {
     const { WIDTH, HEIGHT } = GAME;
 
     // Фон
+    paintPageBackdrop(this, 0x2a4d3e);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x2a4d3e);
     this.drawNoise();
 
@@ -1004,13 +1006,7 @@ export class ChopChopScene extends BaseMinigame {
   }
 
   private drawNoise(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.06);
-    for (let i = 0; i < 500; i++) {
-      g.fillCircle(Math.random() * WIDTH, Math.random() * HEIGHT, Math.random() * 1.5);
-    }
-    g.setDepth(DEPTH.background);
+    attachNoiseBackdrop(this, 'noise-chopchop', 500);
   }
 
   shutdown(): void {
