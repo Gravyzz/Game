@@ -46,6 +46,15 @@ export class MinigameRunnerScene extends Phaser.Scene {
       SessionState.startSession(startLevel);
     }
 
+    if (SessionState.getLivesLeft() <= 0) {
+      const currentLevel = SessionState.getCurrentLevel();
+      GameState.markProgressOnLose(currentLevel);
+      SessionState.endSession('lose');
+      TicketProvider.reportSessionEnd('lose', { failedAtLevel: currentLevel });
+      this.scene.start('ResultScene', { outcome: 'lose' });
+      return;
+    }
+
     this.showHintSplash();
   }
 
@@ -134,6 +143,11 @@ export class MinigameRunnerScene extends Phaser.Scene {
 
   /** Запуск scene минки + подписка на результат */
   private launchMinigame(): void {
+    if (SessionState.getLivesLeft() <= 0) {
+      this.transitionTo('ResultScene', { outcome: 'lose' });
+      return;
+    }
+
     const level = SessionState.getCurrentLevel();
     const meta = SessionState.getMinigameAtLevel(level);
 
@@ -169,7 +183,8 @@ export class MinigameRunnerScene extends Phaser.Scene {
       this.transitionTo('ChoiceScene', { wonLevel: SessionState.getCurrentLevel() });
     } else {
       const currentLevel = SessionState.getCurrentLevel();
-      const livesLeft = SessionState.loseLife();
+      const lifeAlreadyLost = result.metadata?.lifeAlreadyLost === true;
+      const livesLeft = lifeAlreadyLost ? SessionState.getLivesLeft() : SessionState.loseLife();
 
       if (livesLeft > 0) {
         this.transitionTo('MinigameRunnerScene');

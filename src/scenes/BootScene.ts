@@ -21,6 +21,10 @@ export class BootScene extends Phaser.Scene {
     this.load.image('orientation-phone-pixel', 'assets/orientation-phone-pixel.png');
     this.load.image('sound-on-pixel', 'assets/sound-on-pixel.png');
     this.load.image('sound-off-pixel', 'assets/sound-off-pixel.png');
+    this.load.image('home-pixel', 'assets/home.png');
+    this.load.image('plus-pixel', 'assets/plus.png');
+    this.load.image('minus-pixel', 'assets/minus.png');
+    this.load.image('cancel-pixel', 'assets/cancel.png');
     this.load.image('firestarter-oven-1', 'assets/firestarter/oven-1.png');
     this.load.image('firestarter-oven-2', 'assets/firestarter/oven-2.png');
     this.load.image('firestarter-oven-3', 'assets/firestarter/oven-3.png');

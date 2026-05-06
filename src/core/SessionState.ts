@@ -33,6 +33,7 @@ interface SessionData {
 }
 
 const SESSION_LIVES = 3;
+const MAX_SESSION_LIVES = 99;
 
 class SessionStateManager {
   private data: SessionData = {
@@ -51,7 +52,7 @@ class SessionStateManager {
       completedLevels: [],
       prizeWon: null,
       active: true,
-      livesLeft: SESSION_LIVES,
+      livesLeft: this.data.livesLeft,
       sequence: generateSessionSequence(),
     };
     EventBus.emit('session:start', { startLevel });
@@ -82,6 +83,12 @@ class SessionStateManager {
   }
 
   getLivesLeft(): number {
+    return this.data.livesLeft;
+  }
+
+  setLives(lives: number): number {
+    this.data.livesLeft = Math.max(0, Math.min(MAX_SESSION_LIVES, Math.round(lives)));
+    EventBus.emit('session:lives:changed', { livesLeft: this.data.livesLeft });
     return this.data.livesLeft;
   }
 

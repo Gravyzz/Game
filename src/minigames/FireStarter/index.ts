@@ -54,6 +54,7 @@ export class FireStarterScene extends BaseMinigame {
   private statusText!: Phaser.GameObjects.Text;
   private roundText!: Phaser.GameObjects.Text;
   private hearts: Phaser.GameObjects.Image[] = [];
+  private livesCountText!: Phaser.GameObjects.Text;
   private ovenImage!: Phaser.GameObjects.Image;
   private smokeImage!: Phaser.GameObjects.Image;
   private pizzaImage!: Phaser.GameObjects.Image;
@@ -74,6 +75,7 @@ export class FireStarterScene extends BaseMinigame {
   private zoneAnchorX = 0;
 
   private accepting = false;
+  private exitModalOpen = false;
   private timeLeftMs = 0;
   private timerEvent: Phaser.Time.TimerEvent | null = null;
   private finished = false;
@@ -85,6 +87,7 @@ export class FireStarterScene extends BaseMinigame {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
+    this.resetRuntimeState();
     this.preparePixelTextures();
 
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, FIRESTARTER_BG)
@@ -176,6 +179,30 @@ export class FireStarterScene extends BaseMinigame {
     this.startRound();
   }
 
+  private resetRuntimeState(): void {
+    this.currentRound = 0;
+    this.hits = 0;
+    this.misses = 0;
+    this.hearts = [];
+    this.markerTween = null;
+    this.ovenFrameEvent = null;
+    this.smokeFrameEvent = null;
+    this.greenStart = 0;
+    this.greenEnd = 0;
+    this.barLeft = 0;
+    this.barRight = 0;
+    this.zoneMoving = false;
+    this.zoneAmplitude = 0;
+    this.zonePeriodMs = ZONE_PERIOD_START;
+    this.zonePhase = 0;
+    this.zoneAnchorX = 0;
+    this.accepting = false;
+    this.exitModalOpen = false;
+    this.timeLeftMs = 0;
+    this.timerEvent = null;
+    this.finished = false;
+  }
+
   override update(_time: number, delta: number): void {
     if (!this.accepting) return;
 
@@ -196,6 +223,7 @@ export class FireStarterScene extends BaseMinigame {
   private preparePixelTextures(): void {
     [
       'heart-pixel',
+      'home-pixel',
       'firestarter-oven-1',
       'firestarter-oven-2',
       'firestarter-oven-3',
@@ -236,8 +264,18 @@ export class FireStarterScene extends BaseMinigame {
   }
 
   private drawHud(): void {
+    this.drawHomeButton();
+
+    this.livesCountText = this.add.text(150, 80, '', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '42px',
+      color: '#0A0A0A',
+    });
+    this.livesCountText.setOrigin(0.5);
+    this.livesCountText.setDepth(DEPTH.ui);
+
     for (let i = 0; i < TOTAL_LIVES; i++) {
-      const heart = this.add.image(62 + i * 82, 80, 'heart-pixel');
+      const heart = this.add.image(150 + i * 82, 80, 'heart-pixel');
       heart.setOrigin(0.5);
       heart.setDisplaySize(62, 62);
       heart.setDepth(DEPTH.ui);
@@ -253,6 +291,107 @@ export class FireStarterScene extends BaseMinigame {
     });
     this.roundText.setOrigin(1, 0);
     this.roundText.setDepth(DEPTH.ui);
+  }
+
+  private drawHomeButton(): void {
+    const button = this.add.image(54, 80, 'home-pixel');
+    button.setOrigin(0.5);
+    button.setDisplaySize(124, 124);
+    button.setDepth(DEPTH.ui);
+    button.setInteractive({ useHandCursor: true });
+    button.on('pointerdown', () => this.showExitConfirm());
+  }
+
+  private showExitConfirm(): void {
+    if (this.finished || this.exitModalOpen) return;
+    this.exitModalOpen = true;
+    const wasAccepting = this.accepting;
+    this.accepting = false;
+    if (this.markerTween) this.markerTween.pause();
+    if (this.timerEvent) this.timerEvent.paused = true;
+
+    const { WIDTH, HEIGHT } = GAME;
+    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.68);
+    overlay.setDepth(DEPTH.modal);
+    overlay.setInteractive();
+
+    const panel = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 500, 310, 0x5a54f9);
+    panel.setStrokeStyle(6, COLORS.black);
+    panel.setDepth(DEPTH.modal + 1);
+
+    const title = this.add.text(WIDTH / 2, HEIGHT / 2 - 95, 'Вы уверены,\nчто хотите выйти?', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '22px',
+      color: '#FAF7F0',
+      align: 'center',
+      lineSpacing: 8,
+    });
+    title.setOrigin(0.5);
+    title.setDepth(DEPTH.modal + 2);
+
+    const body = this.add.text(WIDTH / 2, HEIGHT / 2 - 20, 'При выходе из игры\nу Вас сгорает 1 жизнь!', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#0A0A0A',
+      align: 'center',
+      lineSpacing: 10,
+    });
+    body.setOrigin(0.5);
+    body.setDepth(DEPTH.modal + 2);
+
+    const yes = this.add.rectangle(WIDTH / 2 - 105, HEIGHT / 2 + 85, 95, 50, COLORS.win);
+    yes.setStrokeStyle(4, COLORS.black);
+    yes.setDepth(DEPTH.modal + 2);
+    yes.setInteractive({ useHandCursor: true });
+    const yesText = this.add.text(yes.x, yes.y, 'Да', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '18px',
+      color: '#FAF7F0',
+    });
+    yesText.setOrigin(0.5);
+    yesText.setDepth(DEPTH.modal + 3);
+
+    const no = this.add.rectangle(WIDTH / 2 + 105, HEIGHT / 2 + 85, 95, 50, 0xff4e25);
+    no.setStrokeStyle(4, COLORS.black);
+    no.setDepth(DEPTH.modal + 2);
+    no.setInteractive({ useHandCursor: true });
+    const noText = this.add.text(no.x, no.y, 'Нет', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '18px',
+      color: '#FAF7F0',
+    });
+    noText.setOrigin(0.5);
+    noText.setDepth(DEPTH.modal + 3);
+
+    const modalObjects = [overlay, panel, title, body, yes, yesText, no, noText];
+    const close = () => {
+      modalObjects.forEach((obj) => obj.destroy());
+      if (!this.finished) {
+        this.time.delayedCall(0, () => {
+          this.accepting = wasAccepting;
+          this.exitModalOpen = false;
+        });
+        if (this.markerTween) this.markerTween.resume();
+        if (this.timerEvent) this.timerEvent.paused = false;
+      }
+    };
+
+    yes.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.exitToHome();
+    });
+    no.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      close();
+    });
+  }
+
+  private exitToHome(): void {
+    SoundManager.playSfx('miss');
+    Haptics.trigger('miss');
+    SessionState.loseLife();
+    this.scene.stop('MinigameRunnerScene');
+    this.scene.start('SplashScene');
   }
 
   private startSpriteAnimations(): void {
@@ -287,8 +426,28 @@ export class FireStarterScene extends BaseMinigame {
   private updateHud(): void {
     const round = Math.min(this.currentRound + 1, ROUNDS_PER_GAME);
     const livesLeft = SessionState.getLivesLeft();
-    this.hearts.forEach((heart, i) => heart.setVisible(i < livesLeft));
+    this.renderGlobalLives(livesLeft);
     this.roundText.setText(`раунд\n${round}/${ROUNDS_PER_GAME}`);
+  }
+
+  private renderGlobalLives(livesLeft: number): void {
+    if (livesLeft > 3) {
+      this.livesCountText.setText(`${livesLeft}`);
+      this.livesCountText.setVisible(true);
+      this.hearts.forEach((heart, i) => {
+        heart.setVisible(true);
+        heart.setPosition(214 + i * 32, 80);
+        heart.setDepth(DEPTH.ui + i);
+      });
+      return;
+    }
+
+    this.livesCountText.setVisible(false);
+    this.hearts.forEach((heart, i) => {
+      heart.setVisible(i < livesLeft);
+      heart.setPosition(150 + i * 82, 80);
+      heart.setDepth(DEPTH.ui);
+    });
   }
 
   /** Готовим раунд: размер и позиция зоны, скорость маркера, осцилляция зоны */
@@ -368,7 +527,7 @@ export class FireStarterScene extends BaseMinigame {
   }
 
   private handleTap(): void {
-    if (!this.accepting) return;
+    if (!this.accepting || this.exitModalOpen) return;
     this.accepting = false;
 
     const x = this.marker.x;
@@ -389,6 +548,7 @@ export class FireStarterScene extends BaseMinigame {
       this.bumpPizza();
     } else {
       this.misses += 1;
+      SessionState.loseLife();
       SoundManager.playSfx('miss');
       Haptics.trigger('miss');
       this.statusText.setText(result === 'coal' ? 'Угольки!' : 'Сырая!');
@@ -398,8 +558,8 @@ export class FireStarterScene extends BaseMinigame {
     this.updateHud();
     this.playResultRain(result);
 
-    // Любой промах = проигрыш мини-игры; общую жизнь списывает MinigameRunnerScene
-    if (this.misses > MAX_MISSES) {
+    // Промах снимает глобальное сердце. Игра завершается только когда сердец не осталось.
+    if (this.misses > MAX_MISSES && SessionState.getLivesLeft() <= 0) {
       this.time.delayedCall(RESULT_RAIN_MS, () => this.finish());
       return;
     }
@@ -513,7 +673,7 @@ export class FireStarterScene extends BaseMinigame {
       this.complete({
         outcome: win ? 'win' : 'lose',
         score,
-        metadata: { hits: this.hits, misses: this.misses },
+        metadata: { hits: this.hits, misses: this.misses, lifeAlreadyLost: !win },
       });
     });
   }

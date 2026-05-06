@@ -107,6 +107,7 @@ export class RecipeMemoScene extends BaseMinigame {
   private peekLabel!: Phaser.GameObjects.Text;
   private peekIcon!: Phaser.GameObjects.Image;
   private hearts: Phaser.GameObjects.Image[] = [];
+  private livesCountText!: Phaser.GameObjects.Text;
   private board: Phaser.GameObjects.Rectangle | null = null;
   private bannerOverlay: Phaser.GameObjects.Rectangle | null = null;
   private bannerText: Phaser.GameObjects.Text | null = null;
@@ -120,6 +121,7 @@ export class RecipeMemoScene extends BaseMinigame {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
+    this.resetRuntimeState();
     this.preparePixelTextures();
 
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, RECIPE_BG)
@@ -215,9 +217,31 @@ export class RecipeMemoScene extends BaseMinigame {
     this.startRound();
   }
 
+  private resetRuntimeState(): void {
+    this.roundIndex = 0;
+    this.cards = [];
+    this.firstFlipped = null;
+    this.secondFlipped = null;
+    this.busy = false;
+    this.peeksUsed = 0;
+    this.mistakesThisRound = 0;
+    this.matchedPairs = 0;
+    this.totalMistakes = 0;
+    this.timeLeftMs = 0;
+    this.gameTimer = null;
+    this.peekTimer = null;
+    this.timerBarMaxWidth = 0;
+    this.hearts = [];
+    this.board = null;
+    this.bannerOverlay = null;
+    this.bannerText = null;
+    this.finished = false;
+  }
+
   private preparePixelTextures(): void {
     [
       'heart-pixel',
+      'home-pixel',
       'recipe-card-cover',
       'recipe-card-face',
       'recipe-5s',
@@ -239,12 +263,115 @@ export class RecipeMemoScene extends BaseMinigame {
   }
 
   private drawTopHud(): void {
+    this.drawHomeButton();
+
+    this.livesCountText = this.add.text(150, 80, '', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '42px',
+      color: '#0A0A0A',
+    });
+    this.livesCountText.setOrigin(0.5);
+    this.livesCountText.setDepth(DEPTH.ui);
+
     for (let i = 0; i < 3; i++) {
-      const heart = this.add.image(74 + i * 82, 80, 'heart-pixel');
+      const heart = this.add.image(150 + i * 82, 80, 'heart-pixel');
       heart.setDisplaySize(62, 62);
       heart.setDepth(DEPTH.ui);
       this.hearts.push(heart);
     }
+  }
+
+  private drawHomeButton(): void {
+    const button = this.add.image(54, 80, 'home-pixel');
+    button.setOrigin(0.5);
+    button.setDisplaySize(124, 124);
+    button.setDepth(DEPTH.ui);
+    button.setInteractive({ useHandCursor: true });
+    button.on('pointerdown', () => this.showExitConfirm());
+  }
+
+  private showExitConfirm(): void {
+    if (this.finished) return;
+    const wasBusy = this.busy;
+    this.busy = true;
+    if (this.gameTimer) this.gameTimer.paused = true;
+
+    const { WIDTH, HEIGHT } = GAME;
+    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.68);
+    overlay.setDepth(DEPTH.modal);
+    overlay.setInteractive();
+
+    const panel = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 500, 310, 0x5a54f9);
+    panel.setStrokeStyle(6, COLORS.black);
+    panel.setDepth(DEPTH.modal + 1);
+
+    const title = this.add.text(WIDTH / 2, HEIGHT / 2 - 95, 'Вы уверены,\nчто хотите выйти?', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '22px',
+      color: '#FAF7F0',
+      align: 'center',
+      lineSpacing: 8,
+    });
+    title.setOrigin(0.5);
+    title.setDepth(DEPTH.modal + 2);
+
+    const body = this.add.text(WIDTH / 2, HEIGHT / 2 - 20, 'При выходе из игры\nу Вас сгорает 1 жизнь!', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#0A0A0A',
+      align: 'center',
+      lineSpacing: 10,
+    });
+    body.setOrigin(0.5);
+    body.setDepth(DEPTH.modal + 2);
+
+    const yes = this.add.rectangle(WIDTH / 2 - 105, HEIGHT / 2 + 85, 95, 50, COLORS.win);
+    yes.setStrokeStyle(4, COLORS.black);
+    yes.setDepth(DEPTH.modal + 2);
+    yes.setInteractive({ useHandCursor: true });
+    const yesText = this.add.text(yes.x, yes.y, 'Да', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '18px',
+      color: '#FAF7F0',
+    });
+    yesText.setOrigin(0.5);
+    yesText.setDepth(DEPTH.modal + 3);
+
+    const no = this.add.rectangle(WIDTH / 2 + 105, HEIGHT / 2 + 85, 95, 50, 0xff4e25);
+    no.setStrokeStyle(4, COLORS.black);
+    no.setDepth(DEPTH.modal + 2);
+    no.setInteractive({ useHandCursor: true });
+    const noText = this.add.text(no.x, no.y, 'Нет', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '18px',
+      color: '#FAF7F0',
+    });
+    noText.setOrigin(0.5);
+    noText.setDepth(DEPTH.modal + 3);
+
+    const modalObjects = [overlay, panel, title, body, yes, yesText, no, noText];
+    const close = () => {
+      modalObjects.forEach((obj) => obj.destroy());
+      this.busy = wasBusy;
+      if (this.gameTimer) this.gameTimer.paused = false;
+    };
+
+    yes.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.exitToHome();
+    });
+    no.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      close();
+    });
+  }
+
+  private exitToHome(): void {
+    SoundManager.playSfx('miss');
+    Haptics.trigger('miss');
+    SessionState.loseLife();
+    this.scene.stop('MinigameRunnerScene');
+    this.scene.start('SplashScene');
   }
 
   // ========== РАУНД ==========
@@ -648,7 +775,7 @@ export class RecipeMemoScene extends BaseMinigame {
 
   private updateHud(): void {
     const livesLeft = SessionState.getLivesLeft();
-    this.hearts.forEach((heart, i) => heart.setVisible(i < livesLeft));
+    this.renderGlobalLives(livesLeft);
     this.statusText.setText(`угадано\n${this.matchedPairs}/${this.currentCfg.pairs}`);
 
     // Каждый промах — минус 10 сек, с самого первого
@@ -663,6 +790,26 @@ export class RecipeMemoScene extends BaseMinigame {
       this.peekBtn.setFillStyle(0xff4e25);
       this.peekLabel.setColor('#FAF7F0');
     }
+  }
+
+  private renderGlobalLives(livesLeft: number): void {
+    if (livesLeft > 3) {
+      this.livesCountText.setText(`${livesLeft}`);
+      this.livesCountText.setVisible(true);
+      this.hearts.forEach((heart, i) => {
+        heart.setVisible(true);
+        heart.setPosition(214 + i * 32, 80);
+        heart.setDepth(DEPTH.ui + i);
+      });
+      return;
+    }
+
+    this.livesCountText.setVisible(false);
+    this.hearts.forEach((heart, i) => {
+      heart.setVisible(i < livesLeft);
+      heart.setPosition(150 + i * 82, 80);
+      heart.setDepth(DEPTH.ui);
+    });
   }
 
   private spawnPenaltyToast(label: string): void {
