@@ -105,6 +105,128 @@
         max-height: 100vh;
       }
 
+      #orientation-lock {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #5a54f9;
+        color: #0a0a0a;
+        font-family: 'Press Start 2P', monospace;
+      }
+
+      body.orientation-locked #orientation-lock {
+        display: flex;
+      }
+
+      body.orientation-locked #app canvas {
+        visibility: hidden;
+      }
+
+      #orientation-lock::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(120deg, rgba(118, 109, 255, 0.55), transparent 52%),
+          linear-gradient(250deg, rgba(66, 61, 212, 0.38), transparent 58%);
+        animation: app-bg-pulse 3.2s ease-in-out infinite alternate;
+      }
+
+      .orientation-lock__stars {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .orientation-lock__stars span {
+        position: absolute;
+        top: -90px;
+        left: var(--x);
+        width: var(--size);
+        aspect-ratio: 1;
+        background: url('/assets/star-pixel.png') center / contain no-repeat;
+        image-rendering: pixelated;
+        opacity: var(--opacity);
+        animation: page-star-fall var(--duration) linear var(--delay) infinite;
+        transform: translate3d(0, -120px, 0) rotate(var(--rotation));
+      }
+
+      .orientation-lock__content {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: auto auto;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(56px, 8vw, 112px);
+        width: min(92vw, 760px);
+        margin: auto;
+      }
+
+      .orientation-lock__phone {
+        width: clamp(132px, 16.5vw, 198px);
+        height: auto;
+        image-rendering: pixelated;
+        transform-origin: center;
+        animation: orientation-phone-turn 2.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+
+      .orientation-lock__copy {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .orientation-lock__title {
+        color: #0a0a0a;
+        font-size: clamp(26px, 4.1vw, 46px);
+        line-height: 1.08;
+      }
+
+      .orientation-lock__body {
+        margin-top: clamp(24px, 4vw, 42px);
+        color: #faf7f0;
+        font-size: clamp(8px, 1.25vw, 14px);
+        line-height: 1.35;
+      }
+
+      @media (max-width: 680px) and (orientation: landscape) {
+        .orientation-lock__content {
+          gap: 38px;
+          width: min(94vw, 560px);
+        }
+
+        .orientation-lock__title {
+          font-size: 24px;
+        }
+
+        .orientation-lock__body {
+          margin-top: 20px;
+          font-size: 8px;
+        }
+      }
+
+      @keyframes orientation-phone-turn {
+        0%,
+        16% {
+          transform: rotate(-90deg);
+        }
+        68%,
+        84% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(-90deg);
+        }
+      }
+
       @keyframes app-bg-pulse {
         from {
           opacity: 0.12;
@@ -175,8 +297,8 @@
   </head>
   <body>
     <!-- Сюда Phaser отрендерит canvas -->
-    <div id="app">
-      <div id="page-stars" aria-hidden="true">
+	    <div id="app">
+	      <div id="page-stars" aria-hidden="true">
         <span style="--x: 8%; --size: 34px; --duration: 8.7s; --delay: -1.2s; --drift: 46px; --rotation: 8deg; --spin: 90deg; --opacity: 0.78;"></span>
         <span style="--x: 19%; --size: 48px; --duration: 11.4s; --delay: -5.8s; --drift: -38px; --rotation: -14deg; --spin: -70deg; --opacity: 0.66;"></span>
         <span style="--x: 31%; --size: 28px; --duration: 9.9s; --delay: -3.1s; --drift: 62px; --rotation: 20deg; --spin: 50deg; --opacity: 0.82;"></span>
@@ -197,10 +319,34 @@
         <span style="--x: 88%; --size: 40px; --duration: 11.1s; --delay: -2.8s; --drift: -36px; --rotation: -13deg; --spin: 85deg; --opacity: 0.7;"></span>
         <span style="--x: 11%; --size: 46px; --duration: 13.1s; --delay: -11.6s; --drift: -58px; --rotation: 5deg; --spin: -120deg; --opacity: 0.62;"></span>
         <span style="--x: 70%; --size: 24px; --duration: 8.1s; --delay: -0.4s; --drift: 44px; --rotation: -26deg; --spin: 60deg; --opacity: 0.9;"></span>
-      </div>
-    </div>
+	      </div>
+	    </div>
 
-    <!-- Брендовый прелоадер до того, как загрузится Phaser-бандл -->
+	    <div id="orientation-lock" aria-hidden="true">
+	      <div class="orientation-lock__stars" aria-hidden="true">
+	        <span style="--x: 8%; --size: 34px; --duration: 8.7s; --delay: -1.2s; --drift: 46px; --rotation: 8deg; --spin: 90deg; --opacity: 0.78;"></span>
+	        <span style="--x: 19%; --size: 48px; --duration: 11.4s; --delay: -5.8s; --drift: -38px; --rotation: -14deg; --spin: -70deg; --opacity: 0.66;"></span>
+	        <span style="--x: 31%; --size: 28px; --duration: 9.9s; --delay: -3.1s; --drift: 62px; --rotation: 20deg; --spin: 50deg; --opacity: 0.82;"></span>
+	        <span style="--x: 43%; --size: 42px; --duration: 12.8s; --delay: -7.4s; --drift: -54px; --rotation: 4deg; --spin: 120deg; --opacity: 0.7;"></span>
+	        <span style="--x: 56%; --size: 30px; --duration: 10.6s; --delay: -2.6s; --drift: 34px; --rotation: -18deg; --spin: -45deg; --opacity: 0.76;"></span>
+	        <span style="--x: 67%; --size: 54px; --duration: 13.5s; --delay: -9.1s; --drift: -72px; --rotation: 12deg; --spin: 80deg; --opacity: 0.62;"></span>
+	        <span style="--x: 82%; --size: 32px; --duration: 8.9s; --delay: -4.7s; --drift: 58px; --rotation: -6deg; --spin: -110deg; --opacity: 0.84;"></span>
+	        <span style="--x: 91%; --size: 44px; --duration: 12.1s; --delay: -0.9s; --drift: -44px; --rotation: 16deg; --spin: 65deg; --opacity: 0.68;"></span>
+	        <span style="--x: 14%; --size: 24px; --duration: 7.8s; --delay: -6.2s; --drift: 28px; --rotation: -10deg; --spin: 40deg; --opacity: 0.8;"></span>
+	        <span style="--x: 49%; --size: 36px; --duration: 10.9s; --delay: -8.6s; --drift: -26px; --rotation: 6deg; --spin: -85deg; --opacity: 0.74;"></span>
+	        <span style="--x: 74%; --size: 26px; --duration: 9.3s; --delay: -3.8s; --drift: 40px; --rotation: 22deg; --spin: 55deg; --opacity: 0.86;"></span>
+	        <span style="--x: 97%; --size: 30px; --duration: 11.7s; --delay: -6.9s; --drift: -68px; --rotation: -20deg; --spin: -60deg; --opacity: 0.72;"></span>
+	      </div>
+	      <div class="orientation-lock__content">
+	        <img class="orientation-lock__phone" src="/assets/orientation-phone-pixel.png" alt="" draggable="false" />
+	        <div class="orientation-lock__copy">
+	          <div class="orientation-lock__title">Поверни<br />телефон!</div>
+	          <div class="orientation-lock__body">эта игра только<br />для вертикальных<br />устройств</div>
+	        </div>
+	      </div>
+	    </div>
+
+	    <!-- Брендовый прелоадер до того, как загрузится Phaser-бандл -->
     <div id="boot-loader">
       <div>Дружище, еще совсем немного и можно будет играть!</div>
     </div>

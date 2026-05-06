@@ -4,9 +4,9 @@ import { COLORS } from '@config/colors';
 import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { SessionState } from '@core/SessionState';
 
 /**
  * NEW-06 Перепутанные рецепты.
@@ -28,7 +28,19 @@ import { Haptics } from '@core/Haptics';
  * Победа: пройти все 3 раунда. Поражение: таймер дошёл до нуля в любом раунде.
  */
 
-const PAIR_ICONS = ['🍕', '🌮', '🍔', '🥪', '🌯', '🍱', '🥡', '🍜', '🥗', '🍝'];
+const PAIR_ICONS = [
+  'recipe-5s',
+  'recipe-cola',
+  'recipe-cookie',
+  'recipe-frenchfries',
+  'recipe-pasta',
+  'recipe-pepperoni',
+  'recipe-roll',
+  'recipe-runaway',
+];
+const RECIPE_BG = 0xefd2a7;
+const BOARD_GREEN = 0x2a5520;
+const BOTTOM_PANEL = 0x3a342b;
 
 interface RoundCfg {
   pairs: number;
@@ -50,16 +62,15 @@ const PEEK_PENALTY_MS = 20_000; // штраф за каждый подсмотр
 const MISTAKE_PENALTY_MS = 10_000;
 const MATCH_BONUS_MS = 3_000;
 const FLIP_BACK_MS = 1000;
+const ROUND_WIN_CELEBRATION_MS = 3000;
 
 interface Card {
   pairId: number;
   icon: string;
   container: Phaser.GameObjects.Container;
-  back: Phaser.GameObjects.Rectangle;
-  backLines: Phaser.GameObjects.Graphics;
-  backLabel: Phaser.GameObjects.Text;
-  front: Phaser.GameObjects.Rectangle;
-  iconText: Phaser.GameObjects.Text;
+  back: Phaser.GameObjects.Image;
+  front: Phaser.GameObjects.Image;
+  iconImage: Phaser.GameObjects.Image;
   flipped: boolean;
   matched: boolean;
 }
@@ -86,12 +97,18 @@ export class RecipeMemoScene extends BaseMinigame {
 
   // UI
   private timerText!: Phaser.GameObjects.Text;
+  private sandWatch!: Phaser.GameObjects.Image;
   private timerBar!: Phaser.GameObjects.Rectangle;
   private timerBarBg!: Phaser.GameObjects.Rectangle;
+  private timerBarMaxWidth = 0;
   private statusText!: Phaser.GameObjects.Text;
   private mistakesText!: Phaser.GameObjects.Text;
   private peekBtn!: Phaser.GameObjects.Rectangle;
   private peekLabel!: Phaser.GameObjects.Text;
+  private peekIcon!: Phaser.GameObjects.Image;
+  private hearts: Phaser.GameObjects.Image[] = [];
+  private livesCountText!: Phaser.GameObjects.Text;
+  private board: Phaser.GameObjects.Rectangle | null = null;
   private bannerOverlay: Phaser.GameObjects.Rectangle | null = null;
   private bannerText: Phaser.GameObjects.Text | null = null;
 
@@ -104,65 +121,257 @@ export class RecipeMemoScene extends BaseMinigame {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
-    // Фон — пробковая доска
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x6b4a2e);
-    this.drawCorkNoise();
+    this.resetRuntimeState();
+    this.preparePixelTextures();
 
-    // Заголовок
-    const title = new PosterText(this, WIDTH / 2, 80, 'РЕЦЕПТЫ-МЕМО', {
-      bgColor: COLORS.cream, textColor: '#0A0A0A',
-      fontSize: '28px', rotation: -0.025, paddingX: 20, paddingY: 10,
-    });
-    title.setDepth(DEPTH.ui);
-    this.add.existing(title);
-
-    const hint = this.add.text(WIDTH / 2, 130, '👆 переверни 2 одинаковые карточки', {
-      ...TEXT_STYLES.label, fontSize: '14px', color: '#FAF7F0',
-    });
-    hint.setOrigin(0.5);
-    hint.setDepth(DEPTH.ui);
+    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, RECIPE_BG)
+      .setStrokeStyle(4, COLORS.black)
+      .setDepth(DEPTH.background);
+    this.add.rectangle(WIDTH / 2, HEIGHT - 135, WIDTH, 270, BOTTOM_PANEL)
+      .setDepth(DEPTH.background + 1);
+    this.drawTopHud();
 
     // Таймер-бар
-    const barW = WIDTH - 80;
-    this.timerBarBg = this.add.rectangle(WIDTH / 2, 170, barW, 14, COLORS.greyDark);
-    this.timerBarBg.setStrokeStyle(2, COLORS.black);
+    const barW = WIDTH - 92;
+    this.timerBarMaxWidth = barW - 10;
+    this.timerBarBg = this.add.rectangle(WIDTH / 2, 225, barW, 28, COLORS.cream);
+    this.timerBarBg.setStrokeStyle(7, COLORS.black);
     this.timerBarBg.setDepth(DEPTH.ui);
-    this.timerBar = this.add.rectangle(WIDTH / 2 - barW / 2, 170, barW, 10, COLORS.win);
+    this.timerBar = this.add.rectangle(WIDTH / 2 - barW / 2 + 5, 225, this.timerBarMaxWidth, 18, COLORS.win);
     this.timerBar.setOrigin(0, 0.5);
     this.timerBar.setDepth(DEPTH.ui + 1);
 
-    this.timerText = this.add.text(WIDTH - 30, 30, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#FAF7F0',
+    this.sandWatch = this.add.image(78, 175, 'recipe-sand-watch');
+    this.sandWatch.setDisplaySize(36, 36);
+    this.sandWatch.setAngle(180);
+    this.sandWatch.setDepth(DEPTH.ui);
+    this.tweens.add({
+      targets: this.sandWatch,
+      angle: 360,
+      duration: 260,
+      hold: 4480,
+      repeatDelay: 0,
+      repeat: -1,
+      yoyo: true,
+      ease: 'Cubic.easeInOut',
     });
-    this.timerText.setOrigin(1, 0);
+    this.timerText = this.add.text(112, 160, '', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '30px',
+      color: '#0A0A0A',
+    });
     this.timerText.setDepth(DEPTH.ui);
 
-    this.statusText = this.add.text(30, 30, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '20px', color: '#FAF7F0',
+    this.statusText = this.add.text(WIDTH - 45, 55, '', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '30px',
+      color: '#0A0A0A',
+      align: 'center',
+      lineSpacing: 8,
     });
+    this.statusText.setOrigin(1, 0);
     this.statusText.setDepth(DEPTH.ui);
 
-    this.mistakesText = this.add.text(WIDTH / 2, 200, '', {
-      ...TEXT_STYLES.label, fontSize: '14px', color: '#FAF7F0',
+    this.mistakesText = this.add.text(WIDTH - 48, 162, '', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '30px',
+      color: '#FF2E2E',
     });
-    this.mistakesText.setOrigin(0.5);
+    this.mistakesText.setOrigin(1, 0);
     this.mistakesText.setDepth(DEPTH.ui);
 
     // Кнопка «ПОДСМОТРЕТЬ»
-    this.peekBtn = this.add.rectangle(WIDTH / 2, HEIGHT - 90, WIDTH - 100, 80, COLORS.yellow);
-    this.peekBtn.setStrokeStyle(6, COLORS.black);
+    this.peekBtn = this.add.rectangle(WIDTH / 2, 1080, WIDTH - 190, 78, 0xff4e25);
+    this.peekBtn.setStrokeStyle(4, COLORS.black);
     this.peekBtn.setDepth(DEPTH.ui);
     this.peekBtn.setInteractive({ useHandCursor: true });
     this.peekBtn.on('pointerdown', () => this.onPeek());
 
-    this.peekLabel = this.add.text(WIDTH / 2, HEIGHT - 90, '', {
-      ...TEXT_STYLES.button, fontSize: '24px', color: '#0A0A0A',
+    this.peekIcon = this.add.image(WIDTH / 2 - 135, 1080, 'recipe-magnifer');
+    this.peekIcon.setDisplaySize(55, 55);
+    this.peekIcon.setDepth(DEPTH.ui + 1);
+
+    this.peekLabel = this.add.text(WIDTH / 2 + 55, 1080, '', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '28px',
+      color: '#FAF7F0',
+      align: 'center',
     });
     this.peekLabel.setOrigin(0.5);
     this.peekLabel.setDepth(DEPTH.ui + 1);
 
+    const helpPanel = this.add.rectangle(WIDTH / 2, 1192, WIDTH - 190, 128, 0x5a54f9);
+    helpPanel.setStrokeStyle(4, COLORS.black);
+    helpPanel.setDepth(DEPTH.ui);
+    const helpText = this.add.text(WIDTH / 2, 1192, 'Собери все рецепты!\nне угадал = -10 сек\nподсмотреть больше\n1 раза = -20 сек', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '19px',
+      color: '#FAF7F0',
+      align: 'center',
+      lineSpacing: 12,
+    });
+    helpText.setOrigin(0.5);
+    helpText.setDepth(DEPTH.ui + 1);
+
     this.cameras.main.fadeIn(250, 10, 10, 10);
     this.startRound();
+  }
+
+  private resetRuntimeState(): void {
+    this.roundIndex = 0;
+    this.cards = [];
+    this.firstFlipped = null;
+    this.secondFlipped = null;
+    this.busy = false;
+    this.peeksUsed = 0;
+    this.mistakesThisRound = 0;
+    this.matchedPairs = 0;
+    this.totalMistakes = 0;
+    this.timeLeftMs = 0;
+    this.gameTimer = null;
+    this.peekTimer = null;
+    this.timerBarMaxWidth = 0;
+    this.hearts = [];
+    this.board = null;
+    this.bannerOverlay = null;
+    this.bannerText = null;
+    this.finished = false;
+  }
+
+  private preparePixelTextures(): void {
+    [
+      'heart-pixel',
+      'home-pixel',
+      'recipe-card-cover',
+      'recipe-card-face',
+      'recipe-5s',
+      'recipe-cola',
+      'recipe-cookie',
+      'recipe-frenchfries',
+      'recipe-magnifer',
+      'recipe-pasta',
+      'recipe-pepperoni',
+      'recipe-roll',
+      'recipe-runaway',
+      'recipe-sand-watch',
+      'recipe-balloon-b',
+      'recipe-balloon-y',
+      'recipe-balloon-g',
+      'recipe-balloon-o',
+      'recipe-balloon-r',
+    ].forEach((key) => this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST));
+  }
+
+  private drawTopHud(): void {
+    this.drawHomeButton();
+
+    this.livesCountText = this.add.text(150, 80, '', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '42px',
+      color: '#0A0A0A',
+    });
+    this.livesCountText.setOrigin(0.5);
+    this.livesCountText.setDepth(DEPTH.ui);
+
+    for (let i = 0; i < 3; i++) {
+      const heart = this.add.image(150 + i * 82, 80, 'heart-pixel');
+      heart.setDisplaySize(62, 62);
+      heart.setDepth(DEPTH.ui);
+      this.hearts.push(heart);
+    }
+  }
+
+  private drawHomeButton(): void {
+    const button = this.add.image(54, 80, 'home-pixel');
+    button.setOrigin(0.5);
+    button.setDisplaySize(124, 124);
+    button.setDepth(DEPTH.ui);
+    button.setInteractive({ useHandCursor: true });
+    button.on('pointerdown', () => this.showExitConfirm());
+  }
+
+  private showExitConfirm(): void {
+    if (this.finished) return;
+    const wasBusy = this.busy;
+    this.busy = true;
+    if (this.gameTimer) this.gameTimer.paused = true;
+
+    const { WIDTH, HEIGHT } = GAME;
+    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.68);
+    overlay.setDepth(DEPTH.modal);
+    overlay.setInteractive();
+
+    const panel = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 500, 310, 0x5a54f9);
+    panel.setStrokeStyle(6, COLORS.black);
+    panel.setDepth(DEPTH.modal + 1);
+
+    const title = this.add.text(WIDTH / 2, HEIGHT / 2 - 95, 'Вы уверены,\nчто хотите выйти?', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '22px',
+      color: '#FAF7F0',
+      align: 'center',
+      lineSpacing: 8,
+    });
+    title.setOrigin(0.5);
+    title.setDepth(DEPTH.modal + 2);
+
+    const body = this.add.text(WIDTH / 2, HEIGHT / 2 - 20, 'При выходе из игры\nу Вас сгорает 1 жизнь!', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#0A0A0A',
+      align: 'center',
+      lineSpacing: 10,
+    });
+    body.setOrigin(0.5);
+    body.setDepth(DEPTH.modal + 2);
+
+    const yes = this.add.rectangle(WIDTH / 2 - 105, HEIGHT / 2 + 85, 95, 50, COLORS.win);
+    yes.setStrokeStyle(4, COLORS.black);
+    yes.setDepth(DEPTH.modal + 2);
+    yes.setInteractive({ useHandCursor: true });
+    const yesText = this.add.text(yes.x, yes.y, 'Да', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '18px',
+      color: '#FAF7F0',
+    });
+    yesText.setOrigin(0.5);
+    yesText.setDepth(DEPTH.modal + 3);
+
+    const no = this.add.rectangle(WIDTH / 2 + 105, HEIGHT / 2 + 85, 95, 50, 0xff4e25);
+    no.setStrokeStyle(4, COLORS.black);
+    no.setDepth(DEPTH.modal + 2);
+    no.setInteractive({ useHandCursor: true });
+    const noText = this.add.text(no.x, no.y, 'Нет', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '18px',
+      color: '#FAF7F0',
+    });
+    noText.setOrigin(0.5);
+    noText.setDepth(DEPTH.modal + 3);
+
+    const modalObjects = [overlay, panel, title, body, yes, yesText, no, noText];
+    const close = () => {
+      modalObjects.forEach((obj) => obj.destroy());
+      this.busy = wasBusy;
+      if (this.gameTimer) this.gameTimer.paused = false;
+    };
+
+    yes.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.exitToHome();
+    });
+    no.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      close();
+    });
+  }
+
+  private exitToHome(): void {
+    SoundManager.playSfx('miss');
+    Haptics.trigger('miss');
+    SessionState.loseLife();
+    this.scene.stop('MinigameRunnerScene');
+    this.scene.start('SplashScene');
   }
 
   // ========== РАУНД ==========
@@ -177,6 +386,10 @@ export class RecipeMemoScene extends BaseMinigame {
     // Чистим предыдущие карты
     this.cards.forEach((c) => c.container.destroy());
     this.cards = [];
+    if (this.board) {
+      this.board.destroy();
+      this.board = null;
+    }
     this.firstFlipped = null;
     this.secondFlipped = null;
 
@@ -211,7 +424,7 @@ export class RecipeMemoScene extends BaseMinigame {
   }
 
   private buildGrid(cfg: RoundCfg): void {
-    const { WIDTH, HEIGHT } = GAME;
+    const { WIDTH } = GAME;
     const total = cfg.pairs * 2;
 
     const icons = this.shuffle([...PAIR_ICONS]).slice(0, cfg.pairs);
@@ -222,26 +435,39 @@ export class RecipeMemoScene extends BaseMinigame {
     });
     const shuffledDeck = this.shuffle(deck);
 
-    // Доступная зона: между HUD сверху и кнопкой «подсмотреть» снизу
-    const gridTop = 240;
-    const gridBottom = HEIGHT - 160;
+    // Доступная зона: зелёная доска из макета
+    const boardX = WIDTH / 2;
+    const boardY = 625;
+    const boardW = WIDTH - 24;
+    const boardH = 740;
+    this.board = this.add.rectangle(boardX, boardY, boardW, boardH, BOARD_GREEN);
+    this.board.setStrokeStyle(7, 0x7a4a2a);
+    this.board.setDepth(DEPTH.midground);
+
+    const gridTop = boardY - boardH / 2 + 58;
+    const gridBottom = boardY + boardH / 2 - 58;
     const gridArea = gridBottom - gridTop;
 
-    const gap = 14;
-    const sideMargin = 40;
-    const maxCardW = 180;
-    const maxCardH = 240;
-    const cardW = Math.min(maxCardW, (WIDTH - sideMargin * 2 - (cfg.cols - 1) * gap) / cfg.cols);
-    const cardH = Math.min(maxCardH, (gridArea - (cfg.rows - 1) * gap) / cfg.rows);
+    const visualCols = cfg.cols;
+    const visualRows = cfg.rows;
+    const gap = cfg.rows > 2 ? 4 : 8;
+    const maxCardSize = cfg.rows > 3 ? 152 : 168;
+    const cardSize = Math.min(
+      maxCardSize,
+      (boardW - 24 - (visualCols - 1) * gap) / visualCols,
+      (gridArea - (visualRows - 1) * gap) / visualRows,
+    );
+    const cardW = cardSize;
+    const cardH = cardSize;
 
-    const gridW = cfg.cols * cardW + (cfg.cols - 1) * gap;
-    const gridH = cfg.rows * cardH + (cfg.rows - 1) * gap;
+    const gridW = visualCols * cardW + (visualCols - 1) * gap;
+    const gridH = visualRows * cardH + (visualRows - 1) * gap;
     const startX = WIDTH / 2 - gridW / 2 + cardW / 2;
     const startY = gridTop + (gridArea - gridH) / 2 + cardH / 2;
 
     shuffledDeck.slice(0, total).forEach((d, i) => {
-      const col = i % cfg.cols;
-      const row = Math.floor(i / cfg.cols);
+      const col = i % visualCols;
+      const row = Math.floor(i / visualCols);
       const x = startX + col * (cardW + gap);
       const y = startY + row * (cardH + gap);
       this.makeCard(d.pairId, d.icon, x, y, cardW, cardH);
@@ -251,34 +477,23 @@ export class RecipeMemoScene extends BaseMinigame {
   private makeCard(pairId: number, icon: string, x: number, y: number, w: number, h: number): void {
     const container = this.add.container(x, y);
 
-    // «Рубашка» — лист рецепта
-    const back = this.add.rectangle(0, 0, w, h, COLORS.cream);
-    back.setStrokeStyle(3, COLORS.black);
-    const backLines = this.add.graphics();
-    backLines.lineStyle(1.5, 0x9c8a6e, 0.6);
-    for (let i = -h / 2 + 16; i < h / 2; i += 18) {
-      backLines.lineBetween(-w / 2 + 12, i, w / 2 - 12, i);
-    }
-    const backLabel = this.add.text(0, h / 2 - 18, 'РЕЦЕПТ', {
-      ...TEXT_STYLES.label, fontSize: '12px', color: '#0A0A0A',
-    });
-    backLabel.setOrigin(0.5);
-
-    // «Лицо» — иконка
-    const front = this.add.rectangle(0, 0, w, h, COLORS.red);
-    front.setStrokeStyle(3, COLORS.black);
+    const back = this.add.image(0, 0, 'recipe-card-cover');
+    back.setDisplaySize(w, h);
+    const front = this.add.image(0, 0, 'recipe-card-face');
+    front.setDisplaySize(w, h);
     front.setVisible(false);
-    const iconText = this.add.text(0, 0, icon, { fontSize: `${Math.floor(h * 0.5)}px` });
-    iconText.setOrigin(0.5);
-    iconText.setVisible(false);
+    const iconImage = this.add.image(0, 0, icon);
+    const iconSize = Math.min(w * 0.56, h * 0.56, 62);
+    iconImage.setDisplaySize(iconSize, iconSize);
+    iconImage.setVisible(false);
 
-    container.add([back, backLines, backLabel, front, iconText]);
+    container.add([back, front, iconImage]);
     container.setSize(w, h);
     container.setInteractive({ useHandCursor: true });
     container.setDepth(DEPTH.gameplay);
 
     const card: Card = {
-      pairId, icon, container, back, backLines, backLabel, front, iconText,
+      pairId, icon, container, back, front, iconImage,
       flipped: false, matched: false,
     };
 
@@ -303,10 +518,10 @@ export class RecipeMemoScene extends BaseMinigame {
     if (this.finished) return;
     this.timeLeftMs -= 100;
     const sec = Math.max(0, Math.ceil(this.timeLeftMs / 1000));
-    this.timerText.setText(`⏱ ${sec}`);
+    this.timerText.setText(`${sec} c`);
 
     const ratio = Math.max(0, this.timeLeftMs / this.currentCfg.durationMs);
-    this.timerBar.width = (GAME.WIDTH - 80) * Math.min(1, ratio);
+    this.timerBar.width = this.timerBarMaxWidth * Math.min(1, ratio);
     if (ratio < 0.25) this.timerBar.setFillStyle(COLORS.lose);
     else if (ratio < 0.5) this.timerBar.setFillStyle(COLORS.yellow);
     else this.timerBar.setFillStyle(COLORS.win);
@@ -415,29 +630,96 @@ export class RecipeMemoScene extends BaseMinigame {
   private setCardFace(card: Card, toFront: boolean): void {
     card.flipped = toFront;
     card.back.setVisible(!toFront);
-    card.backLines.setVisible(!toFront);
-    card.backLabel.setVisible(!toFront);
     card.front.setVisible(toFront);
-    card.iconText.setVisible(toFront);
+    card.iconImage.setVisible(toFront);
   }
 
   private flashCard(card: Card, color: number): void {
-    card.front.setFillStyle(color);
+    card.iconImage.setTint(color);
     this.tweens.add({
       targets: card.container,
       scale: 1.08,
       duration: 200,
       yoyo: true,
+      onComplete: () => card.iconImage.clearTint(),
     });
   }
 
   private checkRoundComplete(): void {
     if (this.matchedPairs >= this.currentCfg.pairs) {
       this.busy = true;
+      this.playRoundWinCelebration();
       this.showBanner(`РАУНД ${this.roundIndex + 1} ✓`, 900, () => {
         if (this.gameTimer) this.gameTimer.remove();
-        this.roundIndex += 1;
-        this.startRound();
+        this.time.delayedCall(ROUND_WIN_CELEBRATION_MS - 900, () => {
+          this.roundIndex += 1;
+          this.startRound();
+        });
+      });
+    }
+  }
+
+  private playRoundWinCelebration(): void {
+    const { WIDTH, HEIGHT } = GAME;
+    const balloonKeys = [
+      'recipe-balloon-b',
+      'recipe-balloon-y',
+      'recipe-balloon-g',
+      'recipe-balloon-o',
+      'recipe-balloon-r',
+    ];
+    const labels = ['СУПЕР!', 'ТАК ДЕРЖАТЬ!', '#МЕГАКРУТО'];
+
+    for (let i = 0; i < 22; i++) {
+      this.time.delayedCall(i * 95, () => {
+        const balloon = this.add.image(
+          Phaser.Math.Between(35, WIDTH - 35),
+          HEIGHT + 80,
+          Phaser.Utils.Array.GetRandom(balloonKeys),
+        );
+        const size = Phaser.Math.Between(105, 180);
+        balloon.setOrigin(0.5);
+        balloon.setDisplaySize(size, size);
+        balloon.setDepth(DEPTH.effects);
+
+        this.tweens.add({
+          targets: balloon,
+          y: -100,
+          x: balloon.x + Phaser.Math.Between(-70, 70),
+          angle: Phaser.Math.Between(-20, 20),
+          duration: Phaser.Math.Between(1900, ROUND_WIN_CELEBRATION_MS),
+          ease: 'Sine.easeOut',
+          onComplete: () => balloon.destroy(),
+        });
+      });
+    }
+
+    for (let i = 0; i < 8; i++) {
+      this.time.delayedCall(i * 220, () => {
+        const label = this.add.text(
+          Phaser.Math.Between(75, WIDTH - 75),
+          HEIGHT + 70,
+          Phaser.Utils.Array.GetRandom(labels),
+          {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '28px',
+            color: Phaser.Utils.Array.GetRandom(['#FF2E2E', '#FFE600', '#25B855', '#0AACE0']),
+            align: 'center',
+          },
+        );
+        label.setOrigin(0.5);
+        label.setDepth(DEPTH.effects + 1);
+        label.setRotation(Phaser.Math.FloatBetween(-0.18, 0.18));
+
+        this.tweens.add({
+          targets: label,
+          y: -90,
+          x: label.x + Phaser.Math.Between(-45, 45),
+          rotation: label.rotation + Phaser.Math.FloatBetween(-0.25, 0.25),
+          duration: Phaser.Math.Between(2100, ROUND_WIN_CELEBRATION_MS),
+          ease: 'Sine.easeOut',
+          onComplete: () => label.destroy(),
+        });
       });
     }
   }
@@ -492,21 +774,42 @@ export class RecipeMemoScene extends BaseMinigame {
   // ========== UI ==========
 
   private updateHud(): void {
-    this.statusText.setText(`✓ ${this.matchedPairs}/${this.currentCfg.pairs}`);
+    const livesLeft = SessionState.getLivesLeft();
+    this.renderGlobalLives(livesLeft);
+    this.statusText.setText(`угадано\n${this.matchedPairs}/${this.currentCfg.pairs}`);
 
     // Каждый промах — минус 10 сек, с самого первого
-    this.mistakesText.setText(`✗ ${this.mistakesThisRound} промахов  •  −10 сек/ход`);
-    this.mistakesText.setColor(this.mistakesThisRound > 0 ? '#FF8A8A' : '#FAF7F0');
+    this.mistakesText.setText(`раунд ${this.roundIndex + 1}`);
 
     if (this.peeksUsed === 0) {
-      this.peekLabel.setText('🔍 ПОДСМОТРЕТЬ  •  БЕСПЛАТНО');
-      this.peekBtn.setFillStyle(COLORS.yellow);
-      this.peekLabel.setColor('#0A0A0A');
+      this.peekLabel.setText('подсмотреть');
+      this.peekBtn.setFillStyle(0xff4e25);
+      this.peekLabel.setColor('#FAF7F0');
     } else {
-      this.peekLabel.setText(`🔍 ПОДСМОТРЕТЬ  •  −${PEEK_PENALTY_MS / 1000} СЕК`);
-      this.peekBtn.setFillStyle(0xff8a3a);
-      this.peekLabel.setColor('#0A0A0A');
+      this.peekLabel.setText(`подсмотреть`);
+      this.peekBtn.setFillStyle(0xff4e25);
+      this.peekLabel.setColor('#FAF7F0');
     }
+  }
+
+  private renderGlobalLives(livesLeft: number): void {
+    if (livesLeft > 3) {
+      this.livesCountText.setText(`${livesLeft}`);
+      this.livesCountText.setVisible(true);
+      this.hearts.forEach((heart, i) => {
+        heart.setVisible(true);
+        heart.setPosition(214 + i * 32, 80);
+        heart.setDepth(DEPTH.ui + i);
+      });
+      return;
+    }
+
+    this.livesCountText.setVisible(false);
+    this.hearts.forEach((heart, i) => {
+      heart.setVisible(i < livesLeft);
+      heart.setPosition(150 + i * 82, 80);
+      heart.setDepth(DEPTH.ui);
+    });
   }
 
   private spawnPenaltyToast(label: string): void {
@@ -603,15 +906,5 @@ export class RecipeMemoScene extends BaseMinigame {
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
-  }
-
-  private drawCorkNoise(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.05);
-    for (let i = 0; i < 800; i++) {
-      g.fillCircle(Math.random() * WIDTH, Math.random() * HEIGHT, Math.random() * 1.5);
-    }
-    g.setDepth(DEPTH.background);
   }
 }

@@ -102,6 +102,64 @@ TicketProvider.init();
 // Запускаем игру
 const game = new Phaser.Game(config);
 
+const ORIENTATION_LOCK_SCENE = 'OrientationLockScene';
+let orientationListenersReady = false;
+const pausedByOrientation = new Set<string>();
+
+const isLandscape = (): boolean => window.innerWidth > window.innerHeight;
+
+const syncOrientationLock = (): void => {
+  if (isLandscape()) {
+    document.body.classList.add('orientation-locked');
+
+    const activeScenes = game.scene
+      .getScenes(true)
+      .filter((scene) => scene.scene.key !== ORIENTATION_LOCK_SCENE);
+
+    activeScenes.forEach((scene) => {
+      const key = scene.scene.key;
+      if (!game.scene.isPaused(key)) {
+        pausedByOrientation.add(key);
+        game.scene.pause(key);
+      }
+    });
+    return;
+  }
+
+  document.body.classList.remove('orientation-locked');
+
+  if (game.scene.isActive(ORIENTATION_LOCK_SCENE)) {
+    game.scene.stop(ORIENTATION_LOCK_SCENE);
+  }
+
+  pausedByOrientation.forEach((key) => {
+    if (game.scene.isPaused(key)) {
+      game.scene.resume(key);
+    }
+  });
+  pausedByOrientation.clear();
+};
+
+const scheduleOrientationSync = (): void => {
+  window.setTimeout(syncOrientationLock, 0);
+};
+
+const registerOrientationLock = (): void => {
+  if (orientationListenersReady) return;
+  orientationListenersReady = true;
+
+  game.scene.getScenes(false).forEach((scene) => {
+    scene.events.on(Phaser.Scenes.Events.START, scheduleOrientationSync);
+  });
+
+  window.addEventListener('resize', syncOrientationLock);
+  window.addEventListener('orientationchange', syncOrientationLock);
+  scheduleOrientationSync();
+};
+
+game.events.once(Phaser.Core.Events.READY, registerOrientationLock);
+window.setTimeout(registerOrientationLock, 0);
+
 // Логи в консоль на старте — удобно дебажить с телефона
 console.log(
   '%c MAKE LOVE ADVENTURES %c v0.1 ',

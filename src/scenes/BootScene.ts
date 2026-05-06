@@ -21,6 +21,41 @@ export class BootScene extends Phaser.Scene {
     this.load.image('orientation-phone-pixel', 'assets/orientation-phone-pixel.png');
     this.load.image('sound-on-pixel', 'assets/sound-on-pixel.png');
     this.load.image('sound-off-pixel', 'assets/sound-off-pixel.png');
+    this.load.image('home-pixel', 'assets/home.png');
+    this.load.image('plus-pixel', 'assets/plus.png');
+    this.load.image('minus-pixel', 'assets/minus.png');
+    this.load.image('cancel-pixel', 'assets/cancel.png');
+    this.load.image('firestarter-oven-1', 'assets/firestarter/oven-1.png');
+    this.load.image('firestarter-oven-2', 'assets/firestarter/oven-2.png');
+    this.load.image('firestarter-oven-3', 'assets/firestarter/oven-3.png');
+    this.load.image('firestarter-smoke-1', 'assets/firestarter/smoke-1.png');
+    this.load.image('firestarter-smoke-2', 'assets/firestarter/smoke-2.png');
+    this.load.image('firestarter-pizza-raw', 'assets/firestarter/pizza-raw.png');
+    this.load.image('firestarter-pizza-ok', 'assets/firestarter/pizza-ok.png');
+    this.load.image('firestarter-pizza-coal', 'assets/firestarter/pizza-coal.png');
+    this.load.image('firestarter-result-coal', 'assets/firestarter/coal.png');
+    this.load.image('firestarter-result-ice', 'assets/firestarter/ice.png');
+    this.load.image('firestarter-result-ok', 'assets/firestarter/ok.png');
+    this.load.image('firestarter-picture', 'assets/firestarter/picture.png');
+    this.load.image('firestarter-plant', 'assets/firestarter/plant.png');
+    this.load.image('firestarter-lamp', 'assets/firestarter/lamp.png');
+    this.load.image('recipe-card-cover', 'assets/recipememo/card-cover.png');
+    this.load.image('recipe-card-face', 'assets/recipememo/card-face.png');
+    this.load.image('recipe-5s', 'assets/recipememo/5s.png');
+    this.load.image('recipe-cola', 'assets/recipememo/cola.png');
+    this.load.image('recipe-cookie', 'assets/recipememo/cookie.png');
+    this.load.image('recipe-frenchfries', 'assets/recipememo/frenchfries.png');
+    this.load.image('recipe-magnifer', 'assets/recipememo/magnifer.png');
+    this.load.image('recipe-pasta', 'assets/recipememo/pasta.png');
+    this.load.image('recipe-pepperoni', 'assets/recipememo/pepperoni.png');
+    this.load.image('recipe-roll', 'assets/recipememo/roll.png');
+    this.load.image('recipe-runaway', 'assets/recipememo/runaway.png');
+    this.load.image('recipe-sand-watch', 'assets/recipememo/sand-watch.png');
+    this.load.image('recipe-balloon-b', 'assets/recipememo/balloon-b.png');
+    this.load.image('recipe-balloon-y', 'assets/recipememo/balloon-y.png');
+    this.load.image('recipe-balloon-g', 'assets/recipememo/balloon-g.png');
+    this.load.image('recipe-balloon-o', 'assets/recipememo/balloon-o.png');
+    this.load.image('recipe-balloon-r', 'assets/recipememo/balloon-r.png');
   }
 
   async create(): Promise<void> {
@@ -48,15 +83,6 @@ export class BootScene extends Phaser.Scene {
       setTimeout(() => htmlLoader.remove(), 500);
     }
 
-    // Проверяем ориентацию ПЕРЕД сплэшем — если landscape, сразу в lock
-    if (this.isLandscape()) {
-      this.scene.start('OrientationLockScene');
-    } else {
-      this.scene.start('SplashScene');
-    }
-  }
-
-  private isLandscape(): boolean {
-    return window.innerWidth > window.innerHeight;
+    this.scene.start('SplashScene');
   }
 }

@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { EventBus } from '@core/EventBus';
+import { SessionState } from '@core/SessionState';
 import { MINIGAME_POOL, getDifficultyForLevel } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
 
@@ -143,6 +144,11 @@ export class DevMinigameMenuScene extends Phaser.Scene {
   }
 
   private launchMinigame(sceneKey: string, durationMs: number): void {
+    if (SessionState.getLivesLeft() <= 0) {
+      this.showNoLivesHint();
+      return;
+    }
+
     const initData: MinigameInitData = {
       level: 1,
       difficulty: getDifficultyForLevel(1),
@@ -164,6 +170,23 @@ export class DevMinigameMenuScene extends Phaser.Scene {
     this.completeHandler = null;
     this.scene.setVisible(true);
     this.input.enabled = true;
+  }
+
+  private showNoLivesHint(): void {
+    const toast = this.add.text(GAME.WIDTH / 2, 190, 'НЕТ ЖИЗНЕЙ', {
+      fontFamily: this.pixelFont,
+      fontSize: '24px',
+      color: '#FF2E2E',
+    });
+    toast.setOrigin(0.5);
+    toast.setDepth(DEPTH.toast);
+    this.tweens.add({
+      targets: toast,
+      y: 150,
+      alpha: 0,
+      duration: 900,
+      onComplete: () => toast.destroy(),
+    });
   }
 
   shutdown(): void {

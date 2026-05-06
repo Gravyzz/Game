@@ -26,9 +26,14 @@ interface SessionData {
   prizeWon: PrizeWon | null;
   /** Активна ли сессия (false до старта и после завершения) */
   active: boolean;
+  /** Общие жизни сессии. Проигрыш в любой мини-игре снимает одну. */
+  livesLeft: number;
   /** Случайная последовательность минок, сгенерированная при старте сессии */
   sequence: MinigameMeta[];
 }
+
+const SESSION_LIVES = 3;
+const MAX_SESSION_LIVES = 99;
 
 class SessionStateManager {
   private data: SessionData = {
@@ -36,6 +41,7 @@ class SessionStateManager {
     completedLevels: [],
     prizeWon: null,
     active: false,
+    livesLeft: SESSION_LIVES,
     sequence: [],
   };
 
@@ -46,6 +52,7 @@ class SessionStateManager {
       completedLevels: [],
       prizeWon: null,
       active: true,
+      livesLeft: this.data.livesLeft,
       sequence: generateSessionSequence(),
     };
     EventBus.emit('session:start', { startLevel });
@@ -75,6 +82,22 @@ class SessionStateManager {
     return this.data.currentLevel;
   }
 
+  getLivesLeft(): number {
+    return this.data.livesLeft;
+  }
+
+  setLives(lives: number): number {
+    this.data.livesLeft = Math.max(0, Math.min(MAX_SESSION_LIVES, Math.round(lives)));
+    EventBus.emit('session:lives:changed', { livesLeft: this.data.livesLeft });
+    return this.data.livesLeft;
+  }
+
+  loseLife(): number {
+    this.data.livesLeft = Math.max(0, this.data.livesLeft - 1);
+    EventBus.emit('session:lives:changed', { livesLeft: this.data.livesLeft });
+    return this.data.livesLeft;
+  }
+
   /** Кладём приз в сессию (после колеса) */
   setPrize(prize: PrizeWon): void {
     this.data.prizeWon = prize;
@@ -101,6 +124,7 @@ class SessionStateManager {
       completedLevels: [],
       prizeWon: null,
       active: false,
+      livesLeft: SESSION_LIVES,
       sequence: [],
     };
   }

@@ -19,7 +19,7 @@ import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
  *  2. Запускает scene минки через scene.launch() с MinigameInitData
  *  3. Слушает 'minigame:complete' через EventBus
  *  4. На win  → ChoiceScene (или WheelScene если уровень 4)
- *     На lose → ResultScene с outcome=lose
+ *     На lose → минус глобальная жизнь и повтор текущей минки, пока жизни не кончатся
  */
 export class MinigameRunnerScene extends Phaser.Scene {
   private completeHandler: ((result: MinigameResult & { sceneKey: string }) => void) | null = null;
@@ -44,6 +44,15 @@ export class MinigameRunnerScene extends Phaser.Scene {
       // Стартуем сессию с уровня прогресса (для возобновления через 2 недели)
       const startLevel = GameState.getProgressLevel();
       SessionState.startSession(startLevel);
+    }
+
+    if (SessionState.getLivesLeft() <= 0) {
+      const currentLevel = SessionState.getCurrentLevel();
+      GameState.markProgressOnLose(currentLevel);
+      SessionState.endSession('lose');
+      TicketProvider.reportSessionEnd('lose', { failedAtLevel: currentLevel });
+      this.scene.start('ResultScene', { outcome: 'lose' });
+      return;
     }
 
     this.showHintSplash();
@@ -134,6 +143,11 @@ export class MinigameRunnerScene extends Phaser.Scene {
 
   /** Запуск scene минки + подписка на результат */
   private launchMinigame(): void {
+    if (SessionState.getLivesLeft() <= 0) {
+      this.transitionTo('ResultScene', { outcome: 'lose' });
+      return;
+    }
+
     const level = SessionState.getCurrentLevel();
     const meta = SessionState.getMinigameAtLevel(level);
 
@@ -168,12 +182,19 @@ export class MinigameRunnerScene extends Phaser.Scene {
       // Иначе — переход на ChoiceScene «крутить или дальше»
       this.transitionTo('ChoiceScene', { wonLevel: SessionState.getCurrentLevel() });
     } else {
-      // Проигрыш — конец сессии, без приза.
+      const currentLevel = SessionState.getCurrentLevel();
+      const lifeAlreadyLost = result.metadata?.lifeAlreadyLost === true;
+      const livesLeft = lifeAlreadyLost ? SessionState.getLivesLeft() : SessionState.loseLife();
+
+      if (livesLeft > 0) {
+        this.transitionTo('MinigameRunnerScene');
+        return;
+      }
+
+      // Жизни закончились — конец сессии, без приза.
       // ВАЖНО: фиксируем прогресс на ТЕКУЩЕМ уровне, чтобы при следующем заказе
       // игрок попал именно на эту минку, а не на следующую.
-      const currentLevel = SessionState.getCurrentLevel();
       GameState.markProgressOnLose(currentLevel);
-
       SessionState.endSession('lose');
       TicketProvider.reportSessionEnd('lose', { failedAtLevel: currentLevel });
 
