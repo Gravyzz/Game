@@ -187,8 +187,11 @@ export class MinigameRunnerScene extends Phaser.Scene {
       const livesLeft = lifeAlreadyLost ? SessionState.getLivesLeft() : SessionState.loseLife();
 
       if (livesLeft > 0) {
-        this.transitionTo('MinigameRunnerScene');
-        return;
+        const nextLevel = SessionState.advanceLevel();
+        if (nextLevel !== null) {
+          this.transitionTo('MinigameRunnerScene');
+          return;
+        }
       }
 
       // Жизни закончились — конец сессии, без приза.
