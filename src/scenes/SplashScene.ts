@@ -210,6 +210,10 @@ export class SplashScene extends Phaser.Scene {
 
     closeBtn.on('pointerdown', close);
     window.addEventListener('keydown', onKeyDown);
+    // Если сцена шатдаунится с открытой модалкой — снимаем глобальный listener.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener('keydown', onKeyDown);
+    });
   }
 
   private openLivesEditModal(): void {

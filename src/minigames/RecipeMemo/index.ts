@@ -371,9 +371,13 @@ export class RecipeMemoScene extends BaseMinigame {
   private exitToHome(): void {
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
-    SessionState.loseLife();
-    this.scene.stop('MinigameRunnerScene');
-    this.scene.start('SplashScene');
+    if (this.gameTimer) this.gameTimer.remove();
+    if (this.peekTimer) this.peekTimer.remove();
+    this.complete({
+      outcome: 'lose',
+      score: 0,
+      metadata: { aborted: true, lifeAlreadyLost: true },
+    });
   }
 
   // ========== РАУНД ==========
@@ -514,10 +518,10 @@ export class RecipeMemoScene extends BaseMinigame {
   }
 
   private onTick(): void {
-    if (this.finished || this.busy && this.peeksOpen()) {
-      // время не идёт во время превью раунда (busy без peek)
-    }
     if (this.finished) return;
+    // Пока активен подсмотр — таймер замораживается. 20-сек штраф уже снят
+    // в onPeek, дополнительно крутить таймер нельзя.
+    if (this.peeksOpen()) return;
     this.timeLeftMs -= 100;
     const sec = Math.max(0, Math.ceil(this.timeLeftMs / 1000));
     this.timerText.setText(`${sec} c`);
@@ -533,8 +537,7 @@ export class RecipeMemoScene extends BaseMinigame {
     }
   }
 
-  /** Помощник: сейчас открыт ли «подсмотр». Сейчас не используется напрямую,
-   *  но оставлено как точка расширения. */
+  /** Открыт ли сейчас подсмотр (карты на показе). Используется для заморозки таймера. */
   private peeksOpen(): boolean {
     return this.peekTimer !== null;
   }

@@ -44,17 +44,17 @@ interface Stage {
 const STAGES: Stage[] = [
   {
     name: 'EASY',  color: '#4ADE80',
-    rotSpeed: 1.4, goal: 6,  minAngle: 0.26, knifeSpd: 1500,
+    rotSpeed: 1.4, goal: 11, minAngle: 0.14, knifeSpd: 3200,
     flipEnabled: false, flipMin: 0,    flipMax: 0,
   },
   {
     name: 'MEDIUM', color: '#FFE600',
-    rotSpeed: 2.1, goal: 8,  minAngle: 0.22, knifeSpd: 1700,
+    rotSpeed: 2.1, goal: 13, minAngle: 0.12, knifeSpd: 3500,
     flipEnabled: false, flipMin: 0,    flipMax: 0,
   },
   {
     name: 'HARD',  color: '#FF2E2E',
-    rotSpeed: 2.7, goal: 10, minAngle: 0.19, knifeSpd: 1900,
+    rotSpeed: 2.7, goal: 15, minAngle: 0.10, knifeSpd: 3800,
     flipEnabled: true,  flipMin: 2400, flipMax: 3800,
   },
 ];

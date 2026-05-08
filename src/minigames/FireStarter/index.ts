@@ -399,9 +399,17 @@ export class FireStarterScene extends BaseMinigame {
   private exitToHome(): void {
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
-    SessionState.loseLife();
-    this.scene.stop('MinigameRunnerScene');
-    this.scene.start('SplashScene');
+    if (this.markerTween) this.markerTween.remove();
+    if (this.timerEvent) this.timerEvent.remove();
+    if (this.ovenFrameEvent) this.ovenFrameEvent.remove();
+    if (this.smokeFrameEvent) this.smokeFrameEvent.remove();
+    // Сообщаем wrapper-сцене (раннер или дев-меню) что игрок вышел.
+    // Они сами решат куда переходить и нужно ли списывать жизнь.
+    this.complete({
+      outcome: 'lose',
+      score: 0,
+      metadata: { aborted: true, lifeAlreadyLost: true },
+    });
   }
 
   private startSpriteAnimations(): void {

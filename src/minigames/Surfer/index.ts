@@ -866,6 +866,9 @@ export class SurferScene extends BaseMinigame {
           totalDone,
           stars:        this.starCount,
           lives:        this.lives,
+          // Локальные жизни Surfer — внутренние, на сессионные жизни не влияют.
+          // Раннеру отдаём пропуск: одна попытка минки = одна сессионная жизнь.
+          lifeAlreadyLost: false,
         },
       });
     });

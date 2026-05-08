@@ -767,6 +767,7 @@ export class ChopChopScene extends BaseMinigame {
   }
 
   private applyChop(value: number): void {
+    if (!this.accepting || this.finished) return;
     this.playerCount += value;
     this.updateUi();
     if (this.playerCount >= this.currentTarget) {
@@ -899,6 +900,8 @@ export class ChopChopScene extends BaseMinigame {
   // ========== ФИНАЛ РАУНДА ==========
 
   private endRound(winner: 'player' | 'didi'): void {
+    // Идемпотентность: если accepting=false, раунд уже закрыт.
+    if (!this.accepting || this.finished) return;
     this.accepting = false;
     this.playerCanTap = false;
     if (this.didiTimer) { this.didiTimer.remove(); this.didiTimer = null; }

@@ -231,9 +231,11 @@ export class DanceBeatScene extends BaseMinigame {
     let prev: Dir | null = null;
     for (let i = 0; i < length; i++) {
       let pick = dirs[Phaser.Math.Between(0, 3)];
-      // Не повторять подряд одно и то же — игрок не отличит от затупа
+      // Не повторять подряд: если выпал тот же — берём случайно из трёх остальных,
+      // а не детерминированно «следующий по порядку» (это давало предсказуемые паттерны).
       if (prev && pick === prev) {
-        pick = dirs[(dirs.indexOf(pick) + 1) % 4];
+        const rest = dirs.filter((d) => d !== prev);
+        pick = rest[Phaser.Math.Between(0, rest.length - 1)];
       }
       seq.push(pick);
       prev = pick;
