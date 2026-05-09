@@ -6,7 +6,7 @@ import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { SessionState } from '@core/SessionState';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
 
 /**
  * MG-03 Фаерстартер: тайминг печи.
@@ -274,7 +274,7 @@ export class FireStarterScene extends BaseMinigame {
   }
 
   private drawHud(): void {
-    this.drawHomeButton();
+    attachHomeButton(this);
 
     this.livesCountText = this.add.text(150, 80, '', {
       fontFamily: '"Press Start 2P", monospace',
@@ -301,115 +301,6 @@ export class FireStarterScene extends BaseMinigame {
     });
     this.roundText.setOrigin(1, 0);
     this.roundText.setDepth(DEPTH.ui);
-  }
-
-  private drawHomeButton(): void {
-    const button = this.add.image(54, 80, 'home-pixel');
-    button.setOrigin(0.5);
-    button.setDisplaySize(124, 124);
-    button.setDepth(DEPTH.ui);
-    button.setInteractive({ useHandCursor: true });
-    button.on('pointerdown', () => this.showExitConfirm());
-  }
-
-  private showExitConfirm(): void {
-    if (this.finished || this.exitModalOpen) return;
-    this.exitModalOpen = true;
-    const wasAccepting = this.accepting;
-    this.accepting = false;
-    if (this.markerTween) this.markerTween.pause();
-    if (this.timerEvent) this.timerEvent.paused = true;
-
-    const { WIDTH, HEIGHT } = GAME;
-    const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.68);
-    overlay.setDepth(DEPTH.modal);
-    overlay.setInteractive();
-
-    const panel = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 500, 310, 0x5a54f9);
-    panel.setStrokeStyle(6, COLORS.black);
-    panel.setDepth(DEPTH.modal + 1);
-
-    const title = this.add.text(WIDTH / 2, HEIGHT / 2 - 95, 'Вы уверены,\nчто хотите выйти?', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '22px',
-      color: '#FAF7F0',
-      align: 'center',
-      lineSpacing: 8,
-    });
-    title.setOrigin(0.5);
-    title.setDepth(DEPTH.modal + 2);
-
-    const body = this.add.text(WIDTH / 2, HEIGHT / 2 - 20, 'При выходе из игры\nу Вас сгорает 1 жизнь!', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '14px',
-      color: '#0A0A0A',
-      align: 'center',
-      lineSpacing: 10,
-    });
-    body.setOrigin(0.5);
-    body.setDepth(DEPTH.modal + 2);
-
-    const yes = this.add.rectangle(WIDTH / 2 - 105, HEIGHT / 2 + 85, 95, 50, COLORS.win);
-    yes.setStrokeStyle(4, COLORS.black);
-    yes.setDepth(DEPTH.modal + 2);
-    yes.setInteractive({ useHandCursor: true });
-    const yesText = this.add.text(yes.x, yes.y, 'Да', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '18px',
-      color: '#FAF7F0',
-    });
-    yesText.setOrigin(0.5);
-    yesText.setDepth(DEPTH.modal + 3);
-
-    const no = this.add.rectangle(WIDTH / 2 + 105, HEIGHT / 2 + 85, 95, 50, 0xff4e25);
-    no.setStrokeStyle(4, COLORS.black);
-    no.setDepth(DEPTH.modal + 2);
-    no.setInteractive({ useHandCursor: true });
-    const noText = this.add.text(no.x, no.y, 'Нет', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '18px',
-      color: '#FAF7F0',
-    });
-    noText.setOrigin(0.5);
-    noText.setDepth(DEPTH.modal + 3);
-
-    const modalObjects = [overlay, panel, title, body, yes, yesText, no, noText];
-    const close = () => {
-      modalObjects.forEach((obj) => obj.destroy());
-      if (!this.finished) {
-        this.time.delayedCall(0, () => {
-          this.accepting = wasAccepting;
-          this.exitModalOpen = false;
-        });
-        if (this.markerTween) this.markerTween.resume();
-        if (this.timerEvent) this.timerEvent.paused = false;
-      }
-    };
-
-    yes.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation();
-      this.exitToHome();
-    });
-    no.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation();
-      close();
-    });
-  }
-
-  private exitToHome(): void {
-    SoundManager.playSfx('miss');
-    Haptics.trigger('miss');
-    if (this.markerTween) this.markerTween.remove();
-    if (this.timerEvent) this.timerEvent.remove();
-    if (this.ovenFrameEvent) this.ovenFrameEvent.remove();
-    if (this.smokeFrameEvent) this.smokeFrameEvent.remove();
-    // Сообщаем wrapper-сцене (раннер или дев-меню) что игрок вышел.
-    // Они сами решат куда переходить и нужно ли списывать жизнь.
-    this.complete({
-      outcome: 'lose',
-      score: 0,
-      metadata: { aborted: true, lifeAlreadyLost: true },
-    });
   }
 
   private startSpriteAnimations(): void {

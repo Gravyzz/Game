@@ -8,7 +8,7 @@ import { PosterText } from '@ui/PosterText';
 import { Button } from '@ui/Button';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachNoiseBackdrop, paintPageBackdrop } from '@utils/SceneHelpers';
+import { attachNoiseBackdrop, paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
 
 /**
  * NEW-05 Тот самый за 5 долларов.
@@ -82,6 +82,7 @@ export class FiveDollarScene extends BaseMinigame {
     // Фон — бар
     paintPageBackdrop(this, 0x2a1f3d);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x2a1f3d);
+    attachHomeButton(this);
     this.drawNoise();
 
     // Заголовок

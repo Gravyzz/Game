@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
 
 /**
  * MG-02 ДОНТВОРК: РАСКОЛБАС
@@ -227,6 +227,7 @@ export class DontWorkScene extends BaseMinigame {
     paintPageBackdrop(this, COLORS.purple);
     this.add.rectangle(CX, H / 2, W, H, COLORS.purple).setDepth(DEPTH.background);
     this.add.image(CX, H / 2, TEX_NOISE).setDepth(DEPTH.background);
+    attachHomeButton(this);
 
     // Title
     const title = new PosterText(this, CX, 70, 'РЕЖЬ ДЕДЛАЙНЫ', {

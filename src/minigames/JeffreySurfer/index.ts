@@ -3,7 +3,7 @@ import { BaseMinigame } from '@minigames/BaseMinigame';
 import { GAME, DEPTH } from '@config/game';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
 
 /**
  * NEW Crossy Jeffrey — Crossy Road в нашем сеттинге.
@@ -165,6 +165,7 @@ export class JeffreySurferScene extends BaseMinigame {
 
     this.bindInput();
     this.bindKeyboard();
+    attachHomeButton(this);
 
     this.cameras.main.fadeIn(220, 10, 10, 10);
     this.accepting = true;

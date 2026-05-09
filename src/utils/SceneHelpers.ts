@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME, DEPTH } from '@config/game';
 import { SoundButton } from '@ui/SoundButton';
+import type { BaseMinigame } from '@minigames/BaseMinigame';
 
 /**
  * Добавляет иконку mute в правый верхний угол сцены.
@@ -22,6 +23,42 @@ export function attachSoundButton(scene: Phaser.Scene): SoundButton {
  * Использование:
  *   attachNoiseBackdrop(this, `noise-${this.scene.key}`, 500);
  */
+/**
+ * Кнопка-домик в левом верхнем углу минки. На клик показывает overlay-сцену
+ * `HomeExitModalScene` с подтверждением. На «Да» вызывает `scene.abort()` —
+ * раннер закроет сессию и отправит на Splash, дев-меню вернёт в меню.
+ *
+ * Использование в create() любой минки:
+ *   attachHomeButton(this);
+ */
+export function attachHomeButton(scene: BaseMinigame): Phaser.GameObjects.Image {
+  const btn = scene.add.image(54, 80, 'home-pixel');
+  btn.setOrigin(0.5);
+  btn.setDisplaySize(96, 96);
+  btn.setDepth(DEPTH.ui + 5);
+  btn.setScrollFactor(0);
+  btn.setInteractive({ useHandCursor: true });
+
+  btn.on('pointerdown', () => {
+    if (scene.scene.isPaused()) return; // защита от двойного нажатия
+    // Паузим саму минку — таймеры/твины замораживаются. Модалка живёт в
+    // отдельной сцене и не паузится с ней.
+    scene.scene.pause();
+    scene.scene.launch('HomeExitModalScene', {
+      ownerKey: scene.scene.key,
+      onYes: () => {
+        scene.scene.resume();
+        scene.abort();
+      },
+      onNo: () => {
+        scene.scene.resume();
+      },
+    });
+  });
+
+  return btn;
+}
+
 /**
  * Заливает страницу за пределами канваса в цвет минки на время её жизни.
  * Это решает letterbox — когда canvas 9:16 не покрывает весь viewport, вокруг

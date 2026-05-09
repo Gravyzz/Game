@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
 
 // ─── layout ──────────────────────────────────────────────────────────────────
 const W        = GAME.WIDTH;
@@ -133,6 +133,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     paintPageBackdrop(this, COLORS.cream);
     this.add.rectangle(CX, H / 2, W, H, COLORS.cream).setDepth(DEPTH.background);
     this.add.image(CX, H / 2, TEX_NOISE).setDepth(DEPTH.background);
+    attachHomeButton(this);
 
     const title = new PosterText(this, CX, 65, 'КОЛБАСКА НА НОЖАХ', {
       bgColor: COLORS.red, textColor: '#FAF7F0',

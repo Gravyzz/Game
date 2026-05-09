@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachNoiseBackdrop, paintPageBackdrop } from '@utils/SceneHelpers';
+import { attachNoiseBackdrop, paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
 
 /**
  * NEW-03 Перетапай Диди.
@@ -147,6 +147,7 @@ export class ChopChopScene extends BaseMinigame {
     paintPageBackdrop(this, 0x2a4d3e);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x2a4d3e);
     this.drawNoise();
+    attachHomeButton(this);
 
     // Заголовок
     const title = new PosterText(this, WIDTH / 2, 70, 'ПЕРЕТАПАЙ ДИДИ', {

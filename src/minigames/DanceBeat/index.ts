@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
 
 /**
  * NEW-04 Танцпол — Simon-says на стрелках.
@@ -95,6 +95,7 @@ export class DanceBeatScene extends BaseMinigame {
     paintPageBackdrop(this, 0x121023);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x121023);
     this.drawDiscoFloor();
+    attachHomeButton(this);
 
     // Заголовок
     const title = new PosterText(this, WIDTH / 2, 80, 'ПОВТОРИ КОМБО', {

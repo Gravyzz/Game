@@ -78,6 +78,19 @@ export abstract class BaseMinigame extends Phaser.Scene {
     this.time.delayedCall(0, () => this.scene.stop());
   }
 
+  /**
+   * Игрок выходит из минки через кнопку «домой».
+   * Раннер увидит metadata.aborted и закроет всю сессию (а не списывает жизнь).
+   * В дев-меню — просто возврат в меню без списания локальной жизни.
+   */
+  public abort(): void {
+    this.complete({
+      outcome: 'lose',
+      score: 0,
+      metadata: { aborted: true, lifeAlreadyLost: true },
+    });
+  }
+
   /** Каждая минка обязана реализовать */
   abstract create(): void;
 }
