@@ -11,6 +11,9 @@ export interface MinigameInitData {
   difficulty: number;
   /** Рекомендованная длительность раунда в мс. Минка может игнорировать */
   durationMs: number;
+  /** Бесконечный/«аркадный» режим. Передаётся из DevMinigameMenuScene. Минки,
+   *  у которых есть бесконечный режим (Crossy/Surfer и тп), могут на него переключиться. */
+  infinite?: boolean;
 }
 
 /**

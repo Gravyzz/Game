@@ -56,6 +56,24 @@ export class BootScene extends Phaser.Scene {
     this.load.image('recipe-balloon-g', 'assets/recipememo/balloon-g.png');
     this.load.image('recipe-balloon-o', 'assets/recipememo/balloon-o.png');
     this.load.image('recipe-balloon-r', 'assets/recipememo/balloon-r.png');
+
+    // ===== Crossy Jeffrey =====
+    this.load.image('jeff-car-white',         'assets/jefferey/pixil-frame-0-8.png');
+    this.load.image('jeff-car-green',         'assets/jefferey/pixil-frame-0-9.png');
+    this.load.image('jeff-car-black',         'assets/jefferey/pixil-frame-0-10.png');
+    this.load.image('jeff-car-blue',          'assets/jefferey/pixil-frame-0-11.png');
+    this.load.image('jeff-tree',              'assets/jefferey/pixil-frame-0-12.png');
+    this.load.image('jeff-trash',             'assets/jefferey/pixil-frame-0-13.png');
+    this.load.image('jeff-bench',             'assets/jefferey/pixil-frame-0-14.png');
+    this.load.image('jeff-building-red',      'assets/jefferey/pixil-frame-0-15.png');
+    this.load.image('jeff-building-green',    'assets/jefferey/pixil-frame-0-16.png');
+    this.load.image('jeff-building-orange',   'assets/jefferey/pixil-frame-0-17.png');
+    this.load.image('jeff-building-blue',     'assets/jefferey/pixil-frame-0-18.png');
+    this.load.image('jeff-house-blue',        'assets/jefferey/pixil-frame-0-19.png');
+    this.load.image('jeff-house-orange',      'assets/jefferey/pixil-frame-0-20.png');
+    this.load.image('jeff-house-green',       'assets/jefferey/pixil-frame-0-21.png');
+    this.load.image('jeff-house-yellow',      'assets/jefferey/pixil-frame-0-22.png');
+    this.load.image('jeff-lamp',              'assets/jefferey/pixil-frame-0-23.png');
   }
 
   async create(): Promise<void> {
@@ -74,6 +92,18 @@ export class BootScene extends Phaser.Scene {
     } catch (err) {
       console.warn('[BootScene] Fonts loading failed, using fallback', err);
     }
+
+    // Все Jeffrey-ассеты — пиксельные, нужен NEAREST фильтр чтобы не блюрило
+    [
+      'jeff-car-white', 'jeff-car-green', 'jeff-car-black', 'jeff-car-blue',
+      'jeff-tree', 'jeff-trash', 'jeff-bench', 'jeff-lamp',
+      'jeff-building-red', 'jeff-building-green', 'jeff-building-orange', 'jeff-building-blue',
+      'jeff-house-blue', 'jeff-house-orange', 'jeff-house-green', 'jeff-house-yellow',
+    ].forEach((k) => {
+      if (this.textures.exists(k)) {
+        this.textures.get(k).setFilter(Phaser.Textures.FilterMode.NEAREST);
+      }
+    });
 
     // Прячем HTML-лоадер — теперь рулит Phaser
     const htmlLoader = document.getElementById('boot-loader');
