@@ -279,7 +279,7 @@ export class DontWorkScene extends BaseMinigame {
   }
 
   override update(_t: number, dtMs: number): void {
-    if (this.finished) return;
+    if (this.finished || this.gamePaused) return;
     const dt = Math.min(dtMs, 33) / 1000 * this.timeScale;
 
     // Physics — двигаем контейнер каждого объекта

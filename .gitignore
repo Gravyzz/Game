@@ -32,4 +32,4 @@ desktop.ini
 .env.local
 .env.*.local
 .claude/settings.local.json
-.claude/worktrees/sleepy-tesla-9a1e6c/
+.claude/worktrees/

@@ -189,7 +189,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   }
 
   override update(_t: number, dtMs: number): void {
-    if (this.done) return;
+    if (this.done || this.gamePaused) return;
 
     // Clamp dt — защита от скачков (таб в фоне, лаг в браузере)
     const dt = Math.min(dtMs, 33) / 1000;

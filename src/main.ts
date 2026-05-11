@@ -10,7 +10,6 @@ import { ChoiceScene } from '@scenes/ChoiceScene';
 import { WheelScene } from '@scenes/WheelScene';
 import { ResultScene } from '@scenes/ResultScene';
 import { NoTicketScene } from '@scenes/NoTicketScene';
-import { HomeExitModalScene } from '@scenes/HomeExitModalScene';
 // === DEV: minigame test menu — REMOVE BEFORE PROD ===
 import { DevMinigameMenuScene } from '@scenes/DevMinigameMenuScene';
 import { FireStarterScene } from '@minigames/FireStarter';
@@ -67,7 +66,6 @@ const config: Phaser.Types.Core.GameConfig = {
     OrientationLockScene,
     TutorialScene,
     NoTicketScene,
-    HomeExitModalScene,
     MinigameRunnerScene,
     ChoiceScene,
     WheelScene,

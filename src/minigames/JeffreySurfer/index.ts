@@ -154,9 +154,9 @@ export class JeffreySurferScene extends BaseMinigame {
     this.world = this.add.container(0, 0);
     this.world.setDepth(DEPTH.gameplay);
 
-    // Стартовые ряды — генерим сразу далеко вперёд, чтобы игрок никогда
-    // не догонял прорисовку.
-    for (let y = -3; y <= 50; y++) {
+    // Стартовые ряды — генерим вперёд на 30 рядов от старта игрока (worldY=0).
+    // Дальше cullFarRows будет подгенерировать вперёд игрока по мере его движения.
+    for (let y = -3; y <= 30; y++) {
       this.ensureRow(y);
     }
 
@@ -325,10 +325,21 @@ export class JeffreySurferScene extends BaseMinigame {
     SoundManager.playSfx('tap');
     Haptics.trigger('tap');
 
-    const { x, y } = this.tileToScreen(this.playerCol, this.playerWorldY);
+    // Камера ПЛАВНО следует за игроком — лерп идёт в update().
+    // Чтобы tween игрока не «дёргался» (камера двигается параллельно), считаем
+    // destination для позиции, до которой камера ДОЛЖНА доехать за то же время
+    // что и tween игрока: max между текущей камерой и player - PLAYER_SCREEN_ROW.
+    const { HEIGHT } = GAME;
+    const cameraAtTweenEnd = Math.max(
+      this.cameraWorldY,
+      this.playerWorldY - PLAYER_SCREEN_ROW,
+    );
+    const tx = this.colToScreenX(this.playerCol);
+    const ty = HEIGHT - 200 - (this.playerWorldY - cameraAtTweenEnd) * TILE;
+
     this.tweens.add({
       targets: this.playerSprite,
-      x, y,
+      x: tx, y: ty,
       duration: MOVE_DURATION_MS,
       ease: 'Sine.easeOut',
       onComplete: () => { this.moving = false; },
@@ -585,10 +596,21 @@ export class JeffreySurferScene extends BaseMinigame {
   // ============================================================
 
   override update(_t: number, dtMs: number): void {
-    if (this.finished) return;
+    if (this.finished || this.gamePaused) return;
 
     const dt = Math.min(dtMs, 50) / 1000;
 
+    // 1) Плавный «follow» — камера догоняет игрока к позиции `player - PLAYER_SCREEN_ROW`
+    //    со скоростью ~10 тайлов/сек, что синхронно с tween игрока (~110мс на тайл).
+    const cameraFollowTarget = this.playerWorldY - PLAYER_SCREEN_ROW;
+    if (cameraFollowTarget > this.cameraWorldY) {
+      const FOLLOW_SPEED = 10; // tiles per second
+      const delta = cameraFollowTarget - this.cameraWorldY;
+      this.cameraWorldY += Math.min(delta, FOLLOW_SPEED * dt);
+    }
+
+    // 2) Постоянный креп — даже когда игрок стоит, камера ползёт вверх.
+    //    Это создаёт давление и в итоге убивает «кемперов».
     if (this.maxWorldY > 0 || this.time.now > 1500) {
       this.cameraWorldY += this.cameraCreepPerSec * dt;
     }
@@ -662,10 +684,15 @@ export class JeffreySurferScene extends BaseMinigame {
   }
 
   private cullFarRows(): void {
-    // Держим большой буфер вперёд (50 рядов) — рендер всегда сильно опережает
-    // движение игрока, и поп-апа новых полос на экране не видно.
+    // Горизонт рендера привязан к ИГРОКУ, не к камере. Даже если игрок убежит
+    // далеко вперёд камеры (после серии быстрых тапов), впереди него всегда
+    // есть AHEAD_BUFFER подготовленных рядов.
+    const AHEAD_BUFFER = 30;
     const minKeep = Math.floor(this.cameraWorldY) - 3;
-    const maxKeep = Math.ceil(this.cameraWorldY) + 50;
+    const maxKeep = Math.max(
+      Math.ceil(this.cameraWorldY) + 18,           // как минимум 18 рядов от камеры (за пределы видимого экрана)
+      Math.ceil(this.playerWorldY) + AHEAD_BUFFER, // и всегда 30 рядов впереди игрока
+    );
     this.rows.forEach((_row, y) => {
       if (y < minKeep || y > maxKeep) {
         this.world.getAll().forEach((obj) => {

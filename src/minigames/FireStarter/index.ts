@@ -214,7 +214,7 @@ export class FireStarterScene extends BaseMinigame {
   }
 
   override update(_time: number, delta: number): void {
-    if (!this.accepting) return;
+    if (!this.accepting || this.gamePaused) return;
 
     if (this.zoneMoving) {
       this.zonePhase += delta;

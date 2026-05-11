@@ -12,19 +12,21 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.svg('make-love-pizza-logo', 'assets/logo-make-love-pizza.svg');
-    this.load.image('make-love-pizza-logo-pixel', 'assets/logo-make-love-pizza-pixel.png');
-    this.load.image('heart-pixel', 'assets/heart-pixel.png');
-    this.load.image('pizza-pixel', 'assets/pizza-pixel.png');
-    this.load.image('gamepad-pixel', 'assets/gamepad-pixel.png');
-    this.load.image('star-pixel', 'assets/star-pixel.png');
-    this.load.image('orientation-phone-pixel', 'assets/orientation-phone-pixel.png');
-    this.load.image('sound-on-pixel', 'assets/sound-on-pixel.png');
-    this.load.image('sound-off-pixel', 'assets/sound-off-pixel.png');
-    this.load.image('home-pixel', 'assets/home.png');
-    this.load.image('plus-pixel', 'assets/plus.png');
-    this.load.image('minus-pixel', 'assets/minus.png');
-    this.load.image('cancel-pixel', 'assets/cancel.png');
+    // ===== Бренд =====
+    this.load.image('make-love-pizza-logo-pixel', 'assets/branding/logo-make-love-pizza-pixel.png');
+
+    // ===== UI =====
+    this.load.image('heart-pixel',             'assets/ui/heart-pixel.png');
+    this.load.image('pizza-pixel',             'assets/ui/pizza-pixel.png');
+    this.load.image('gamepad-pixel',           'assets/ui/gamepad-pixel.png');
+    this.load.image('star-pixel',              'assets/ui/star-pixel.png');
+    this.load.image('orientation-phone-pixel', 'assets/ui/orientation-phone-pixel.png');
+    this.load.image('sound-on-pixel',          'assets/ui/sound-on-pixel.png');
+    this.load.image('sound-off-pixel',         'assets/ui/sound-off-pixel.png');
+    this.load.image('home-pixel',              'assets/ui/home.png');
+    this.load.image('plus-pixel',              'assets/ui/plus.png');
+    this.load.image('minus-pixel',             'assets/ui/minus.png');
+    this.load.image('cancel-pixel',            'assets/ui/cancel.png');
     this.load.image('firestarter-oven-1', 'assets/firestarter/oven-1.png');
     this.load.image('firestarter-oven-2', 'assets/firestarter/oven-2.png');
     this.load.image('firestarter-oven-3', 'assets/firestarter/oven-3.png');
@@ -58,22 +60,22 @@ export class BootScene extends Phaser.Scene {
     this.load.image('recipe-balloon-r', 'assets/recipememo/balloon-r.png');
 
     // ===== Crossy Jeffrey =====
-    this.load.image('jeff-car-white',         'assets/jefferey/pixil-frame-0-8.png');
-    this.load.image('jeff-car-green',         'assets/jefferey/pixil-frame-0-9.png');
-    this.load.image('jeff-car-black',         'assets/jefferey/pixil-frame-0-10.png');
-    this.load.image('jeff-car-blue',          'assets/jefferey/pixil-frame-0-11.png');
-    this.load.image('jeff-tree',              'assets/jefferey/pixil-frame-0-12.png');
-    this.load.image('jeff-trash',             'assets/jefferey/pixil-frame-0-13.png');
-    this.load.image('jeff-bench',             'assets/jefferey/pixil-frame-0-14.png');
-    this.load.image('jeff-building-red',      'assets/jefferey/pixil-frame-0-15.png');
-    this.load.image('jeff-building-green',    'assets/jefferey/pixil-frame-0-16.png');
-    this.load.image('jeff-building-orange',   'assets/jefferey/pixil-frame-0-17.png');
-    this.load.image('jeff-building-blue',     'assets/jefferey/pixil-frame-0-18.png');
-    this.load.image('jeff-house-blue',        'assets/jefferey/pixil-frame-0-19.png');
-    this.load.image('jeff-house-orange',      'assets/jefferey/pixil-frame-0-20.png');
-    this.load.image('jeff-house-green',       'assets/jefferey/pixil-frame-0-21.png');
-    this.load.image('jeff-house-yellow',      'assets/jefferey/pixil-frame-0-22.png');
-    this.load.image('jeff-lamp',              'assets/jefferey/pixil-frame-0-23.png');
+    this.load.image('jeff-car-white',         'assets/jeffrey/pixil-frame-0-8.png');
+    this.load.image('jeff-car-green',         'assets/jeffrey/pixil-frame-0-9.png');
+    this.load.image('jeff-car-black',         'assets/jeffrey/pixil-frame-0-10.png');
+    this.load.image('jeff-car-blue',          'assets/jeffrey/pixil-frame-0-11.png');
+    this.load.image('jeff-tree',              'assets/jeffrey/pixil-frame-0-12.png');
+    this.load.image('jeff-trash',             'assets/jeffrey/pixil-frame-0-13.png');
+    this.load.image('jeff-bench',             'assets/jeffrey/pixil-frame-0-14.png');
+    this.load.image('jeff-building-red',      'assets/jeffrey/pixil-frame-0-15.png');
+    this.load.image('jeff-building-green',    'assets/jeffrey/pixil-frame-0-16.png');
+    this.load.image('jeff-building-orange',   'assets/jeffrey/pixil-frame-0-17.png');
+    this.load.image('jeff-building-blue',     'assets/jeffrey/pixil-frame-0-18.png');
+    this.load.image('jeff-house-blue',        'assets/jeffrey/pixil-frame-0-19.png');
+    this.load.image('jeff-house-orange',      'assets/jeffrey/pixil-frame-0-20.png');
+    this.load.image('jeff-house-green',       'assets/jeffrey/pixil-frame-0-21.png');
+    this.load.image('jeff-house-yellow',      'assets/jeffrey/pixil-frame-0-22.png');
+    this.load.image('jeff-lamp',              'assets/jeffrey/pixil-frame-0-23.png');
   }
 
   async create(): Promise<void> {
