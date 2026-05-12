@@ -118,6 +118,10 @@ interface Pillar {
   topRect:    Phaser.GameObjects.Rectangle;
   topCap:     Phaser.GameObjects.Image;
   bot:        Phaser.GameObjects.Image;
+  topFrame:   Phaser.GameObjects.Rectangle;
+  botFrame:   Phaser.GameObjects.Rectangle;
+  topVisuals: Phaser.GameObjects.Image[];
+  botVisuals: Phaser.GameObjects.Image[];
   gapTopY:    number;
   gapBottomY: number;
   passed:     boolean;
@@ -153,9 +157,8 @@ export class SurferScene extends BaseMinigame {
   private surferY  = 0;
   private surferVY = 0;
 
-  // Lives & buffs
-  private lives           = 3;
-  private maxLives        = 3;
+  // Buffs
+  private globalLifeLostThisRun = false;
   private invincibleUntil = 0;
   private shieldActive    = false;
   private timeScale       = 1;
@@ -169,11 +172,11 @@ export class SurferScene extends BaseMinigame {
   private bgSky!:   Phaser.GameObjects.Rectangle;
   private bgSea!:   Phaser.GameObjects.Image;
   private sandLayer!: Phaser.GameObjects.Image;
+  private sandTiles: Phaser.GameObjects.Image[] = [];
   private waveGfx!: Phaser.GameObjects.Graphics;
   private waveT  = 0;
   private waterFrame = 0;
   private waterTimer: Phaser.Time.TimerEvent | null = null;
-  private clouds: Phaser.GameObjects.Image[] = [];
   private bubbles: Bubble[] = [];
   private sun!:    Phaser.GameObjects.Image;
   private sunTw:   Phaser.Tweens.Tween | null = null;
@@ -204,8 +207,7 @@ export class SurferScene extends BaseMinigame {
     this.stage           = STAGES[0];
     this.stagePassed     = 0;
     this.starCount       = 0;
-    this.lives           = 3;
-    this.maxLives        = 3;
+    this.globalLifeLostThisRun = false;
     this.invincibleUntil = 0;
     this.shieldActive    = false;
     this.timeScale       = 1;
@@ -215,6 +217,7 @@ export class SurferScene extends BaseMinigame {
     this.pillars         = [];
     this.powerUps        = [];
     this.bubbles         = [];
+    this.sandTiles       = [];
     this.hearts          = [];
     this.surferVY        = 0;
     this.surferY         = (CEILING_Y + FLOOR_Y) / 2;
@@ -240,21 +243,6 @@ export class SurferScene extends BaseMinigame {
       duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
     });
 
-    // Clouds
-    const cloudLayout = [
-      { key: 'surfer-clouds-1', x: 260, y: 355 },
-      { key: 'surfer-clouds-2', x: 610, y: 420 },
-      { key: 'surfer-birds-1', x: 285, y: 730 },
-      { key: 'surfer-birds-2', x: 625, y: 760 },
-    ];
-    for (const item of cloudLayout) {
-      const c = this.add.image(item.x, item.y, item.key)
-        .setOrigin(0.5)
-        .setDisplaySize(120, 120)
-        .setDepth(DEPTH.background + 2);
-      this.clouds.push(c);
-    }
-
     // Sea + анимированная фоновая волна
     const seaY = FLOOR_Y + (H - FLOOR_Y) / 2;
     const seaH = H - FLOOR_Y;
@@ -267,14 +255,22 @@ export class SurferScene extends BaseMinigame {
       .setDisplaySize(W, 520)
       .setDepth(DEPTH.midground - 1)
       .setVisible(false);
+    for (let i = 0; i < 3; i++) {
+      const tile = this.add.image(i * W, 920, 'surfer-sand')
+        .setOrigin(0, 0.5)
+        .setDisplaySize(W, 560)
+        .setDepth(DEPTH.midground - 1)
+        .setVisible(false);
+      this.sandTiles.push(tile);
+    }
     this.waveGfx = this.add.graphics().setDepth(DEPTH.midground + 1);
 
     this.stageLbl = this.add
-      .text(W - 26, 144, '', { fontFamily: PIXEL_FONT, fontSize: '24px', color: '#ff2e2e' })
+      .text(W - 26, 174, '', { fontFamily: PIXEL_FONT, fontSize: '20px', color: '#ff2e2e' })
       .setOrigin(1, 0).setDepth(DEPTH.ui);
 
     this.progLbl = this.add
-      .text(W - 26, 104, '', { fontFamily: PIXEL_FONT, fontSize: '24px', color: '#0A0A0A' })
+      .text(W - 26, 104, '', { fontFamily: PIXEL_FONT, fontSize: '21px', color: '#0A0A0A', align: 'right', lineSpacing: 4 })
       .setOrigin(1, 0).setDepth(DEPTH.ui);
 
     this.livesCountText = this.add.text(150, 80, '', {
@@ -337,10 +333,11 @@ export class SurferScene extends BaseMinigame {
     this.waveT += dt * 2.4;
     this.drawWave();
 
-    // Clouds drift
-    for (const c of this.clouds) {
-      c.x -= this.stage.speed * 0.06 * dt;
-      if (c.x < -120) c.x = W + 120;
+    if (this.stage.name === 'РИФ') {
+      for (const tile of this.sandTiles) {
+        tile.x -= this.stage.speed * 0.35 * dt;
+        if (tile.x <= -W) tile.x += W * this.sandTiles.length;
+      }
     }
 
     for (const b of this.bubbles) {
@@ -382,6 +379,7 @@ export class SurferScene extends BaseMinigame {
     }
     if (this.surferY > FLOOR_Y && this.time.now > this.invincibleUntil) {
       this.handleHit();
+      if (this.inTransition || this.finished) return;
     }
 
     // Pillars
@@ -390,8 +388,10 @@ export class SurferScene extends BaseMinigame {
       if (!p.alive) continue;
       const move = speed * dt;
       p.topRect.x -= move;
-      p.topCap.x   = p.topRect.x;
-      p.bot.x     -= move;
+      p.topFrame.x -= move;
+      p.botFrame.x -= move;
+      for (const visual of p.topVisuals) visual.x -= move;
+      for (const visual of p.botVisuals) visual.x -= move;
 
       if (p.topRect.x < -PILLAR_W) {
         p.alive = false;
@@ -406,6 +406,7 @@ export class SurferScene extends BaseMinigame {
 
       if (this.time.now > this.invincibleUntil && this.checkPillarCollision(p)) {
         this.handleHit();
+        break;
       }
     }
     this.pillars = this.pillars.filter(p => p.alive);
@@ -456,18 +457,21 @@ export class SurferScene extends BaseMinigame {
     if (app) app.style.background = skyHex;
     this.sun.setVisible(!this.stage.hasLightning);
     this.sun.setAlpha(this.stage.name === 'РИФ' ? 0 : 1);
-    this.sandLayer.setVisible(this.stage.name === 'РИФ');
-    this.bgSea.setVisible(this.stage.name !== 'РИФ');
-
-    this.clouds.forEach((c, i) => {
-      if (this.stage.name === 'ПЛЯЖ') {
-        c.setVisible(true);
-        c.setTexture(i < 2 ? (i === 0 ? 'surfer-clouds-1' : 'surfer-clouds-2') : (i === 2 ? 'surfer-birds-1' : 'surfer-birds-2'));
-        c.setDisplaySize(120, 120);
-      } else {
-        c.setVisible(false);
-      }
+    this.sandLayer.setVisible(false);
+    this.sandTiles.forEach((tile, i) => {
+      tile.setVisible(this.stage.name === 'РИФ');
+      tile.setPosition(i * W, 920);
     });
+    this.bgSea.setVisible(this.stage.name !== 'РИФ');
+    if (this.stage.name === 'ШТОРМ') {
+      this.bgSea.setPosition(CX, H - 95);
+      this.bgSea.setDisplaySize(W, 250);
+    } else {
+      const seaY = FLOOR_Y + (H - FLOOR_Y) / 2;
+      const seaH = H - FLOOR_Y;
+      this.bgSea.setPosition(CX, seaY);
+      this.bgSea.setDisplaySize(W, seaH);
+    }
 
     this.refreshHud();
 
@@ -486,14 +490,6 @@ export class SurferScene extends BaseMinigame {
         callbackScope: this,
       });
     }
-    if (this.stage.hasLightning) {
-      this.lightningTimer = this.time.addEvent({
-        delay: 900,
-        loop: true,
-        callback: this.flashLightning,
-        callbackScope: this,
-      });
-    }
   }
 
   private completeStage(): void {
@@ -507,7 +503,6 @@ export class SurferScene extends BaseMinigame {
     this.powerUpTimer  = null;
     this.lightningTimer = null;
 
-    if (this.lives < this.maxLives) this.lives++;
     this.refreshHud();
 
     for (const p of this.pillars) {
@@ -516,7 +511,7 @@ export class SurferScene extends BaseMinigame {
       p.lightningTween?.stop();
       p.tornadoTimer?.remove();
       this.tweens.add({
-        targets: [p.topRect, p.topCap, p.bot],
+        targets: [p.topRect, p.topFrame, p.botFrame, ...p.topVisuals, ...p.botVisuals],
         alpha: 0, duration: 400,
         onComplete: () => this.destroyPillar(p),
       });
@@ -616,36 +611,49 @@ export class SurferScene extends BaseMinigame {
     const topRect = this.add.rectangle(x, 0, PILLAR_W, gapTopY, this.stage.pillarColor, 0)
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.gameplay);
-
-    const topKey = this.pickObstacleKey('top');
-    const botKey = this.pickObstacleKey('bottom');
-    const topCap = this.add.image(x, Math.max(310, gapTopY - 95), topKey)
-      .setOrigin(0.5)
-      .setDepth(DEPTH.gameplay + 1);
-    const bot = this.add.image(x, Math.min(FLOOR_Y - 70, gapBottomY + 120), botKey)
-      .setOrigin(0.5)
+    const botHeight = FLOOR_Y - gapBottomY;
+    const topFrame = this.add.rectangle(x, gapTopY / 2, PILLAR_W + 34, Math.max(80, gapTopY), 0x000000, 0.03)
+      .setStrokeStyle(4, this.obstacleFrameColor(), 0.55)
+      .setDepth(DEPTH.gameplay);
+    const botFrame = this.add.rectangle(x, gapBottomY + botHeight / 2, PILLAR_W + 34, Math.max(80, botHeight), 0x000000, 0.03)
+      .setStrokeStyle(4, this.obstacleFrameColor(), 0.55)
       .setDepth(DEPTH.gameplay);
 
-    this.sizeObstacle(topCap, 'top');
-    this.sizeObstacle(bot, 'bottom');
+    const topVisuals = this.fillObstacleZone(x, 0, gapTopY, 'top');
+    const botVisuals = this.fillObstacleZone(x, gapBottomY, botHeight, 'bottom');
+    const topCap = topVisuals[0];
+    const bot = botVisuals[0];
 
     let lightningTween: Phaser.Tweens.Tween | undefined;
     let tornadoTimer: Phaser.Time.TimerEvent | undefined;
     if (this.stage.name === 'ШТОРМ') {
-      topCap.setAlpha(Phaser.Math.FloatBetween(0.55, 1));
+      topVisuals.forEach((visual, i) => {
+        visual.setAlpha(Phaser.Math.FloatBetween(0.35, 1));
+        this.tweens.add({
+          targets: visual,
+          alpha: { from: 0.18, to: 1 },
+          scaleX: { from: visual.scaleX * 0.92, to: visual.scaleX * 1.08 },
+          scaleY: { from: visual.scaleY * 0.92, to: visual.scaleY * 1.08 },
+          duration: Phaser.Math.Between(180, 420),
+          yoyo: true,
+          repeat: -1,
+          delay: i * 130 + Phaser.Math.Between(0, 350),
+          ease: 'Sine.easeInOut',
+        });
+      });
       lightningTween = this.tweens.add({
-        targets: topCap,
-        alpha: { from: 0.25, to: 1 },
-        duration: Phaser.Math.Between(220, 480),
+        targets: topFrame,
+        alpha: { from: 0.35, to: 0.85 },
+        duration: Phaser.Math.Between(260, 520),
         yoyo: true,
         repeat: -1,
         delay: Phaser.Math.Between(0, 700),
-        ease: 'Stepped',
+        ease: 'Sine.easeInOut',
       });
       tornadoTimer = this.time.addEvent({
         delay: 1000,
         loop: true,
-        callback: () => bot.setFlipX(!bot.flipX),
+        callback: () => botVisuals.forEach(visual => visual.setFlipX(!visual.flipX)),
       });
     }
 
@@ -654,12 +662,48 @@ export class SurferScene extends BaseMinigame {
     }
 
     this.pillars.push({
-      topRect, topCap, bot,
+      topRect, topCap, bot, topFrame, botFrame, topVisuals, botVisuals,
       gapTopY, gapBottomY,
       passed: false, alive: true,
       lightningTween,
       tornadoTimer,
     });
+  }
+
+  private obstacleFrameColor(): number {
+    if (this.stage.name === 'ПЛЯЖ') return 0xbcecff;
+    if (this.stage.name === 'РИФ') return 0xffd52e;
+    return 0x8cc9c7;
+  }
+
+  private fillObstacleZone(x: number, zoneY: number, zoneH: number, position: 'top' | 'bottom'): Phaser.GameObjects.Image[] {
+    const minH = Math.max(70, zoneH);
+    const count = Math.max(1, Math.floor(minH / this.obstacleSpacing(position)));
+    const visuals: Phaser.GameObjects.Image[] = [];
+    const topMargin = position === 'top' ? 56 : 70;
+    const bottomMargin = position === 'top' ? 52 : 72;
+    const usableTop = zoneY + topMargin;
+    const usableBottom = zoneY + zoneH - bottomMargin;
+
+    for (let i = 0; i < count; i++) {
+      const key = this.pickObstacleKey(position);
+      const y = count === 1
+        ? Phaser.Math.Clamp(zoneY + zoneH / 2, usableTop, usableBottom)
+        : Phaser.Math.Linear(usableTop, usableBottom, count === 1 ? 0.5 : i / (count - 1));
+      const visual = this.add.image(x + Phaser.Math.Between(-16, 16), y, key)
+        .setOrigin(0.5)
+        .setDepth(DEPTH.gameplay + 1);
+      this.sizeObstacle(visual, position);
+      visuals.push(visual);
+    }
+
+    return visuals;
+  }
+
+  private obstacleSpacing(position: 'top' | 'bottom'): number {
+    if (this.stage.name === 'ШТОРМ') return position === 'top' ? 150 : 190;
+    if (this.stage.name === 'РИФ') return position === 'top' ? 110 : 145;
+    return 130;
   }
 
   private pickObstacleKey(position: 'top' | 'bottom'): string {
@@ -680,27 +724,27 @@ export class SurferScene extends BaseMinigame {
 
   private sizeObstacle(image: Phaser.GameObjects.Image, position: 'top' | 'bottom'): void {
     if (this.stage.name === 'ШТОРМ' && position === 'bottom') {
-      image.setDisplaySize(150, 220);
+      image.setDisplaySize(138, 190);
       return;
     }
     if (this.stage.name === 'ШТОРМ') {
-      image.setDisplaySize(105, 180);
+      image.setDisplaySize(88, 145);
       return;
     }
     if (this.stage.name === 'РИФ') {
-      image.setDisplaySize(130, 170);
+      image.setDisplaySize(position === 'top' ? 105 : 125, position === 'top' ? 82 : 145);
       return;
     }
-    image.setDisplaySize(135, 190);
+    image.setDisplaySize(128, 108);
   }
 
   private spawnBubbleGroup(originX: number): void {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       const b = this.add.image(
-        originX + Phaser.Math.Between(-120, 120),
+        originX + Phaser.Math.Between(-150, 150),
         Phaser.Math.Between(CEILING_Y + 80, FLOOR_Y - 80),
         'surfer-bubble',
-      ).setOrigin(0.5).setDisplaySize(26, 26).setAlpha(0.85).setDepth(DEPTH.midground + 2);
+      ).setOrigin(0.5).setDisplaySize(42, 42).setAlpha(0.82).setDepth(DEPTH.midground + 2);
       this.bubbles.push({ image: b, alive: true });
     }
   }
@@ -708,10 +752,12 @@ export class SurferScene extends BaseMinigame {
   private destroyPillar(p: Pillar): void {
     p.lightningTween?.stop();
     p.tornadoTimer?.remove();
-    this.tweens.killTweensOf([p.topRect, p.topCap, p.bot]);
+    this.tweens.killTweensOf([p.topRect, p.topFrame, p.botFrame, ...p.topVisuals, ...p.botVisuals]);
     p.topRect.destroy();
-    p.topCap.destroy();
-    p.bot.destroy();
+    p.topFrame.destroy();
+    p.botFrame.destroy();
+    p.topVisuals.forEach(visual => visual.destroy());
+    p.botVisuals.forEach(visual => visual.destroy());
   }
 
   private checkPillarCollision(p: Pillar): boolean {
@@ -748,7 +794,7 @@ export class SurferScene extends BaseMinigame {
   private spawnPowerUp(): void {
     if (this.inTransition || this.finished) return;
 
-    const types: PowerUpType[] = ['star', 'shield', 'slowmo'];
+    const types: PowerUpType[] = ['shield'];
     const type  = types[Math.floor(Math.random() * types.length)];
     const texture = type === 'shield' ? 'surfer-shield' : type === 'star' ? 'surfer-sun' : 'surfer-bubble';
     const y     = Phaser.Math.Between(CEILING_Y + 100, FLOOR_Y - 100);
@@ -829,6 +875,8 @@ export class SurferScene extends BaseMinigame {
   // ─── hit handling ──────────────────────────────────────────────────────────
 
   private handleHit(): void {
+    if (this.inTransition || this.finished) return;
+
     if (this.shieldActive) {
       this.shieldActive = false;
       this.detachShield();
@@ -840,7 +888,8 @@ export class SurferScene extends BaseMinigame {
       return;
     }
 
-    this.lives--;
+    const livesLeft = SessionState.loseLife();
+    this.globalLifeLostThisRun = true;
     this.invincibleUntil = this.time.now + 1100;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
@@ -860,10 +909,52 @@ export class SurferScene extends BaseMinigame {
 
     this.refreshHud();
 
-    this.surferY  = (CEILING_Y + FLOOR_Y) / 2;
-    this.surferVY = 0;
+    if (livesLeft <= 0) {
+      this.finish(false);
+      return;
+    }
 
-    if (this.lives <= 0) this.finish(false);
+    this.restartCurrentStageAfterHit();
+  }
+
+  private restartCurrentStageAfterHit(): void {
+    if (this.finished) return;
+
+    this.inTransition = true;
+    this.canPlay = false;
+    this.spawnTimer?.remove();
+    this.powerUpTimer?.remove();
+    this.lightningTimer?.remove();
+    this.spawnTimer = null;
+    this.powerUpTimer = null;
+    this.lightningTimer = null;
+
+    for (const p of this.pillars) {
+      p.alive = false;
+      this.destroyPillar(p);
+    }
+    for (const pu of this.powerUps) {
+      pu.alive = false;
+      this.destroyPowerUp(pu);
+    }
+    this.bubbles.forEach(b => b.image.destroy());
+    this.pillars = [];
+    this.powerUps = [];
+    this.bubbles = [];
+
+    this.surferY = (CEILING_Y + FLOOR_Y) / 2;
+    this.surferVY = 0;
+    this.surfer.setPosition(SURFER_X, this.surferY).setRotation(0).setAlpha(1);
+    this.board.setPosition(SURFER_X, this.surferY).setRotation(0).setAlpha(1);
+    if (this.shieldRing) this.shieldRing.setPosition(SURFER_X, this.surferY);
+
+    this.showToast('-1 ЖИЗНЬ', '#EF4444');
+    this.time.delayedCall(650, () => {
+      if (this.finished) return;
+      this.startStage(this.stageIdx);
+      this.canPlay = true;
+      this.inTransition = false;
+    });
   }
 
   // ─── input ─────────────────────────────────────────────────────────────────
@@ -879,40 +970,32 @@ export class SurferScene extends BaseMinigame {
 
   private drawWave(): void {
     this.waveGfx.clear();
+    if (this.stage.name === 'РИФ') {
+      this.waveGfx.fillStyle(0xf6dd82, 0.45);
+      this.waveGfx.fillRect(0, FLOOR_Y - 28, W, H - FLOOR_Y + 48);
+      for (let i = 0; i < 28; i++) {
+        const x = (i * 53 + Math.floor(this.waveT * 30)) % W;
+        const y = FLOOR_Y + 8 + ((i * 37) % 160);
+        this.waveGfx.fillStyle(i % 3 === 0 ? 0xffffff : i % 3 === 1 ? 0xffc21a : 0xb7b7b7, 0.75);
+        this.waveGfx.fillRect(x, y, 6, 6);
+      }
+      return;
+    }
     this.waveGfx.fillStyle(this.stage.waveColor, 0.6);
     this.waveGfx.beginPath();
-    this.waveGfx.moveTo(0, FLOOR_Y + 40);
+    const baseY = this.stage.name === 'ШТОРМ' ? FLOOR_Y - 58 : FLOOR_Y + 40;
+    const crestY = this.stage.name === 'ШТОРМ' ? FLOOR_Y - 92 : FLOOR_Y + 4;
+    const bottomY = this.stage.name === 'ШТОРМ' ? H : FLOOR_Y + 80;
+    this.waveGfx.moveTo(0, baseY);
     // Реже точки → дешевле рендер
     for (let x = 0; x <= W; x += 36) {
-      const y = FLOOR_Y + 4 + Math.sin((x + this.waveT * 120) * 0.012) * 10;
+      const y = crestY + Math.sin((x + this.waveT * 120) * 0.012) * 10;
       this.waveGfx.lineTo(x, y);
     }
-    this.waveGfx.lineTo(W, FLOOR_Y + 80);
-    this.waveGfx.lineTo(0, FLOOR_Y + 80);
+    this.waveGfx.lineTo(W, bottomY);
+    this.waveGfx.lineTo(0, bottomY);
     this.waveGfx.closePath();
     this.waveGfx.fillPath();
-  }
-
-  private flashLightning(): void {
-    if (this.finished || this.inTransition) return;
-
-    const f = this.add.image(
-      Phaser.Math.Between(180, W - 80),
-      Phaser.Math.Between(280, FLOOR_Y - 160),
-      Phaser.Math.RND.pick(['surfer-lightning-1', 'surfer-lightning-2']),
-    ).setOrigin(0.5).setDisplaySize(80, 150).setDepth(DEPTH.effects).setAlpha(0);
-    this.tweens.add({
-      targets: f,
-      alpha: { from: 0, to: 1 },
-      duration: 120,
-      yoyo: true,
-      repeat: 2,
-      hold: 120,
-      ease: 'Stepped',
-      onComplete: () => f.destroy(),
-    });
-
-    this.cameras.main.shake(45, 0.003);
   }
 
   private spawnSparks(x: number, y: number, color: number): void {
@@ -1002,8 +1085,9 @@ export class SurferScene extends BaseMinigame {
     const totalDone = STAGES.slice(0, this.stageIdx).reduce((s, st) => s + st.goal, 0)
                     + this.stagePassed;
 
+    const livesLeft = SessionState.getLivesLeft();
     const score = win
-      ? Math.min(100, Math.round(60 + (this.lives / this.maxLives) * 30 + this.starCount * 2))
+      ? Math.min(100, Math.round(70 + Math.min(livesLeft, 3) * 8 + this.starCount * 2))
       : Math.round((totalDone / totalGoal) * 50);
 
     this.time.delayedCall(900, () => {
@@ -1015,10 +1099,8 @@ export class SurferScene extends BaseMinigame {
           totalStages:  TOTAL_STAGES,
           totalDone,
           stars:        this.starCount,
-          lives:        this.lives,
-          // Локальные жизни Surfer — внутренние, на сессионные жизни не влияют.
-          // Раннеру отдаём пропуск: одна попытка минки = одна сессионная жизнь.
-          lifeAlreadyLost: false,
+          lives:        livesLeft,
+          lifeAlreadyLost: this.globalLifeLostThisRun,
         },
       });
     });
