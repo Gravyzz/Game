@@ -8,7 +8,7 @@ import { PosterText } from '@ui/PosterText';
 import { Button } from '@ui/Button';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachNoiseBackdrop, paintPageBackdrop } from '@utils/SceneHelpers';
+import { attachNoiseBackdrop, paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * NEW-05 Тот самый за 5 долларов.
@@ -79,9 +79,17 @@ export class FiveDollarScene extends BaseMinigame {
     const { WIDTH, HEIGHT } = GAME;
     const diff = this.initData.difficulty;
 
+    // Сброс state — Phaser переиспользует scene-instance.
+    this.items = [];
+    this.picked = [];
+    this.pickedDisplay = [];
+    this.timeLeftMs = 0;
+    this.blendDone = false;
+
     // Фон — бар
     paintPageBackdrop(this, 0x2a1f3d);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x2a1f3d);
+    attachHomeButton(this);
     this.drawNoise();
 
     // Заголовок
@@ -198,17 +206,24 @@ export class FiveDollarScene extends BaseMinigame {
     blendBtn.setDepth(DEPTH.ui);
     this.add.existing(blendBtn);
 
-    // Таймер
-    this.timeLeftMs = this.initData.durationMs;
-    this.gameTimer = this.time.addEvent({
-      delay: 200,
-      loop: true,
-      callback: this.onTick,
-      callbackScope: this,
-    });
-
     this.cameras.main.fadeIn(250, 10, 10, 10);
     this.updateSum();
+
+    attachIntro(
+      this,
+      RU.minigame.names.FiveDollar,
+      RU.minigame.guides.FiveDollar,
+      () => {
+        // Старт таймера только после нажатия «Погнали»
+        this.timeLeftMs = this.initData.durationMs;
+        this.gameTimer = this.time.addEvent({
+          delay: 200,
+          loop: true,
+          callback: this.onTick,
+          callbackScope: this,
+        });
+      },
+    );
   }
 
   private addItem(item: ShopItem): void {

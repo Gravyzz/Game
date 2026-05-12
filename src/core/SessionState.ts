@@ -45,14 +45,20 @@ class SessionStateManager {
     sequence: [],
   };
 
-  /** Стартует новую сессию с указанного уровня (для возобновления прогресса) */
+  /**
+   * Стартует новую сессию.
+   *
+   * Сейчас всегда с 1-го слота и со свежими 3 жизнями: на проигрыш игрок
+   * должен начать с самого начала с новым билетом, прогресс не сохраняется.
+   * Параметр `startLevel` оставлен для будущей фичи «таблица лидеров».
+   */
   startSession(startLevel: SessionLevel = 1): void {
     this.data = {
       currentLevel: startLevel,
       completedLevels: [],
       prizeWon: null,
       active: true,
-      livesLeft: this.data.livesLeft,
+      livesLeft: SESSION_LIVES,
       sequence: generateSessionSequence(),
     };
     EventBus.emit('session:start', { startLevel });

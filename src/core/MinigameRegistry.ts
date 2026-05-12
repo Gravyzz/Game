@@ -98,7 +98,13 @@ export const MINIGAME_POOL: MinigameMeta[] = [
     durationMs: 35_000,
     class: 'medium',
   },
-
+  {
+    key: 'JeffreySurfer',
+    i18nKey: 'JeffreySurfer',
+    hintI18nKey: 'JeffreySurfer',
+    durationMs: 60_000,
+    class: 'medium',
+  },
 ];
 
 /** Сколько минок в одной сессии (4 слота) */

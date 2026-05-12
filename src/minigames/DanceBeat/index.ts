@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * NEW-04 Танцпол — Simon-says на стрелках.
@@ -91,10 +91,19 @@ export class DanceBeatScene extends BaseMinigame {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
+    // Сброс state — Phaser переиспользует scene-instance.
+    this.roundIndex = 0;
+    this.currentSeq = [];
+    this.playerStep = 0;
+    this.finished = false;
+    this.acceptingInput = false;
+    this.inputDeadlineAt = 0;
+
     // Фон
     paintPageBackdrop(this, 0x121023);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x121023);
     this.drawDiscoFloor();
+    attachHomeButton(this);
 
     // Заголовок
     const title = new PosterText(this, WIDTH / 2, 80, 'ПОВТОРИ КОМБО', {
@@ -142,7 +151,12 @@ export class DanceBeatScene extends BaseMinigame {
     this.bindKeyboard();
 
     this.cameras.main.fadeIn(250, 10, 10, 10);
-    this.startRound();
+    attachIntro(
+      this,
+      RU.minigame.names.DanceBeat,
+      RU.minigame.guides.DanceBeat,
+      () => this.startRound(),
+    );
   }
 
   // ========== UI ==========
@@ -231,9 +245,11 @@ export class DanceBeatScene extends BaseMinigame {
     let prev: Dir | null = null;
     for (let i = 0; i < length; i++) {
       let pick = dirs[Phaser.Math.Between(0, 3)];
-      // Не повторять подряд одно и то же — игрок не отличит от затупа
+      // Не повторять подряд: если выпал тот же — берём случайно из трёх остальных,
+      // а не детерминированно «следующий по порядку» (это давало предсказуемые паттерны).
       if (prev && pick === prev) {
-        pick = dirs[(dirs.indexOf(pick) + 1) % 4];
+        const rest = dirs.filter((d) => d !== prev);
+        pick = rest[Phaser.Math.Between(0, rest.length - 1)];
       }
       seq.push(pick);
       prev = pick;
@@ -383,7 +399,7 @@ export class DanceBeatScene extends BaseMinigame {
     };
 
     const handler = (e: KeyboardEvent) => {
-      if (this.finished) return;
+      if (this.finished || this.gamePaused) return;
       const dir = map[e.key];
       if (!dir) return;
       e.preventDefault();

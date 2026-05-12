@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 // ─── layout ──────────────────────────────────────────────────────────────────
 const W        = GAME.WIDTH;
@@ -49,17 +49,17 @@ interface Stage {
 const STAGES: Stage[] = [
   {
     name: 'EASY',  color: '#4ADE80',
-    rotSpeed: 1.4, goal: 6,  minAngle: 0.26, knifeSpd: 1500,
+    rotSpeed: 1.4, goal: 11, minAngle: 0.14, knifeSpd: 3200,
     flipEnabled: false, flipMin: 0,    flipMax: 0,
   },
   {
     name: 'MEDIUM', color: '#FFE600',
-    rotSpeed: 2.1, goal: 8,  minAngle: 0.22, knifeSpd: 1700,
+    rotSpeed: 2.1, goal: 13, minAngle: 0.12, knifeSpd: 3500,
     flipEnabled: false, flipMin: 0,    flipMax: 0,
   },
   {
     name: 'HARD',  color: '#FF2E2E',
-    rotSpeed: 2.7, goal: 10, minAngle: 0.19, knifeSpd: 1900,
+    rotSpeed: 2.7, goal: 15, minAngle: 0.10, knifeSpd: 3800,
     flipEnabled: true,  flipMin: 2400, flipMax: 3800,
   },
 ];
@@ -142,6 +142,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     paintPageBackdrop(this, COLORS.cream);
     this.add.rectangle(CX, H / 2, W, H, COLORS.cream).setDepth(DEPTH.background);
     this.add.image(CX, H / 2, TEX_NOISE).setDepth(DEPTH.background);
+    attachHomeButton(this);
 
     const title = new PosterText(this, CX, 65, 'КОЛБАСКА НА НОЖАХ', {
       bgColor: COLORS.red, textColor: '#FAF7F0',
@@ -190,17 +191,24 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.input.on('pointerdown', this.onTap, this);
     this.cameras.main.fadeIn(300, 10, 10, 10);
 
-    // Intro-баннер первого стейджа, потом старт
-    this.showStageBanner(this.stage, true, () => {
-      if (this.stage.flipEnabled) this.scheduleFlip();
-      this.spawnKnife();
-      this.canThrow     = true;
-      this.inTransition = false;
-    });
+    attachIntro(
+      this,
+      RU.minigame.names.PizzaAssembly,
+      RU.minigame.guides.PizzaAssembly,
+      () => {
+        // Intro-баннер первого стейджа, потом старт
+        this.showStageBanner(this.stage, true, () => {
+          if (this.stage.flipEnabled) this.scheduleFlip();
+          this.spawnKnife();
+          this.canThrow     = true;
+          this.inTransition = false;
+        });
+      },
+    );
   }
 
   override update(_t: number, dtMs: number): void {
-    if (this.done) return;
+    if (this.done || this.gamePaused) return;
 
     // Clamp dt — защита от скачков (таб в фоне, лаг в браузере)
     const dt = Math.min(dtMs, 33) / 1000;

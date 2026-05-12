@@ -12,19 +12,21 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.svg('make-love-pizza-logo', 'assets/logo-make-love-pizza.svg');
-    this.load.image('make-love-pizza-logo-pixel', 'assets/logo-make-love-pizza-pixel.png');
-    this.load.image('heart-pixel', 'assets/heart-pixel.png');
-    this.load.image('pizza-pixel', 'assets/pizza-pixel.png');
-    this.load.image('gamepad-pixel', 'assets/gamepad-pixel.png');
-    this.load.image('star-pixel', 'assets/star-pixel.png');
-    this.load.image('orientation-phone-pixel', 'assets/orientation-phone-pixel.png');
-    this.load.image('sound-on-pixel', 'assets/sound-on-pixel.png');
-    this.load.image('sound-off-pixel', 'assets/sound-off-pixel.png');
-    this.load.image('home-pixel', 'assets/home.png');
-    this.load.image('plus-pixel', 'assets/plus.png');
-    this.load.image('minus-pixel', 'assets/minus.png');
-    this.load.image('cancel-pixel', 'assets/cancel.png');
+    // ===== Бренд =====
+    this.load.image('make-love-pizza-logo-pixel', 'assets/branding/logo-make-love-pizza-pixel.png');
+
+    // ===== UI =====
+    this.load.image('heart-pixel',             'assets/ui/heart-pixel.png');
+    this.load.image('pizza-pixel',             'assets/ui/pizza-pixel.png');
+    this.load.image('gamepad-pixel',           'assets/ui/gamepad-pixel.png');
+    this.load.image('star-pixel',              'assets/ui/star-pixel.png');
+    this.load.image('orientation-phone-pixel', 'assets/ui/orientation-phone-pixel.png');
+    this.load.image('sound-on-pixel',          'assets/ui/sound-on-pixel.png');
+    this.load.image('sound-off-pixel',         'assets/ui/sound-off-pixel.png');
+    this.load.image('home-pixel',              'assets/ui/home.png');
+    this.load.image('plus-pixel',              'assets/ui/plus.png');
+    this.load.image('minus-pixel',             'assets/ui/minus.png');
+    this.load.image('cancel-pixel',            'assets/ui/cancel.png');
     this.load.image('firestarter-oven-1', 'assets/firestarter/oven-1.png');
     this.load.image('firestarter-oven-2', 'assets/firestarter/oven-2.png');
     this.load.image('firestarter-oven-3', 'assets/firestarter/oven-3.png');
@@ -91,6 +93,18 @@ export class BootScene extends Phaser.Scene {
     } catch (err) {
       console.warn('[BootScene] Fonts loading failed, using fallback', err);
     }
+
+    // Все Jeffrey-ассеты — пиксельные, нужен NEAREST фильтр чтобы не блюрило
+    [
+      'jeff-car-white', 'jeff-car-green', 'jeff-car-black', 'jeff-car-blue',
+      'jeff-tree', 'jeff-trash', 'jeff-bench', 'jeff-lamp',
+      'jeff-building-red', 'jeff-building-green', 'jeff-building-orange', 'jeff-building-blue',
+      'jeff-house-blue', 'jeff-house-orange', 'jeff-house-green', 'jeff-house-yellow',
+    ].forEach((k) => {
+      if (this.textures.exists(k)) {
+        this.textures.get(k).setFilter(Phaser.Textures.FilterMode.NEAREST);
+      }
+    });
 
     // Прячем HTML-лоадер — теперь рулит Phaser
     const htmlLoader = document.getElementById('boot-loader');

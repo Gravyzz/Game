@@ -41,16 +41,14 @@ export class MinigameRunnerScene extends Phaser.Scene {
       // Списываем билет (одна сессия — один билет)
       GameState.consumeTicket();
 
-      // Стартуем сессию с уровня прогресса (для возобновления через 2 недели)
-      const startLevel = GameState.getProgressLevel();
-      SessionState.startSession(startLevel);
+      // Прогресс между сессиями не сохраняется — игрок всегда начинает с 1-го слота
+      // со свежими жизнями. Поле GameState.progressLevel оставлено под лидерборд.
+      SessionState.startSession(1);
     }
 
     if (SessionState.getLivesLeft() <= 0) {
-      const currentLevel = SessionState.getCurrentLevel();
-      GameState.markProgressOnLose(currentLevel);
       SessionState.endSession('lose');
-      TicketProvider.reportSessionEnd('lose', { failedAtLevel: currentLevel });
+      TicketProvider.reportSessionEnd('lose', { failedAtLevel: SessionState.getCurrentLevel() });
       this.scene.start('ResultScene', { outcome: 'lose' });
       return;
     }
@@ -182,25 +180,28 @@ export class MinigameRunnerScene extends Phaser.Scene {
       // Иначе — переход на ChoiceScene «крутить или дальше»
       this.transitionTo('ChoiceScene', { wonLevel: SessionState.getCurrentLevel() });
     } else {
-      const currentLevel = SessionState.getCurrentLevel();
+      // Игрок нажал «домой» из минки — сессия закрывается, минуем advance/жизни.
+      const aborted = result.metadata?.aborted === true;
+      if (aborted) {
+        SessionState.endSession('lose');
+        TicketProvider.reportSessionEnd('lose', { aborted: true });
+        this.transitionTo('SplashScene');
+        return;
+      }
+
       const lifeAlreadyLost = result.metadata?.lifeAlreadyLost === true;
       const livesLeft = lifeAlreadyLost ? SessionState.getLivesLeft() : SessionState.loseLife();
 
+      // Любую минку играем не более одного раза за сессию: на провале
+      // переходим к СЛЕДУЮЩЕМУ слоту, а не повторяем эту же.
       if (livesLeft > 0) {
-        const nextLevel = SessionState.advanceLevel();
-        if (nextLevel !== null) {
-          this.transitionTo('MinigameRunnerScene');
-          return;
-        }
+        this.transitionTo('MinigameRunnerScene');
+        return;
       }
 
-      // Жизни закончились — конец сессии, без приза.
-      // ВАЖНО: фиксируем прогресс на ТЕКУЩЕМ уровне, чтобы при следующем заказе
-      // игрок попал именно на эту минку, а не на следующую.
-      GameState.markProgressOnLose(currentLevel);
+      // Жизни закончились — сессия окончена.
       SessionState.endSession('lose');
-      TicketProvider.reportSessionEnd('lose', { failedAtLevel: currentLevel });
-
+      TicketProvider.reportSessionEnd('lose', { failedAtLevel: SessionState.getCurrentLevel() });
       this.transitionTo('ResultScene', { outcome: 'lose' });
     }
   }

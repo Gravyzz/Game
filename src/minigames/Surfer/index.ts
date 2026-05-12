@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * NEW-01 СЁРФЕР НА ВОЛНЕ — Flappy Bird в трёх стейджах.
@@ -180,6 +180,7 @@ export class SurferScene extends BaseMinigame {
     paintPageBackdrop(this, this.stage.bgSky);
     this.bgSky = this.add.rectangle(CX, H / 2, W, H, this.stage.bgSky)
       .setDepth(DEPTH.background);
+    attachHomeButton(this);
 
     // Sun
     this.sun = this.add.circle(W - 140, 230, 70, COLORS.yellow);
@@ -242,17 +243,24 @@ export class SurferScene extends BaseMinigame {
     this.refreshHud();
     this.cameras.main.fadeIn(300, 10, 10, 10);
 
-    // Intro stage 1
-    this.showStageBanner(this.stage, () => {
-      if (this.finished) return;
-      this.startStage(0);
-      this.canPlay      = true;
-      this.inTransition = false;
-    });
+    attachIntro(
+      this,
+      RU.minigame.names.Surfer,
+      RU.minigame.guides.Surfer,
+      () => {
+        // Intro-баннер первого стейджа после Погнали
+        this.showStageBanner(this.stage, () => {
+          if (this.finished) return;
+          this.startStage(0);
+          this.canPlay      = true;
+          this.inTransition = false;
+        });
+      },
+    );
   }
 
   override update(_t: number, dtMs: number): void {
-    if (this.finished) return;
+    if (this.finished || this.gamePaused) return;
 
     const dt = Math.min(dtMs, 33) / 1000 * this.timeScale;
 
@@ -866,6 +874,9 @@ export class SurferScene extends BaseMinigame {
           totalDone,
           stars:        this.starCount,
           lives:        this.lives,
+          // Локальные жизни Surfer — внутренние, на сессионные жизни не влияют.
+          // Раннеру отдаём пропуск: одна попытка минки = одна сессионная жизнь.
+          lifeAlreadyLost: false,
         },
       });
     });

@@ -18,9 +18,17 @@ import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
  *  - регистрацию в main.ts
  *  - кнопку «🧪 ТЕСТ МИНОК» в SplashScene
  */
+/** Сколько локальных «попыток» даёт дев-меню на одну минку. Кончились — возвращаемся в меню. */
+const DEV_LOCAL_LIVES = 3;
+
 export class DevMinigameMenuScene extends Phaser.Scene {
   private completeHandler: ((result: MinigameResult & { sceneKey: string }) => void) | null = null;
   private readonly pixelFont = '"Press Start 2P", monospace';
+
+  // Состояние текущего «забега» в дев-меню.
+  private currentSceneKey: string | null = null;
+  private currentDurationMs = 0;
+  private localLives = DEV_LOCAL_LIVES;
 
   constructor() {
     super({ key: 'DevMinigameMenuScene' });
@@ -102,25 +110,6 @@ export class DevMinigameMenuScene extends Phaser.Scene {
       classLabel.setDepth(DEPTH.ui);
     });
 
-    // Серфёр Джеффри — отдельная standalone-игра
-    const jeffreyBtn = new Button(
-      this,
-      WIDTH / 2,
-      startY + Math.ceil(MINIGAME_POOL.length / 2) * stepY + 24,
-      '🏄 СЕРФЁР ДЖЕФФРИ',
-      () => this.scene.start('JeffreySurfer'),
-      {
-        width: btnW * 2 + colGap,
-        height: btnH,
-        bgColor: 0xF4A261,
-        textColor: '#1A1209',
-        fontSize: '18px',
-        fontFamily: this.pixelFont,
-      }
-    );
-    jeffreyBtn.setDepth(DEPTH.ui);
-    this.add.existing(jeffreyBtn);
-
     // Назад на сплеш
     const backBtn = new Button(
       this,
@@ -144,15 +133,22 @@ export class DevMinigameMenuScene extends Phaser.Scene {
   }
 
   private launchMinigame(sceneKey: string, durationMs: number): void {
-    if (SessionState.getLivesLeft() <= 0) {
-      this.showNoLivesHint();
-      return;
-    }
+    // Сбрасываем локальный счётчик и сразу запускаем минку.
+    this.currentSceneKey = sceneKey;
+    this.currentDurationMs = durationMs;
+    this.localLives = DEV_LOCAL_LIVES;
+    SessionState.setLives(DEV_LOCAL_LIVES);
+    this.startCurrent();
+  }
 
+  /** Запуск текущей минки из dev-меню. Используется и при первом запуске, и при ретрае. */
+  private startCurrent(): void {
+    if (!this.currentSceneKey) return;
     const initData: MinigameInitData = {
       level: 1,
       difficulty: getDifficultyForLevel(1),
-      durationMs,
+      durationMs: this.currentDurationMs,
+      infinite: true,
     };
 
     this.completeHandler = (result) => this.onMinigameComplete(result);
@@ -160,7 +156,7 @@ export class DevMinigameMenuScene extends Phaser.Scene {
 
     // Прячем меню И блокируем его input — иначе тапы по «невидимым» кнопкам
     // меню будут пробрасываться сквозь активную минку.
-    this.scene.launch(sceneKey, initData);
+    this.scene.launch(this.currentSceneKey, initData);
     this.scene.setVisible(false);
     this.input.enabled = false;
   }
@@ -168,25 +164,32 @@ export class DevMinigameMenuScene extends Phaser.Scene {
   private onMinigameComplete(result: MinigameResult & { sceneKey: string }): void {
     console.log('[DevMenu] minigame complete:', result);
     this.completeHandler = null;
-    this.scene.setVisible(true);
-    this.input.enabled = true;
+
+    // Игрок нажал «домой» — без штрафа возвращаемся в меню.
+    const aborted = result.metadata?.aborted === true;
+    if (aborted || result.outcome === 'win') {
+      this.returnToMenu();
+      return;
+    }
+
+    // Лоуз. Если есть локальные жизни — ретрай той же минки.
+    this.localLives -= 1;
+    SessionState.setLives(this.localLives);
+
+    if (this.localLives > 0) {
+      this.time.delayedCall(60, () => this.startCurrent());
+      return;
+    }
+
+    // Все 3 локальные жизни сожжены — возврат в меню. Игрок может сразу
+    // выбрать ту же минку и сыграть ещё раз с новой пачкой жизней.
+    this.returnToMenu();
   }
 
-  private showNoLivesHint(): void {
-    const toast = this.add.text(GAME.WIDTH / 2, 190, 'НЕТ ЖИЗНЕЙ', {
-      fontFamily: this.pixelFont,
-      fontSize: '24px',
-      color: '#FF2E2E',
-    });
-    toast.setOrigin(0.5);
-    toast.setDepth(DEPTH.toast);
-    this.tweens.add({
-      targets: toast,
-      y: 150,
-      alpha: 0,
-      duration: 900,
-      onComplete: () => toast.destroy(),
-    });
+  private returnToMenu(): void {
+    this.currentSceneKey = null;
+    this.scene.setVisible(true);
+    this.input.enabled = true;
   }
 
   shutdown(): void {

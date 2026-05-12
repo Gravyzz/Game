@@ -161,6 +161,28 @@ export class ChopChopScene extends BaseMinigame {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
+    // Сброс state — Phaser переиспользует scene-instance, поля персистят.
+    this.currentRoundIndex = 0;
+    this.playerCount = 0;
+    this.didiCount = 0;
+    this.playerWins = 0;
+    this.didiWins = 0;
+    this.currentTarget = 0;
+    this.currentMode = 'tap';
+    this.accepting = false;
+    this.playerCanTap = false;
+    this.finished = false;
+    this.swipeActive = false;
+    this.currentlyBomb = false;
+    this.nextPerk = null;
+    this.activePerk = null;
+    this.perkSharpKnife = false;
+    this.perkDoubleRemaining = 0;
+    this.perkSlowDidi = false;
+    this.perkDullKnife = false;
+    this.perkDidiHeadstart = false;
+    this.dullKnifeFlip = false;
+
     // Фон
     paintPageBackdrop(this, 0xffeb3f);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0xffeb3f);
@@ -302,7 +324,12 @@ export class ChopChopScene extends BaseMinigame {
 
     this.cameras.main.fadeIn(250, 10, 10, 10);
     this.updateUi();
-    this.startRound();
+    attachIntro(
+      this,
+      RU.minigame.names.ChopChop,
+      RU.minigame.guides.ChopChop,
+      () => this.startRound(),
+    );
   }
 
   // ========== РАУНД ==========
@@ -909,6 +936,7 @@ export class ChopChopScene extends BaseMinigame {
   }
 
   private applyChop(value: number): void {
+    if (!this.accepting || this.finished) return;
     this.playerCount += value;
     this.updateUi();
     if (this.playerCount >= this.currentTarget) {
@@ -1035,6 +1063,8 @@ export class ChopChopScene extends BaseMinigame {
   // ========== ФИНАЛ РАУНДА ==========
 
   private endRound(winner: 'player' | 'didi'): void {
+    // Идемпотентность: если accepting=false, раунд уже закрыт.
+    if (!this.accepting || this.finished) return;
     this.accepting = false;
     this.playerCanTap = false;
     if (this.didiTimer) { this.didiTimer.remove(); this.didiTimer = null; }

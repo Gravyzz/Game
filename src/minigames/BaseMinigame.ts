@@ -11,6 +11,9 @@ export interface MinigameInitData {
   difficulty: number;
   /** Рекомендованная длительность раунда в мс. Минка может игнорировать */
   durationMs: number;
+  /** Бесконечный/«аркадный» режим. Передаётся из DevMinigameMenuScene. Минки,
+   *  у которых есть бесконечный режим (Crossy/Surfer и тп), могут на него переключиться. */
+  infinite?: boolean;
 }
 
 /**
@@ -49,9 +52,16 @@ export abstract class BaseMinigame extends Phaser.Scene {
   /** Защита от двойного complete (если в коде минки два пути к завершению) */
   private completed = false;
 
+  /** Флаг паузы геймплея. Используется когда поверх минки висит home-модалка.
+   *  Минки которые гоняют логику в update() должны проверять `if (this.gamePaused) return`. */
+  public gamePaused = false;
+
   init(data: MinigameInitData): void {
     this.initData = data;
     this.completed = false;
+    // Сбрасываем флаг паузы — Phaser переиспользует scene-instance, и если в прошлом
+    // ране модалка осталась открытой при crash/abort, флаг застрял бы в true.
+    this.gamePaused = false;
   }
 
   /**
@@ -73,6 +83,33 @@ export abstract class BaseMinigame extends Phaser.Scene {
 
     // Стопаем сцену через 1 кадр, чтобы текущий handler завершился
     this.time.delayedCall(0, () => this.scene.stop());
+  }
+
+  /** В каком режиме запущена минка: бесконечный (дев-меню) или сессионный (Play) */
+  public get isInfinite(): boolean {
+    return this.initData?.infinite === true;
+  }
+
+  /** Текущий уровень сессии (1..4). Используется для metadata в EventBus. */
+  public get currentLevel(): number {
+    return this.initData?.level ?? 1;
+  }
+
+  /**
+   * Игрок выходит из минки через кнопку «домой».
+   * Раннер увидит metadata.aborted и закроет всю сессию (а не списывает жизнь).
+   * В дев-меню — просто возврат в меню без списания локальной жизни.
+   *
+   * NOTE: фактически НЕ используется текущим UI (HomeExitModalScene делает
+   * scene-переходы сама). Оставлено как публичное API на случай если минке
+   * понадобится self-abort из своего кода.
+   */
+  public abort(): void {
+    this.complete({
+      outcome: 'lose',
+      score: 0,
+      metadata: { aborted: true, lifeAlreadyLost: true },
+    });
   }
 
   /** Каждая минка обязана реализовать */
