@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * MG-02 ДОНТВОРК: РАСКОЛБАС
@@ -269,13 +269,20 @@ export class DontWorkScene extends BaseMinigame {
     this.refreshHud();
     this.cameras.main.fadeIn(300, 10, 10, 10);
 
-    // Intro stage 1
-    this.showStageBanner(this.stage, () => {
-      if (this.finished) return;
-      this.startStage(0);
-      this.canPlay      = true;
-      this.inTransition = false;
-    });
+    attachIntro(
+      this,
+      RU.minigame.names.DontWork,
+      RU.minigame.guides.DontWork,
+      () => {
+        // Intro stage 1 — после Погнали
+        this.showStageBanner(this.stage, () => {
+          if (this.finished) return;
+          this.startStage(0);
+          this.canPlay      = true;
+          this.inTransition = false;
+        });
+      },
+    );
   }
 
   override update(_t: number, dtMs: number): void {

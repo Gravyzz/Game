@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * NEW-04 Танцпол — Simon-says на стрелках.
@@ -91,6 +91,14 @@ export class DanceBeatScene extends BaseMinigame {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
+    // Сброс state — Phaser переиспользует scene-instance.
+    this.roundIndex = 0;
+    this.currentSeq = [];
+    this.playerStep = 0;
+    this.finished = false;
+    this.acceptingInput = false;
+    this.inputDeadlineAt = 0;
+
     // Фон
     paintPageBackdrop(this, 0x121023);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x121023);
@@ -143,7 +151,12 @@ export class DanceBeatScene extends BaseMinigame {
     this.bindKeyboard();
 
     this.cameras.main.fadeIn(250, 10, 10, 10);
-    this.startRound();
+    attachIntro(
+      this,
+      RU.minigame.names.DanceBeat,
+      RU.minigame.guides.DanceBeat,
+      () => this.startRound(),
+    );
   }
 
   // ========== UI ==========
@@ -386,7 +399,7 @@ export class DanceBeatScene extends BaseMinigame {
     };
 
     const handler = (e: KeyboardEvent) => {
-      if (this.finished) return;
+      if (this.finished || this.gamePaused) return;
       const dir = map[e.key];
       if (!dir) return;
       e.preventDefault();

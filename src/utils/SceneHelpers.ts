@@ -226,6 +226,85 @@ function handleExit(scene: BaseMinigame): void {
 }
 
 /**
+ * Полноэкранный туториал перед началом минки.
+ * Показывает имя минки + текст гайда + кнопку «Погнали».
+ * Пока юзер не нажмёт кнопку — `onStart()` не вызывается, и минка не стартует.
+ *
+ * Минка должна вызывать в конце `create()`:
+ *   attachIntro(this, RU.minigame.names[key], RU.minigame.guides[key], () => this.startRound());
+ */
+export function attachIntro(
+  scene: BaseMinigame,
+  title: string,
+  guide: string,
+  onStart: () => void,
+): void {
+  const { WIDTH, HEIGHT } = GAME;
+  const pixel = '"Press Start 2P", monospace';
+  const TOP = DEPTH.toast + 20;
+
+  const overlay = scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.88);
+  overlay.setDepth(TOP);
+  overlay.setInteractive();
+  overlay.setScrollFactor(0);
+  overlay.on('pointerdown', (
+    _p: Phaser.Input.Pointer,
+    _x: number,
+    _y: number,
+    e: Phaser.Types.Input.EventData,
+  ) => e.stopPropagation());
+
+  const panel = scene.add.rectangle(WIDTH / 2, HEIGHT / 2 - 30, WIDTH - 100, 660, 0x5a54f9);
+  panel.setStrokeStyle(8, COLORS.black);
+  panel.setDepth(TOP + 1);
+  panel.setScrollFactor(0);
+
+  const titleText = scene.add.text(WIDTH / 2, HEIGHT / 2 - 280, title, {
+    fontFamily: pixel, fontSize: '28px', color: '#FFE600',
+    align: 'center', lineSpacing: 8, wordWrap: { width: WIDTH - 160 },
+  });
+  titleText.setOrigin(0.5);
+  titleText.setDepth(TOP + 2);
+  titleText.setScrollFactor(0);
+
+  const bodyText = scene.add.text(WIDTH / 2, HEIGHT / 2 - 30, guide, {
+    fontFamily: pixel, fontSize: '15px', color: '#FAF7F0',
+    align: 'center', lineSpacing: 16, wordWrap: { width: WIDTH - 180 },
+  });
+  bodyText.setOrigin(0.5);
+  bodyText.setDepth(TOP + 2);
+  bodyText.setScrollFactor(0);
+
+  const btn = scene.add.rectangle(WIDTH / 2, HEIGHT / 2 + 230, 380, 96, COLORS.win);
+  btn.setStrokeStyle(6, COLORS.black);
+  btn.setDepth(TOP + 1);
+  btn.setInteractive({ useHandCursor: true });
+  btn.setScrollFactor(0);
+
+  const btnText = scene.add.text(WIDTH / 2, HEIGHT / 2 + 230, 'ПОГНАЛИ!', {
+    fontFamily: pixel, fontSize: '28px', color: '#0A0A0A',
+  });
+  btnText.setOrigin(0.5);
+  btnText.setDepth(TOP + 2);
+  btnText.setScrollFactor(0);
+
+  const all = [overlay, panel, titleText, bodyText, btn, btnText];
+  let clicked = false;
+  btn.on('pointerdown', (
+    _p: Phaser.Input.Pointer,
+    _x: number,
+    _y: number,
+    e: Phaser.Types.Input.EventData,
+  ) => {
+    e.stopPropagation();
+    if (clicked) return;
+    clicked = true;
+    all.forEach((o) => o.destroy());
+    onStart();
+  });
+}
+
+/**
  * Заливает страницу за пределами канваса в цвет минки на время её жизни.
  * Это решает letterbox — когда canvas 9:16 не покрывает весь viewport, вокруг
  * него виден дефолтный фон сайта (#5a54f9 + звёзды). С этой утилитой:

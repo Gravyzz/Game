@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachNoiseBackdrop, paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
+import { attachNoiseBackdrop, paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * NEW-03 Перетапай Диди.
@@ -143,6 +143,28 @@ export class ChopChopScene extends BaseMinigame {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
+    // Сброс state — Phaser переиспользует scene-instance, поля персистят.
+    this.currentRoundIndex = 0;
+    this.playerCount = 0;
+    this.didiCount = 0;
+    this.playerWins = 0;
+    this.didiWins = 0;
+    this.currentTarget = 0;
+    this.currentMode = 'tap';
+    this.accepting = false;
+    this.playerCanTap = false;
+    this.finished = false;
+    this.swipeActive = false;
+    this.currentlyBomb = false;
+    this.nextPerk = null;
+    this.activePerk = null;
+    this.perkSharpKnife = false;
+    this.perkDoubleRemaining = 0;
+    this.perkSlowDidi = false;
+    this.perkDullKnife = false;
+    this.perkDidiHeadstart = false;
+    this.dullKnifeFlip = false;
+
     // Фон
     paintPageBackdrop(this, 0x2a4d3e);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x2a4d3e);
@@ -271,7 +293,12 @@ export class ChopChopScene extends BaseMinigame {
 
     this.cameras.main.fadeIn(250, 10, 10, 10);
     this.updateUi();
-    this.startRound();
+    attachIntro(
+      this,
+      RU.minigame.names.ChopChop,
+      RU.minigame.guides.ChopChop,
+      () => this.startRound(),
+    );
   }
 
   // ========== РАУНД ==========

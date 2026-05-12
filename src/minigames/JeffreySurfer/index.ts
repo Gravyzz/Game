@@ -3,7 +3,8 @@ import { BaseMinigame } from '@minigames/BaseMinigame';
 import { GAME, DEPTH } from '@config/game';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import { RU } from '@i18n/ru';
 
 /**
  * NEW Crossy Jeffrey — Crossy Road в нашем сеттинге.
@@ -147,6 +148,22 @@ export class JeffreySurferScene extends BaseMinigame {
       this.cameraCreepPerSec = 0.4;
     }
 
+    // Сброс state — Phaser переиспользует scene-instance между запусками.
+    // Без этого после смерти+перезахода поля типа `dead=true` остаются и блокируют игру.
+    this.finished = false;
+    this.dead = false;
+    this.accepting = false;
+    this.moving = false;
+    this.playerWorldY = 0;
+    this.maxWorldY = 0;
+    this.playerCol = Math.floor(COLS / 2);
+    this.cameraWorldY = 0;
+    this.rows = new Map();
+    this.vehicles = new Map();
+    this.touchActive = false;
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+
     paintPageBackdrop(this, 0x9cd66f);
 
     this.bakeTextures();
@@ -168,7 +185,14 @@ export class JeffreySurferScene extends BaseMinigame {
     attachHomeButton(this);
 
     this.cameras.main.fadeIn(220, 10, 10, 10);
-    this.accepting = true;
+
+    // Туториал перед стартом — пока юзер не тапнет «Погнали», ввод не принимается.
+    attachIntro(
+      this,
+      RU.minigame.names.JeffreySurfer,
+      RU.minigame.guides.JeffreySurfer,
+      () => { this.accepting = true; },
+    );
   }
 
   // ============================================================
@@ -290,7 +314,7 @@ export class JeffreySurferScene extends BaseMinigame {
 
   private bindKeyboard(): void {
     const handler = (e: KeyboardEvent) => {
-      if (this.finished) return;
+      if (this.finished || this.gamePaused) return;
       let dx = 0, dy = 0;
       switch (e.key) {
         case 'ArrowUp':    case 'w': case 'W': dy = 1; break;

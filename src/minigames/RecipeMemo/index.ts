@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { SessionState } from '@core/SessionState';
-import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * NEW-06 Перепутанные рецепты.
@@ -216,7 +216,12 @@ export class RecipeMemoScene extends BaseMinigame {
     helpText.setDepth(DEPTH.ui + 1);
 
     this.cameras.main.fadeIn(250, 10, 10, 10);
-    this.startRound();
+    attachIntro(
+      this,
+      RU.minigame.names.RecipeMemo,
+      RU.minigame.guides.RecipeMemo,
+      () => this.startRound(),
+    );
   }
 
   private resetRuntimeState(): void {

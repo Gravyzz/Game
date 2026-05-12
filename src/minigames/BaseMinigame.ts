@@ -59,6 +59,9 @@ export abstract class BaseMinigame extends Phaser.Scene {
   init(data: MinigameInitData): void {
     this.initData = data;
     this.completed = false;
+    // Сбрасываем флаг паузы — Phaser переиспользует scene-instance, и если в прошлом
+    // ране модалка осталась открытой при crash/abort, флаг застрял бы в true.
+    this.gamePaused = false;
   }
 
   /**

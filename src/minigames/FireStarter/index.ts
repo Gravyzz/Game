@@ -6,7 +6,7 @@ import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { SessionState } from '@core/SessionState';
-import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 /**
  * MG-03 Фаерстартер: тайминг печи.
@@ -75,7 +75,6 @@ export class FireStarterScene extends BaseMinigame {
   private zoneAnchorX = 0;
 
   private accepting = false;
-  private exitModalOpen = false;
   private timeLeftMs = 0;
   private timerEvent: Phaser.Time.TimerEvent | null = null;
   private finished = false;
@@ -169,6 +168,7 @@ export class FireStarterScene extends BaseMinigame {
     // SPACE на клавиатуре — то же самое что тап
     this.keyHandler = (e: KeyboardEvent) => {
       if (e.code !== 'Space' && e.key !== ' ') return;
+      if (this.gamePaused) return;
       e.preventDefault();
       this.handleTap();
     };
@@ -186,7 +186,12 @@ export class FireStarterScene extends BaseMinigame {
     this.cameras.main.fadeIn(250, 10, 10, 10);
 
     this.updateHud();
-    this.startRound();
+    attachIntro(
+      this,
+      RU.minigame.names.FireStarter,
+      RU.minigame.guides.FireStarter,
+      () => this.startRound(),
+    );
   }
 
   private resetRuntimeState(): void {
@@ -207,7 +212,6 @@ export class FireStarterScene extends BaseMinigame {
     this.zonePhase = 0;
     this.zoneAnchorX = 0;
     this.accepting = false;
-    this.exitModalOpen = false;
     this.timeLeftMs = 0;
     this.timerEvent = null;
     this.finished = false;
@@ -436,7 +440,7 @@ export class FireStarterScene extends BaseMinigame {
   }
 
   private handleTap(): void {
-    if (!this.accepting || this.exitModalOpen) return;
+    if (!this.accepting || this.gamePaused) return;
     this.accepting = false;
 
     const x = this.marker.x;

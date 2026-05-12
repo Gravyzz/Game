@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton } from '@utils/SceneHelpers';
+import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
 
 // ─── layout ──────────────────────────────────────────────────────────────────
 const W        = GAME.WIDTH;
@@ -179,13 +179,20 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.input.on('pointerdown', this.onTap, this);
     this.cameras.main.fadeIn(300, 10, 10, 10);
 
-    // Intro-баннер первого стейджа, потом старт
-    this.showStageBanner(this.stage, true, () => {
-      if (this.stage.flipEnabled) this.scheduleFlip();
-      this.spawnKnife();
-      this.canThrow     = true;
-      this.inTransition = false;
-    });
+    attachIntro(
+      this,
+      RU.minigame.names.PizzaAssembly,
+      RU.minigame.guides.PizzaAssembly,
+      () => {
+        // Intro-баннер первого стейджа, потом старт
+        this.showStageBanner(this.stage, true, () => {
+          if (this.stage.flipEnabled) this.scheduleFlip();
+          this.spawnKnife();
+          this.canThrow     = true;
+          this.inTransition = false;
+        });
+      },
+    );
   }
 
   override update(_t: number, dtMs: number): void {
