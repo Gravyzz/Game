@@ -7,7 +7,13 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+  type GlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 
 /**
  * MG-02 ДОНТВОРК: РАСКОЛБАС
@@ -194,7 +200,7 @@ export class DontWorkScene extends BaseMinigame {
 
   // UI
   private stageLbl!:  Phaser.GameObjects.Text;
-  private livesLbl!:  Phaser.GameObjects.Text;
+  private livesHud!:  GlobalLivesDisplay;
   private scoreLbl!:  Phaser.GameObjects.Text;
   private streakLbl!: Phaser.GameObjects.Text;
   private bossCtx:    Phaser.GameObjects.Container | null = null;
@@ -255,9 +261,16 @@ export class DontWorkScene extends BaseMinigame {
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.ui);
 
-    this.livesLbl = this.add
-      .text(28, 138, '', { ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#FAF7F0' })
-      .setDepth(DEPTH.ui);
+    this.livesHud = createGlobalLivesDisplay(this, {
+      x: 78,
+      countX: 54,
+      stackFirstX: 118,
+      y: 138,
+      heartSize: 52,
+      heartGap: 64,
+      fontSize: '34px',
+      color: '#FAF7F0',
+    });
 
     this.scoreLbl = this.add
       .text(W - 28, 138, '', { ...TEXT_STYLES.subtitle, fontSize: '18px', color: '#FAF7F0' })
@@ -876,10 +889,7 @@ export class DontWorkScene extends BaseMinigame {
   // ─── HUD ───────────────────────────────────────────────────────────────────
 
   private refreshHud(): void {
-    this.livesLbl.setText(
-      '❤️'.repeat(Math.max(0, this.lives)) +
-      '🖤'.repeat(Math.max(0, this.maxLives - this.lives)),
-    );
+    this.livesHud.update();
     this.scoreLbl.setText(`✂️ ${this.totalScore}`);
     this.stageLbl
       .setText(`${this.stage.name}  ${this.stageIdx + 1}/${TOTAL_STAGES}`)

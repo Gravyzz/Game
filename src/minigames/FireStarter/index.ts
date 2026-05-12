@@ -5,8 +5,13 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { SessionState } from '@core/SessionState';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+  type GlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 
 /**
  * MG-03 Фаерстартер: тайминг печи.
@@ -21,7 +26,6 @@ import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHe
 
 const ROUNDS_PER_GAME = 10;
 const WIN_THRESHOLD = 10; // нужно пройти все 10 попаданий
-const TOTAL_LIVES = 3;
 const TOTAL_TIME_MS = 50_000;
 
 const BAR_WIDTH = 640;
@@ -53,8 +57,7 @@ export class FireStarterScene extends BaseMinigame {
   private marker!: Phaser.GameObjects.Rectangle;
   private statusText!: Phaser.GameObjects.Text;
   private roundText!: Phaser.GameObjects.Text;
-  private hearts: Phaser.GameObjects.Image[] = [];
-  private livesCountText!: Phaser.GameObjects.Text;
+  private livesHud!: GlobalLivesDisplay;
   private ovenImage!: Phaser.GameObjects.Image;
   private smokeImage!: Phaser.GameObjects.Image;
   private pizzaImage!: Phaser.GameObjects.Image;
@@ -198,7 +201,6 @@ export class FireStarterScene extends BaseMinigame {
     this.currentRound = 0;
     this.hits = 0;
     this.misses = 0;
-    this.hearts = [];
     this.markerTween = null;
     this.ovenFrameEvent = null;
     this.smokeFrameEvent = null;
@@ -279,22 +281,7 @@ export class FireStarterScene extends BaseMinigame {
 
   private drawHud(): void {
     attachHomeButton(this);
-
-    this.livesCountText = this.add.text(150, 80, '', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '42px',
-      color: '#0A0A0A',
-    });
-    this.livesCountText.setOrigin(0.5);
-    this.livesCountText.setDepth(DEPTH.ui);
-
-    for (let i = 0; i < TOTAL_LIVES; i++) {
-      const heart = this.add.image(150 + i * 82, 80, 'heart-pixel');
-      heart.setOrigin(0.5);
-      heart.setDisplaySize(62, 62);
-      heart.setDepth(DEPTH.ui);
-      this.hearts.push(heart);
-    }
+    this.livesHud = createGlobalLivesDisplay(this);
 
     this.roundText = this.add.text(GAME.WIDTH - 36, 58, '', {
       fontFamily: '"Press Start 2P", monospace',
@@ -338,29 +325,8 @@ export class FireStarterScene extends BaseMinigame {
 
   private updateHud(): void {
     const round = Math.min(this.currentRound + 1, ROUNDS_PER_GAME);
-    const livesLeft = SessionState.getLivesLeft();
-    this.renderGlobalLives(livesLeft);
+    this.livesHud.update();
     this.roundText.setText(`раунд\n${round}/${ROUNDS_PER_GAME}`);
-  }
-
-  private renderGlobalLives(livesLeft: number): void {
-    if (livesLeft > 3) {
-      this.livesCountText.setText(`${livesLeft}`);
-      this.livesCountText.setVisible(true);
-      this.hearts.forEach((heart, i) => {
-        heart.setVisible(true);
-        heart.setPosition(214 + i * 32, 80);
-        heart.setDepth(DEPTH.ui + i);
-      });
-      return;
-    }
-
-    this.livesCountText.setVisible(false);
-    this.hearts.forEach((heart, i) => {
-      heart.setVisible(i < livesLeft);
-      heart.setPosition(150 + i * 82, 80);
-      heart.setDepth(DEPTH.ui);
-    });
   }
 
   /** Готовим раунд: размер и позиция зоны, скорость маркера, осцилляция зоны */

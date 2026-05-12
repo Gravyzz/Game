@@ -6,7 +6,13 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+  type GlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 import { SessionState } from '@core/SessionState';
 
 /**
@@ -195,8 +201,7 @@ export class SurferScene extends BaseMinigame {
   // UI
   private stageLbl!:  Phaser.GameObjects.Text;
   private progLbl!:   Phaser.GameObjects.Text;
-  private hearts: Phaser.GameObjects.Image[] = [];
-  private livesCountText!: Phaser.GameObjects.Text;
+  private livesHud!: GlobalLivesDisplay;
 
   constructor() { super({ key: 'Surfer' }); }
 
@@ -218,7 +223,6 @@ export class SurferScene extends BaseMinigame {
     this.powerUps        = [];
     this.bubbles         = [];
     this.sandTiles       = [];
-    this.hearts          = [];
     this.surferVY        = 0;
     this.surferY         = (CEILING_Y + FLOOR_Y) / 2;
     this.waterFrame      = 0;
@@ -273,14 +277,7 @@ export class SurferScene extends BaseMinigame {
       .text(W - 26, 104, '', { fontFamily: PIXEL_FONT, fontSize: '21px', color: '#0A0A0A', align: 'right', lineSpacing: 4 })
       .setOrigin(1, 0).setDepth(DEPTH.ui);
 
-    this.livesCountText = this.add.text(150, 80, '', {
-      fontFamily: PIXEL_FONT, fontSize: '34px', color: '#0A0A0A',
-    }).setOrigin(0.5).setDepth(DEPTH.ui);
-    for (let i = 0; i < 3; i++) {
-      const heart = this.add.image(150 + i * 62, 80, 'heart-pixel');
-      heart.setOrigin(0.5).setDisplaySize(58, 58).setDepth(DEPTH.ui);
-      this.hearts.push(heart);
-    }
+    this.livesHud = createGlobalLivesDisplay(this);
 
     // Invisible collision/alpha companion kept for old tweens.
     this.board = this.add.image(SURFER_X, this.surferY, 'surfer-hero')
@@ -1032,32 +1029,12 @@ export class SurferScene extends BaseMinigame {
   // ─── HUD ───────────────────────────────────────────────────────────────────
 
   private refreshHud(): void {
-    this.renderGlobalLives(SessionState.getLivesLeft());
+    this.livesHud.update();
     const starsPart = this.starCount > 0 ? `  ⭐ ${this.starCount}` : '';
     this.progLbl.setText(`ПРОЙДЕНО\n${this.stagePassed}/${this.stage.goal}${starsPart}`);
     this.stageLbl
       .setText(`${this.stage.name} ${this.stageIdx + 1}/${TOTAL_STAGES}`)
       .setColor(this.stage.color);
-  }
-
-  private renderGlobalLives(livesLeft: number): void {
-    if (livesLeft > 3) {
-      this.livesCountText.setText(`${livesLeft}`);
-      this.livesCountText.setVisible(true);
-      this.hearts.forEach((heart, i) => {
-        heart.setVisible(true);
-        heart.setPosition(214 + i * 32, 80);
-        heart.setDepth(DEPTH.ui + i);
-      });
-      return;
-    }
-
-    this.livesCountText.setVisible(false);
-    this.hearts.forEach((heart, i) => {
-      heart.setVisible(i < livesLeft);
-      heart.setPosition(150 + i * 62, 80);
-      heart.setDepth(DEPTH.ui);
-    });
   }
 
   // ─── finish ────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { createGlobalLivesDisplay, type GlobalLivesDisplay } from '@utils/SceneHelpers';
 
 /**
  * MG-04 Ночная доставка.
@@ -49,7 +50,7 @@ export class NightDeliveryScene extends BaseMinigame {
   private invincibleUntil = 0;
 
   private lives = 3;
-  private livesText!: Phaser.GameObjects.Text;
+  private livesHud!: GlobalLivesDisplay;
   private timerText!: Phaser.GameObjects.Text;
   private hintText!: Phaser.GameObjects.Text;
 
@@ -151,12 +152,12 @@ export class NightDeliveryScene extends BaseMinigame {
     this.add.existing(title);
 
     // Жизни / таймер
-    this.livesText = this.add.text(30, 30, '', {
-      ...TEXT_STYLES.subtitle,
-      fontSize: '24px',
-      color: '#FAF7F0',
+    this.livesHud = createGlobalLivesDisplay(this, {
+      x: 78,
+      countX: 54,
+      stackFirstX: 118,
+      y: 78,
     });
-    this.livesText.setDepth(DEPTH.ui);
     this.timerText = this.add.text(WIDTH - 30, 30, '', {
       ...TEXT_STYLES.subtitle,
       fontSize: '22px',
@@ -400,8 +401,7 @@ export class NightDeliveryScene extends BaseMinigame {
   }
 
   private updateLives(): void {
-    const hearts = '❤️'.repeat(Math.max(0, this.lives)) + '🖤'.repeat(Math.max(0, 3 - this.lives));
-    this.livesText.setText(hearts);
+    this.livesHud.update();
   }
 
   private onTick(): void {

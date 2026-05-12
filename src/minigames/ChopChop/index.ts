@@ -6,7 +6,12 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 
 /**
  * NEW-03 Перетапай Диди.
@@ -188,13 +193,7 @@ export class ChopChopScene extends BaseMinigame {
     paintPageBackdrop(this, 0xffeb3f);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0xffeb3f);
     attachHomeButton(this);
-
-    ['heart-pixel', 'heart-pixel', 'heart-pixel'].forEach((key, i) => {
-      this.add.image(105 + i * 66, 140, key)
-        .setOrigin(0.5)
-        .setDisplaySize(60, 60)
-        .setDepth(DEPTH.ui);
-    });
+    createGlobalLivesDisplay(this);
 
     // Счёт раундов — пиксельный шрифт как на мейн-меню
     this.scoreText = this.add.text(WIDTH / 2, 210, '', {

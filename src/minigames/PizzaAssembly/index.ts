@@ -7,7 +7,13 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+  type GlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 
 // ─── layout ──────────────────────────────────────────────────────────────────
 const W        = GAME.WIDTH;
@@ -109,7 +115,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   private done     = false;
   private inTransition = false;
 
-  private livesLbl!: Phaser.GameObjects.Text;
+  private livesHud!: GlobalLivesDisplay;
   private progLbl!:  Phaser.GameObjects.Text;
   private stageLbl!: Phaser.GameObjects.Text;
 
@@ -159,9 +165,15 @@ export class PizzaAssemblyScene extends BaseMinigame {
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.ui);
 
-    this.livesLbl = this.add
-      .text(36, 130, '', { ...TEXT_STYLES.subtitle, fontSize: '26px', color: '#0A0A0A' })
-      .setDepth(DEPTH.ui);
+    this.livesHud = createGlobalLivesDisplay(this, {
+      x: 78,
+      countX: 54,
+      stackFirstX: 118,
+      y: 132,
+      heartSize: 52,
+      heartGap: 64,
+      fontSize: '34px',
+    });
 
     this.progLbl = this.add
       .text(CX, 130, '', { ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#0A0A0A' })
@@ -661,10 +673,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   // ─── HUD ───────────────────────────────────────────────────────────────────
 
   private updateHUD(): void {
-    this.livesLbl.setText(
-      '❤️'.repeat(Math.max(0, this.lives)) +
-      '🖤'.repeat(Math.max(0, this.maxLives - this.lives)),
-    );
+    this.livesHud.update();
     this.progLbl.setText(`🔪 ${this.stageStuck} / ${this.stage.goal}`);
   }
 

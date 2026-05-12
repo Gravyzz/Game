@@ -6,8 +6,13 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { SessionState } from '@core/SessionState';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+  type GlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 
 /**
  * NEW-06 Перепутанные рецепты.
@@ -107,8 +112,7 @@ export class RecipeMemoScene extends BaseMinigame {
   private peekBtn!: Phaser.GameObjects.Rectangle;
   private peekLabel!: Phaser.GameObjects.Text;
   private peekIcon!: Phaser.GameObjects.Image;
-  private hearts: Phaser.GameObjects.Image[] = [];
-  private livesCountText!: Phaser.GameObjects.Text;
+  private livesHud!: GlobalLivesDisplay;
   private board: Phaser.GameObjects.Rectangle | null = null;
   private bannerOverlay: Phaser.GameObjects.Rectangle | null = null;
   private bannerText: Phaser.GameObjects.Text | null = null;
@@ -238,7 +242,6 @@ export class RecipeMemoScene extends BaseMinigame {
     this.gameTimer = null;
     this.peekTimer = null;
     this.timerBarMaxWidth = 0;
-    this.hearts = [];
     this.board = null;
     this.bannerOverlay = null;
     this.bannerText = null;
@@ -271,21 +274,7 @@ export class RecipeMemoScene extends BaseMinigame {
 
   private drawTopHud(): void {
     attachHomeButton(this);
-
-    this.livesCountText = this.add.text(150, 80, '', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '42px',
-      color: '#0A0A0A',
-    });
-    this.livesCountText.setOrigin(0.5);
-    this.livesCountText.setDepth(DEPTH.ui);
-
-    for (let i = 0; i < 3; i++) {
-      const heart = this.add.image(150 + i * 82, 80, 'heart-pixel');
-      heart.setDisplaySize(62, 62);
-      heart.setDepth(DEPTH.ui);
-      this.hearts.push(heart);
-    }
+    this.livesHud = createGlobalLivesDisplay(this);
   }
 
   // ========== РАУНД ==========
@@ -687,8 +676,7 @@ export class RecipeMemoScene extends BaseMinigame {
   // ========== UI ==========
 
   private updateHud(): void {
-    const livesLeft = SessionState.getLivesLeft();
-    this.renderGlobalLives(livesLeft);
+    this.livesHud.update();
     this.statusText.setText(`угадано\n${this.matchedPairs}/${this.currentCfg.pairs}`);
 
     // Каждый промах — минус 10 сек, с самого первого
@@ -703,26 +691,6 @@ export class RecipeMemoScene extends BaseMinigame {
       this.peekBtn.setFillStyle(0xff4e25);
       this.peekLabel.setColor('#FAF7F0');
     }
-  }
-
-  private renderGlobalLives(livesLeft: number): void {
-    if (livesLeft > 3) {
-      this.livesCountText.setText(`${livesLeft}`);
-      this.livesCountText.setVisible(true);
-      this.hearts.forEach((heart, i) => {
-        heart.setVisible(true);
-        heart.setPosition(214 + i * 32, 80);
-        heart.setDepth(DEPTH.ui + i);
-      });
-      return;
-    }
-
-    this.livesCountText.setVisible(false);
-    this.hearts.forEach((heart, i) => {
-      heart.setVisible(i < livesLeft);
-      heart.setPosition(150 + i * 82, 80);
-      heart.setDepth(DEPTH.ui);
-    });
   }
 
   private spawnPenaltyToast(label: string): void {

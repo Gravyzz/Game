@@ -83,6 +83,99 @@ export function attachHomeButton(scene: BaseMinigame): Phaser.GameObjects.Image 
   return btn;
 }
 
+export interface GlobalLivesDisplay {
+  update: (livesLeft?: number) => void;
+  destroy: () => void;
+}
+
+interface GlobalLivesDisplayOptions {
+  x?: number;
+  countX?: number;
+  stackFirstX?: number;
+  y?: number;
+  heartSize?: number;
+  heartGap?: number;
+  stackGap?: number;
+  fontSize?: string;
+  color?: string;
+  depth?: number;
+}
+
+/**
+ * Единый HUD глобальных жизней:
+ * - 0..3 жизни: столько же сердечек на экране
+ * - 4+ жизни: число + стопка из трёх сердечек
+ */
+export function createGlobalLivesDisplay(
+  scene: Phaser.Scene,
+  options: GlobalLivesDisplayOptions = {},
+): GlobalLivesDisplay {
+  const x = options.x ?? 150;
+  const countX = options.countX ?? x;
+  const stackFirstX = options.stackFirstX ?? countX + 64;
+  const y = options.y ?? 80;
+  const heartSize = options.heartSize ?? 62;
+  const heartGap = options.heartGap ?? 82;
+  const stackGap = options.stackGap ?? 32;
+  const depth = options.depth ?? DEPTH.ui;
+
+  const countText = scene.add.text(countX, y, '', {
+    fontFamily: '"Press Start 2P", monospace',
+    fontSize: options.fontSize ?? '42px',
+    color: options.color ?? '#0A0A0A',
+  });
+  countText.setOrigin(0.5);
+  countText.setDepth(depth);
+  countText.setScrollFactor(0);
+
+  const hearts: Phaser.GameObjects.Image[] = [];
+  for (let i = 0; i < 3; i++) {
+    const heart = scene.add.image(x + i * heartGap, y, 'heart-pixel');
+    heart.setOrigin(0.5);
+    heart.setDisplaySize(heartSize, heartSize);
+    heart.setDepth(depth);
+    heart.setScrollFactor(0);
+    hearts.push(heart);
+  }
+
+  const update = (lives = SessionState.getLivesLeft()) => {
+    const livesLeft = Math.max(0, lives);
+    if (livesLeft > 3) {
+      countText.setText(`${livesLeft}`);
+      countText.setVisible(true);
+      hearts.forEach((heart, i) => {
+        heart.setVisible(true);
+        heart.setPosition(stackFirstX + i * stackGap, y);
+        heart.setDepth(depth + i);
+      });
+      return;
+    }
+
+    countText.setVisible(false);
+    hearts.forEach((heart, i) => {
+      heart.setVisible(i < livesLeft);
+      heart.setPosition(x + i * heartGap, y);
+      heart.setDepth(depth);
+    });
+  };
+
+  const onLivesChanged = ({ livesLeft }: { livesLeft: number }) => update(livesLeft);
+  EventBus.on('session:lives:changed', onLivesChanged);
+
+  const destroy = () => {
+    EventBus.off('session:lives:changed', onLivesChanged);
+    countText.destroy();
+    hearts.forEach((heart) => heart.destroy());
+  };
+
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+    EventBus.off('session:lives:changed', onLivesChanged);
+  });
+
+  update();
+  return { update, destroy };
+}
+
 /**
  * Создаёт модалку «выйти?» прямо в сцене минки.
  * `onClose` зовётся когда модалка закрывается без выхода (Нет / уже не нужна).
