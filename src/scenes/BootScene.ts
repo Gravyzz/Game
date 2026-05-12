@@ -58,6 +58,28 @@ export class BootScene extends Phaser.Scene {
     this.load.image('recipe-balloon-g', 'assets/recipememo/balloon-g.png');
     this.load.image('recipe-balloon-o', 'assets/recipememo/balloon-o.png');
     this.load.image('recipe-balloon-r', 'assets/recipememo/balloon-r.png');
+    this.load.image('chopchop-product-1', 'assets/chopchop/pixil-frame-0-34.png');
+    this.load.image('chopchop-product-2', 'assets/chopchop/pixil-frame-0-33.png');
+    this.load.image('chopchop-product-3', 'assets/chopchop/pixil-frame-0-32.png');
+    this.load.image('chopchop-product-4', 'assets/chopchop/pixil-frame-0-31.png');
+    this.load.image('chopchop-product-5', 'assets/chopchop/pixil-frame-0-30.png');
+    this.load.image('chopchop-product-6', 'assets/chopchop/pixil-frame-0-29.png');
+    this.load.image('chopchop-product-7', 'assets/chopchop/pixil-frame-0-28.png');
+    this.load.image('chopchop-product-8', 'assets/chopchop/pixil-frame-0-27.png');
+    this.load.image('chopchop-product-9', 'assets/chopchop/pixil-frame-0-26.png');
+    this.load.image('chopchop-product-10', 'assets/chopchop/pixil-frame-0-25.png');
+    this.load.image('chopchop-board', 'assets/chopchop/board.png');
+    this.load.image('chopchop-jeffri', 'assets/chopchop/jeffri.png');
+    this.load.image('chopchop-didi', 'assets/chopchop/didi.png');
+    this.load.image('chopchop-bomb', 'assets/chopchop/bomb.png');
+    this.load.image('chopchop-perk-timer', 'assets/chopchop/timer.png');
+    this.load.image('chopchop-perk-turtle', 'assets/chopchop/turtle.png');
+    this.load.image('chopchop-perk-finger', 'assets/chopchop/show_finger.png');
+    this.load.image('chopchop-perk-axe', 'assets/chopchop/axe.png');
+    this.load.image('chopchop-perk-knife', 'assets/chopchop/knife.png');
+    this.load.image('pizzaassembly-target-1', 'assets/pizzaassembly/pixil-frame-0-41.png');
+    this.load.image('pizzaassembly-target-2', 'assets/pizzaassembly/pixil-frame-0-40.png');
+    this.load.image('pizzaassembly-target-3', 'assets/pizzaassembly/pixil-frame-0-39.png');
 
     // ===== Crossy Jeffrey =====
     this.load.image('jeff-car-white',         'assets/jeffrey/pixil-frame-0-8.png');

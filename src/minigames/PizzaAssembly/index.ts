@@ -21,6 +21,11 @@ const KNIFE_Y0 = 1090;         // knife resting position
 const TEX_NOISE  = 'pa_noise_v2';
 const TEX_SALAMI = 'pa_salami_v2';
 const TEX_KNIFE  = 'pa_knife_v2';        // одна текстура для летящего и воткнутого
+const TARGET_TEXTURES = [
+  'pizzaassembly-target-1',
+  'pizzaassembly-target-2',
+  'pizzaassembly-target-3',
+];
 
 // Воткнутый нож рисуется НИЖЕ круга — лезвие прячется под колбасой
 const D_STUCK = DEPTH.midground + 5;
@@ -90,6 +95,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   private rotSpeed  = 0;        // меняется плавным твином при смене стейджа
 
   private salami!: Phaser.GameObjects.Image;
+  private salamiTexture = TARGET_TEXTURES[0];
   private stuck:   StuckKnife[] = [];
   private stageStuck = 0;
 
@@ -128,6 +134,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.inTransition = true;
 
     this.bakeTextures();
+    TARGET_TEXTURES.forEach((key) => {
+      this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    });
 
     // Фон + запечённый шум
     paintPageBackdrop(this, COLORS.cream);
@@ -159,8 +168,11 @@ export class PizzaAssemblyScene extends BaseMinigame {
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.ui);
 
-    // Колбаса
-    this.salami = this.add.image(CX, CY, TEX_SALAMI).setDepth(DEPTH.gameplay);
+    // Центральная цель
+    this.salamiTexture = this.randomTargetTexture();
+    this.salami = this.add.image(CX, CY, this.salamiTexture)
+      .setDepth(DEPTH.gameplay)
+      .setDisplaySize(RADIUS * 2, RADIUS * 2);
 
     this.refreshStageLabel();
     this.updateHUD();
@@ -323,6 +335,17 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
       tex.get(TEX_KNIFE).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
+  }
+
+  private randomTargetTexture(): string {
+    return TARGET_TEXTURES[Phaser.Math.Between(0, TARGET_TEXTURES.length - 1)];
+  }
+
+  private setRandomTargetTexture(): void {
+    if (!this.salami) return;
+    this.salamiTexture = this.randomTargetTexture();
+    this.salami.setTexture(this.salamiTexture);
+    this.salami.setDisplaySize(RADIUS * 2, RADIUS * 2);
   }
 
   // ─── construction ──────────────────────────────────────────────────────────
@@ -516,6 +539,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
       const next = STAGES[this.stageIdx];
       this.stage = next;
+      this.setRandomTargetTexture();
       this.refreshStageLabel();
       this.updateHUD();
 

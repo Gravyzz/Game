@@ -51,7 +51,16 @@ interface Stage {
 
 const BAD_BASE  = ['📧', '✉️', '⏰', '📊'];
 const BAD_EXTRA = ['📎', '📞', '💻'];
-const GOOD      = ['🍕', '🥤', '🎸', '🎵', '🍔'];
+const GOOD      = [
+  'recipe-pepperoni',
+  'recipe-cola',
+  'recipe-cookie',
+  'recipe-frenchfries',
+  'recipe-pasta',
+  'recipe-roll',
+  'recipe-runaway',
+  'recipe-5s',
+];
 const BOMB_EMOJI = '💼';
 
 const PWR_EMOJI: Record<'pwr-slowmo' | 'pwr-life' | 'pwr-rage', string> = {
@@ -220,6 +229,10 @@ export class DontWorkScene extends BaseMinigame {
     this.inTransition = true;
     this.canPlay      = false;
     this.trailPoints  = [];
+
+    GOOD.forEach((key) => {
+      this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    });
 
     this.bakeNoise();
 
@@ -503,8 +516,14 @@ export class DontWorkScene extends BaseMinigame {
       ctx.add(bg);
     }
 
-    const text = this.add.text(0, 0, emoji, { fontSize: decor.fontSize }).setOrigin(0.5);
-    ctx.add(text);
+    if (this.textures.exists(emoji)) {
+      const image = this.add.image(0, 0, emoji).setOrigin(0.5);
+      image.setDisplaySize(84, 84);
+      ctx.add(image);
+    } else {
+      const text = this.add.text(0, 0, emoji, { fontSize: decor.fontSize }).setOrigin(0.5);
+      ctx.add(text);
+    }
 
     if (decor.label) {
       const lbl = this.add.text(0, decor.radius + 14, decor.label, {
@@ -770,10 +789,16 @@ export class DontWorkScene extends BaseMinigame {
   // ─── visual fx ─────────────────────────────────────────────────────────────
 
   private spawnHalves(emoji: string, x: number, y: number): void {
-    const h1 = this.add.text(x - 12, y, emoji, { fontSize: '64px' })
-      .setOrigin(0.5).setDepth(DEPTH.gameplay).setAlpha(0.9);
-    const h2 = this.add.text(x + 12, y, emoji, { fontSize: '64px' })
-      .setOrigin(0.5).setDepth(DEPTH.gameplay).setAlpha(0.9);
+    const isTexture = this.textures.exists(emoji);
+    const h1 = isTexture
+      ? this.add.image(x - 12, y, emoji).setDisplaySize(58, 58)
+      : this.add.text(x - 12, y, emoji, { fontSize: '64px' });
+    const h2 = isTexture
+      ? this.add.image(x + 12, y, emoji).setDisplaySize(58, 58)
+      : this.add.text(x + 12, y, emoji, { fontSize: '64px' });
+
+    h1.setOrigin(0.5).setDepth(DEPTH.gameplay).setAlpha(0.9);
+    h2.setOrigin(0.5).setDepth(DEPTH.gameplay).setAlpha(0.9);
 
     this.tweens.add({
       targets: h1, x: x - 90, y: y + 110, angle: -180, alpha: 0,
