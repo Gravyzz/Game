@@ -195,14 +195,11 @@ export class MinigameRunnerScene extends Phaser.Scene {
       // Любую минку играем не более одного раза за сессию: на провале
       // переходим к СЛЕДУЮЩЕМУ слоту, а не повторяем эту же.
       if (livesLeft > 0) {
-        const nextLevel = SessionState.advanceLevel();
-        if (nextLevel !== null) {
-          this.transitionTo('MinigameRunnerScene');
-          return;
-        }
-        // Слотов больше нет — сессия окончена.
+        this.transitionTo('MinigameRunnerScene');
+        return;
       }
 
+      // Жизни закончились — сессия окончена.
       SessionState.endSession('lose');
       TicketProvider.reportSessionEnd('lose', { failedAtLevel: SessionState.getCurrentLevel() });
       this.transitionTo('ResultScene', { outcome: 'lose' });
