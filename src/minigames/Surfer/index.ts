@@ -4,10 +4,10 @@ import { COLORS } from '@config/colors';
 import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import { SessionState } from '@core/SessionState';
 
 /**
  * NEW-01 СЁРФЕР НА ВОЛНЕ — Flappy Bird в трёх стейджах.
@@ -37,6 +37,35 @@ const JUMP_VY  = -540;
 const SURFER_R = 32;
 
 const PILLAR_W = 100;
+const PIXEL_FONT = '"Press Start 2P", monospace';
+const WATER_KEYS = ['surfer-water-1', 'surfer-water-2', 'surfer-water-3'];
+const SURFER_KEYS = [
+  'surfer-knife-hit',
+  'surfer-sand',
+  'surfer-bubble',
+  'surfer-fish-2',
+  'surfer-fish-1',
+  'surfer-hero',
+  'surfer-sun',
+  'surfer-water-3',
+  'surfer-water-2',
+  'surfer-water-1',
+  'surfer-lightning-2',
+  'surfer-lightning-1',
+  'surfer-birds-2',
+  'surfer-clouds-2',
+  'surfer-clouds-1',
+  'surfer-birds-1',
+  'surfer-coral-4',
+  'surfer-coral-3',
+  'surfer-coral-2',
+  'surfer-seaweed',
+  'surfer-coral-1',
+  'surfer-wave-2',
+  'surfer-wave-1',
+  'surfer-tornado',
+  'surfer-shield',
+];
 
 interface Stage {
   name:          string;
@@ -59,7 +88,7 @@ interface Stage {
 const STAGES: Stage[] = [
   {
     name: 'ПЛЯЖ', color: '#4ADE80',
-    bgSky: 0x4ec3ff, bgSea: 0x1d4ed8, waveColor: 0x06b6d4,
+    bgSky: 0xd8f6ff, bgSea: 0x4b6dff, waveColor: 0x7dd3fc,
     speed: 270, gap: 380, spawnInterval: 1600, goal: 5,
     hasPowerUps: false, hasLightning: false,
     pillarColor: 0x8b5a2b, pillarStroke: 0x4a2e15, capEmoji: '🪨',
@@ -67,7 +96,7 @@ const STAGES: Stage[] = [
   },
   {
     name: 'РИФ', color: '#FFE600',
-    bgSky: 0xfdba74, bgSea: 0x7c2d12, waveColor: 0xfb923c,
+    bgSky: 0x5ca0df, bgSea: 0x4b6dff, waveColor: 0xf6dd82,
     speed: 330, gap: 320, spawnInterval: 1400, goal: 7,
     hasPowerUps: false, hasLightning: false,
     pillarColor: 0xea580c, pillarStroke: 0x7c2d12, capEmoji: '🪸',
@@ -75,7 +104,7 @@ const STAGES: Stage[] = [
   },
   {
     name: 'ШТОРМ', color: '#FF2E2E',
-    bgSky: 0x1e293b, bgSea: 0x0f172a, waveColor: 0x475569,
+    bgSky: 0x315d8b, bgSea: 0x4b6dff, waveColor: 0x475569,
     speed: 380, gap: 270, spawnInterval: 1250, goal: 9,
     hasPowerUps: true, hasLightning: true,
     pillarColor: 0x334155, pillarStroke: 0x0a0a0a, capEmoji: '⚡',
@@ -87,21 +116,28 @@ const TOTAL_STAGES = STAGES.length;
 
 interface Pillar {
   topRect:    Phaser.GameObjects.Rectangle;
-  topCap:     Phaser.GameObjects.Text;
-  bot:        Phaser.GameObjects.Graphics;   // волна снизу
+  topCap:     Phaser.GameObjects.Image;
+  bot:        Phaser.GameObjects.Image;
   gapTopY:    number;
   gapBottomY: number;
   passed:     boolean;
   alive:      boolean;
+  lightningTween?: Phaser.Tweens.Tween;
+  tornadoTimer?: Phaser.Time.TimerEvent;
 }
 
 type PowerUpType = 'star' | 'shield' | 'slowmo';
 
 interface PowerUp {
   type:  PowerUpType;
-  text:  Phaser.GameObjects.Text;
+  text:  Phaser.GameObjects.Image;
   alive: boolean;
   pulse: Phaser.Tweens.Tween | null;
+}
+
+interface Bubble {
+  image: Phaser.GameObjects.Image;
+  alive: boolean;
 }
 
 export class SurferScene extends BaseMinigame {
@@ -112,8 +148,8 @@ export class SurferScene extends BaseMinigame {
   private starCount   = 0;
 
   // Surfer
-  private surfer!: Phaser.GameObjects.Text;
-  private board!:  Phaser.GameObjects.Rectangle;
+  private surfer!: Phaser.GameObjects.Image;
+  private board!:  Phaser.GameObjects.Image;
   private surferY  = 0;
   private surferVY = 0;
 
@@ -131,11 +167,15 @@ export class SurferScene extends BaseMinigame {
 
   // Background
   private bgSky!:   Phaser.GameObjects.Rectangle;
-  private bgSea!:   Phaser.GameObjects.Rectangle;
+  private bgSea!:   Phaser.GameObjects.Image;
+  private sandLayer!: Phaser.GameObjects.Image;
   private waveGfx!: Phaser.GameObjects.Graphics;
   private waveT  = 0;
-  private clouds: Phaser.GameObjects.Text[] = [];
-  private sun!:    Phaser.GameObjects.Arc;
+  private waterFrame = 0;
+  private waterTimer: Phaser.Time.TimerEvent | null = null;
+  private clouds: Phaser.GameObjects.Image[] = [];
+  private bubbles: Bubble[] = [];
+  private sun!:    Phaser.GameObjects.Image;
   private sunTw:   Phaser.Tweens.Tween | null = null;
 
   // Obstacles
@@ -151,8 +191,9 @@ export class SurferScene extends BaseMinigame {
 
   // UI
   private stageLbl!:  Phaser.GameObjects.Text;
-  private livesLbl!:  Phaser.GameObjects.Text;
   private progLbl!:   Phaser.GameObjects.Text;
+  private hearts: Phaser.GameObjects.Image[] = [];
+  private livesCountText!: Phaser.GameObjects.Text;
 
   constructor() { super({ key: 'Surfer' }); }
 
@@ -173,8 +214,17 @@ export class SurferScene extends BaseMinigame {
     this.canPlay         = false;
     this.pillars         = [];
     this.powerUps        = [];
+    this.bubbles         = [];
+    this.hearts          = [];
     this.surferVY        = 0;
     this.surferY         = (CEILING_Y + FLOOR_Y) / 2;
+    this.waterFrame      = 0;
+
+    SURFER_KEYS.forEach((key) => {
+      this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    });
+    this.textures.get('heart-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get('home-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     // Sky
     paintPageBackdrop(this, this.stage.bgSky);
@@ -183,59 +233,78 @@ export class SurferScene extends BaseMinigame {
     attachHomeButton(this);
 
     // Sun
-    this.sun = this.add.circle(W - 140, 230, 70, COLORS.yellow);
-    this.sun.setAlpha(0.85).setDepth(DEPTH.background + 1);
+    this.sun = this.add.image(120, 220, 'surfer-sun');
+    this.sun.setOrigin(0.5).setDisplaySize(170, 170).setDepth(DEPTH.background + 1);
     this.sunTw = this.tweens.add({
       targets: this.sun, scale: 1.05,
       duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
     });
 
     // Clouds
-    for (let i = 0; i < 5; i++) {
-      const c = this.add.text(
-        Math.random() * W,
-        100 + Math.random() * 250,
-        '☁️',
-        { fontSize: `${50 + Math.random() * 30}px` }
-      );
-      c.setOrigin(0.5).setAlpha(0.85).setDepth(DEPTH.background + 2);
+    const cloudLayout = [
+      { key: 'surfer-clouds-1', x: 260, y: 355 },
+      { key: 'surfer-clouds-2', x: 610, y: 420 },
+      { key: 'surfer-birds-1', x: 285, y: 730 },
+      { key: 'surfer-birds-2', x: 625, y: 760 },
+    ];
+    for (const item of cloudLayout) {
+      const c = this.add.image(item.x, item.y, item.key)
+        .setOrigin(0.5)
+        .setDisplaySize(120, 120)
+        .setDepth(DEPTH.background + 2);
       this.clouds.push(c);
     }
 
     // Sea + анимированная фоновая волна
     const seaY = FLOOR_Y + (H - FLOOR_Y) / 2;
     const seaH = H - FLOOR_Y;
-    this.bgSea = this.add.rectangle(CX, seaY, W, seaH, this.stage.bgSea)
+    this.bgSea = this.add.image(CX, seaY, WATER_KEYS[0])
+      .setOrigin(0.5)
+      .setDisplaySize(W, seaH)
       .setDepth(DEPTH.midground);
+    this.sandLayer = this.add.image(CX, 940, 'surfer-sand')
+      .setOrigin(0.5)
+      .setDisplaySize(W, 520)
+      .setDepth(DEPTH.midground - 1)
+      .setVisible(false);
     this.waveGfx = this.add.graphics().setDepth(DEPTH.midground + 1);
 
-    // Title
-    const title = new PosterText(this, CX, 70, 'СЁРФЕР', {
-      bgColor: COLORS.red, textColor: '#FAF7F0',
-      fontSize: '28px', rotation: -0.025, paddingX: 22, paddingY: 10,
-    });
-    title.setDepth(DEPTH.ui);
-    this.add.existing(title);
-
     this.stageLbl = this.add
-      .text(CX, 110, '', { ...TEXT_STYLES.subtitle, fontSize: '16px', color: this.stage.color })
-      .setOrigin(0.5, 0).setDepth(DEPTH.ui);
-
-    this.livesLbl = this.add
-      .text(28, 145, '', { ...TEXT_STYLES.subtitle, fontSize: '24px', color: '#FAF7F0' })
-      .setDepth(DEPTH.ui);
-
-    this.progLbl = this.add
-      .text(W - 28, 145, '', { ...TEXT_STYLES.subtitle, fontSize: '20px', color: '#FAF7F0' })
+      .text(W - 26, 144, '', { fontFamily: PIXEL_FONT, fontSize: '24px', color: '#ff2e2e' })
       .setOrigin(1, 0).setDepth(DEPTH.ui);
 
-    // Surfer board + emoji
-    this.board = this.add.rectangle(SURFER_X, this.surferY + 28, 110, 14, COLORS.cream);
-    this.board.setStrokeStyle(3, COLORS.black);
-    this.board.setDepth(DEPTH.gameplay);
+    this.progLbl = this.add
+      .text(W - 26, 104, '', { fontFamily: PIXEL_FONT, fontSize: '24px', color: '#0A0A0A' })
+      .setOrigin(1, 0).setDepth(DEPTH.ui);
 
-    this.surfer = this.add.text(SURFER_X, this.surferY, '🏄', { fontSize: '76px' });
-    this.surfer.setOrigin(0.5).setDepth(DEPTH.gameplay + 1);
+    this.livesCountText = this.add.text(150, 80, '', {
+      fontFamily: PIXEL_FONT, fontSize: '34px', color: '#0A0A0A',
+    }).setOrigin(0.5).setDepth(DEPTH.ui);
+    for (let i = 0; i < 3; i++) {
+      const heart = this.add.image(150 + i * 62, 80, 'heart-pixel');
+      heart.setOrigin(0.5).setDisplaySize(58, 58).setDepth(DEPTH.ui);
+      this.hearts.push(heart);
+    }
+
+    // Invisible collision/alpha companion kept for old tweens.
+    this.board = this.add.image(SURFER_X, this.surferY, 'surfer-hero')
+      .setOrigin(0.5)
+      .setDisplaySize(1, 1)
+      .setVisible(false)
+      .setDepth(DEPTH.gameplay);
+
+    this.surfer = this.add.image(SURFER_X, this.surferY, 'surfer-hero');
+    this.surfer.setOrigin(0.5).setDisplaySize(120, 120).setDepth(DEPTH.gameplay + 1);
+
+    this.waterTimer = this.time.addEvent({
+      delay: 380,
+      loop: true,
+      callback: () => {
+        this.waterFrame = (this.waterFrame + 1) % WATER_KEYS.length;
+        this.bgSea.setTexture(WATER_KEYS[this.waterFrame]);
+        this.bgSea.setDisplaySize(W, seaH);
+      },
+    });
 
     // Input
     this.input.on('pointerdown', this.onTap, this);
@@ -271,13 +340,25 @@ export class SurferScene extends BaseMinigame {
     // Clouds drift
     for (const c of this.clouds) {
       c.x -= this.stage.speed * 0.06 * dt;
-      if (c.x < -80) c.x = W + 80;
+      if (c.x < -120) c.x = W + 120;
     }
+
+    for (const b of this.bubbles) {
+      if (!b.alive) continue;
+      b.image.x -= this.stage.speed * dt;
+      b.image.y -= 42 * dt;
+      b.image.alpha = Phaser.Math.Clamp((b.image.y - CEILING_Y) / 160, 0.15, 0.9);
+      if (b.image.x < -60 || b.image.y < CEILING_Y - 20) {
+        b.alive = false;
+        b.image.destroy();
+      }
+    }
+    this.bubbles = this.bubbles.filter(b => b.alive);
 
     if (!this.canPlay) {
       // Idle bobble
       this.surfer.y = this.surferY + Math.sin(this.waveT) * 4;
-      this.board.y  = this.surferY + 28 + Math.sin(this.waveT) * 4;
+      this.board.y  = this.surfer.y;
       return;
     }
 
@@ -291,7 +372,7 @@ export class SurferScene extends BaseMinigame {
     this.board.setRotation(tilt);
 
     this.surfer.y = this.surferY;
-    this.board.y  = this.surferY + 28;
+    this.board.y  = this.surferY;
 
     if (this.shieldRing) this.shieldRing.setPosition(SURFER_X, this.surferY);
 
@@ -354,6 +435,7 @@ export class SurferScene extends BaseMinigame {
     this.spawnTimer?.remove();
     this.powerUpTimer?.remove();
     this.lightningTimer?.remove();
+    this.waterTimer?.remove();
     this.sunTw?.stop();
     this.shieldTw?.stop();
     this.tweens.killAll();
@@ -367,15 +449,25 @@ export class SurferScene extends BaseMinigame {
     this.stagePassed = 0;
 
     this.bgSky.setFillStyle(this.stage.bgSky);
-    this.bgSea.setFillStyle(this.stage.bgSea);
     const skyHex = '#' + this.stage.bgSky.toString(16).padStart(6, '0');
     document.body.style.background = skyHex;
     document.documentElement.style.background = skyHex;
     const app = document.getElementById('app');
     if (app) app.style.background = skyHex;
     this.sun.setVisible(!this.stage.hasLightning);
-    if (this.stage.name === 'РИФ') this.sun.setFillStyle(0xfb923c);
-    else                            this.sun.setFillStyle(COLORS.yellow);
+    this.sun.setAlpha(this.stage.name === 'РИФ' ? 0 : 1);
+    this.sandLayer.setVisible(this.stage.name === 'РИФ');
+    this.bgSea.setVisible(this.stage.name !== 'РИФ');
+
+    this.clouds.forEach((c, i) => {
+      if (this.stage.name === 'ПЛЯЖ') {
+        c.setVisible(true);
+        c.setTexture(i < 2 ? (i === 0 ? 'surfer-clouds-1' : 'surfer-clouds-2') : (i === 2 ? 'surfer-birds-1' : 'surfer-birds-2'));
+        c.setDisplaySize(120, 120);
+      } else {
+        c.setVisible(false);
+      }
+    });
 
     this.refreshHud();
 
@@ -396,7 +488,7 @@ export class SurferScene extends BaseMinigame {
     }
     if (this.stage.hasLightning) {
       this.lightningTimer = this.time.addEvent({
-        delay: 3500,
+        delay: 900,
         loop: true,
         callback: this.flashLightning,
         callbackScope: this,
@@ -421,6 +513,8 @@ export class SurferScene extends BaseMinigame {
     for (const p of this.pillars) {
       if (!p.alive) continue;
       p.alive = false;
+      p.lightningTween?.stop();
+      p.tornadoTimer?.remove();
       this.tweens.add({
         targets: [p.topRect, p.topCap, p.bot],
         alpha: 0, duration: 400,
@@ -438,6 +532,8 @@ export class SurferScene extends BaseMinigame {
     }
     this.pillars  = [];
     this.powerUps = [];
+    this.bubbles.forEach(b => b.image.destroy());
+    this.bubbles = [];
 
     const banner = this.add
       .text(CX, H / 2, 'СТЕЙДЖ ПРОЙДЕН!', {
@@ -465,7 +561,6 @@ export class SurferScene extends BaseMinigame {
       const next = STAGES[nextIdx];
 
       this.bgSky.setFillStyle(next.bgSky);
-      this.bgSea.setFillStyle(next.bgSea);
       this.sun.setVisible(!next.hasLightning);
 
       this.showStageBanner(next, () => {
@@ -518,81 +613,101 @@ export class SurferScene extends BaseMinigame {
 
     const x = W + PILLAR_W;
 
-    // ВЕРХ — каменный/коралловый/грозовой столб
-    const topH = gapTopY;
-    const topRect = this.add.rectangle(x, 0, PILLAR_W, topH, this.stage.pillarColor)
+    const topRect = this.add.rectangle(x, 0, PILLAR_W, gapTopY, this.stage.pillarColor, 0)
       .setOrigin(0.5, 0)
-      .setStrokeStyle(4, this.stage.pillarStroke)
       .setDepth(DEPTH.gameplay);
-    const topCap = this.add.text(x, gapTopY - 26, this.stage.capEmoji, { fontSize: '46px' })
+
+    const topKey = this.pickObstacleKey('top');
+    const botKey = this.pickObstacleKey('bottom');
+    const topCap = this.add.image(x, Math.max(310, gapTopY - 95), topKey)
       .setOrigin(0.5)
       .setDepth(DEPTH.gameplay + 1);
+    const bot = this.add.image(x, Math.min(FLOOR_Y - 70, gapBottomY + 120), botKey)
+      .setOrigin(0.5)
+      .setDepth(DEPTH.gameplay);
 
-    // НИЗ — волна с пенной шапкой
-    const bot = this.makeWaveObstacle(x, gapBottomY, FLOOR_Y - gapBottomY);
+    this.sizeObstacle(topCap, 'top');
+    this.sizeObstacle(bot, 'bottom');
+
+    let lightningTween: Phaser.Tweens.Tween | undefined;
+    let tornadoTimer: Phaser.Time.TimerEvent | undefined;
+    if (this.stage.name === 'ШТОРМ') {
+      topCap.setAlpha(Phaser.Math.FloatBetween(0.55, 1));
+      lightningTween = this.tweens.add({
+        targets: topCap,
+        alpha: { from: 0.25, to: 1 },
+        duration: Phaser.Math.Between(220, 480),
+        yoyo: true,
+        repeat: -1,
+        delay: Phaser.Math.Between(0, 700),
+        ease: 'Stepped',
+      });
+      tornadoTimer = this.time.addEvent({
+        delay: 1000,
+        loop: true,
+        callback: () => bot.setFlipX(!bot.flipX),
+      });
+    }
+
+    if (this.stage.name === 'РИФ') {
+      this.spawnBubbleGroup(x);
+    }
 
     this.pillars.push({
       topRect, topCap, bot,
       gapTopY, gapBottomY,
       passed: false, alive: true,
+      lightningTween,
+      tornadoTimer,
     });
   }
 
-  /** Препятствие-волна: заливная wavy-форма + белая пена сверху. */
-  private makeWaveObstacle(x: number, gapBottomY: number, height: number): Phaser.GameObjects.Graphics {
-    const g     = this.add.graphics();
-    const halfW = PILLAR_W / 2 + 6;
-    const amp   = 16;          // высота пенного гребня
-    const numPts = 14;
-    const stage = this.stage;
-
-    // Тело — заливная волна (один большой гребень, троги по краям)
-    g.fillStyle(stage.waveColor, 1);
-    g.beginPath();
-    for (let i = 0; i <= numPts; i++) {
-      const t  = i / numPts;
-      const px = -halfW + t * 2 * halfW;
-      const py = -amp * Math.sin(t * Math.PI);
-      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  private pickObstacleKey(position: 'top' | 'bottom'): string {
+    if (this.stage.name === 'ПЛЯЖ') {
+      return position === 'top'
+        ? Phaser.Math.RND.pick(['surfer-clouds-1', 'surfer-clouds-2'])
+        : Phaser.Math.RND.pick(['surfer-birds-1', 'surfer-birds-2']);
     }
-    g.lineTo(halfW, height);
-    g.lineTo(-halfW, height);
-    g.closePath();
-    g.fillPath();
-
-    // Контур всей формы
-    g.lineStyle(3, stage.pillarStroke, 1);
-    g.strokePath();
-
-    // Пенная шапка — белая линия по wavy-кромке
-    g.lineStyle(3, 0xffffff, 0.9);
-    g.beginPath();
-    for (let i = 0; i <= numPts; i++) {
-      const t  = i / numPts;
-      const px = -halfW + t * 2 * halfW;
-      const py = -amp * Math.sin(t * Math.PI);
-      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    if (this.stage.name === 'РИФ') {
+      return position === 'top'
+        ? Phaser.Math.RND.pick(['surfer-fish-1', 'surfer-fish-2', 'surfer-seaweed'])
+        : Phaser.Math.RND.pick(['surfer-coral-1', 'surfer-coral-2', 'surfer-coral-3', 'surfer-coral-4', 'surfer-seaweed']);
     }
-    g.strokePath();
+    return position === 'top'
+      ? Phaser.Math.RND.pick(['surfer-lightning-1', 'surfer-lightning-2'])
+      : 'surfer-tornado';
+  }
 
-    // Внутренняя «вторая волна» для глубины
-    g.lineStyle(2, 0xffffff, 0.35);
-    g.beginPath();
-    for (let i = 0; i <= numPts; i++) {
-      const t  = i / numPts;
-      const px = -halfW + t * 2 * halfW;
-      const py = -amp * Math.sin(t * Math.PI) + 14;
-      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  private sizeObstacle(image: Phaser.GameObjects.Image, position: 'top' | 'bottom'): void {
+    if (this.stage.name === 'ШТОРМ' && position === 'bottom') {
+      image.setDisplaySize(150, 220);
+      return;
     }
-    g.strokePath();
+    if (this.stage.name === 'ШТОРМ') {
+      image.setDisplaySize(105, 180);
+      return;
+    }
+    if (this.stage.name === 'РИФ') {
+      image.setDisplaySize(130, 170);
+      return;
+    }
+    image.setDisplaySize(135, 190);
+  }
 
-    g.x = x;
-    g.y = gapBottomY;
-    g.setDepth(DEPTH.gameplay);
-    return g;
+  private spawnBubbleGroup(originX: number): void {
+    for (let i = 0; i < 3; i++) {
+      const b = this.add.image(
+        originX + Phaser.Math.Between(-120, 120),
+        Phaser.Math.Between(CEILING_Y + 80, FLOOR_Y - 80),
+        'surfer-bubble',
+      ).setOrigin(0.5).setDisplaySize(26, 26).setAlpha(0.85).setDepth(DEPTH.midground + 2);
+      this.bubbles.push({ image: b, alive: true });
+    }
   }
 
   private destroyPillar(p: Pillar): void {
+    p.lightningTween?.stop();
+    p.tornadoTimer?.remove();
     this.tweens.killTweensOf([p.topRect, p.topCap, p.bot]);
     p.topRect.destroy();
     p.topCap.destroy();
@@ -635,11 +750,12 @@ export class SurferScene extends BaseMinigame {
 
     const types: PowerUpType[] = ['star', 'shield', 'slowmo'];
     const type  = types[Math.floor(Math.random() * types.length)];
-    const emoji = type === 'star' ? '⭐' : type === 'shield' ? '🛟' : '🍺';
+    const texture = type === 'shield' ? 'surfer-shield' : type === 'star' ? 'surfer-sun' : 'surfer-bubble';
     const y     = Phaser.Math.Between(CEILING_Y + 100, FLOOR_Y - 100);
 
-    const text = this.add.text(W + 50, y, emoji, { fontSize: '54px' })
+    const text = this.add.image(W + 50, y, texture)
       .setOrigin(0.5)
+      .setDisplaySize(58, 58)
       .setDepth(DEPTH.gameplay + 2);
 
     const pulse = this.tweens.add({
@@ -780,14 +896,23 @@ export class SurferScene extends BaseMinigame {
   private flashLightning(): void {
     if (this.finished || this.inTransition) return;
 
-    const f = this.add.rectangle(CX, H / 2, W, H, 0xffffff, 0.5).setDepth(DEPTH.effects);
+    const f = this.add.image(
+      Phaser.Math.Between(180, W - 80),
+      Phaser.Math.Between(280, FLOOR_Y - 160),
+      Phaser.Math.RND.pick(['surfer-lightning-1', 'surfer-lightning-2']),
+    ).setOrigin(0.5).setDisplaySize(80, 150).setDepth(DEPTH.effects).setAlpha(0);
     this.tweens.add({
-      targets: f, alpha: 0,
-      duration: 220, ease: 'Sine.easeOut',
+      targets: f,
+      alpha: { from: 0, to: 1 },
+      duration: 120,
+      yoyo: true,
+      repeat: 2,
+      hold: 120,
+      ease: 'Stepped',
       onComplete: () => f.destroy(),
     });
 
-    this.cameras.main.shake(70, 0.005);
+    this.cameras.main.shake(45, 0.003);
   }
 
   private spawnSparks(x: number, y: number, color: number): void {
@@ -824,15 +949,32 @@ export class SurferScene extends BaseMinigame {
   // ─── HUD ───────────────────────────────────────────────────────────────────
 
   private refreshHud(): void {
-    this.livesLbl.setText(
-      '❤️'.repeat(Math.max(0, this.lives)) +
-      '🖤'.repeat(Math.max(0, this.maxLives - this.lives)),
-    );
+    this.renderGlobalLives(SessionState.getLivesLeft());
     const starsPart = this.starCount > 0 ? `  ⭐ ${this.starCount}` : '';
-    this.progLbl.setText(`📍 ${this.stagePassed}/${this.stage.goal}${starsPart}`);
+    this.progLbl.setText(`ПРОЙДЕНО\n${this.stagePassed}/${this.stage.goal}${starsPart}`);
     this.stageLbl
-      .setText(`${this.stage.name}  ${this.stageIdx + 1}/${TOTAL_STAGES}`)
+      .setText(`${this.stage.name} ${this.stageIdx + 1}/${TOTAL_STAGES}`)
       .setColor(this.stage.color);
+  }
+
+  private renderGlobalLives(livesLeft: number): void {
+    if (livesLeft > 3) {
+      this.livesCountText.setText(`${livesLeft}`);
+      this.livesCountText.setVisible(true);
+      this.hearts.forEach((heart, i) => {
+        heart.setVisible(true);
+        heart.setPosition(214 + i * 32, 80);
+        heart.setDepth(DEPTH.ui + i);
+      });
+      return;
+    }
+
+    this.livesCountText.setVisible(false);
+    this.hearts.forEach((heart, i) => {
+      heart.setVisible(i < livesLeft);
+      heart.setPosition(150 + i * 62, 80);
+      heart.setDepth(DEPTH.ui);
+    });
   }
 
   // ─── finish ────────────────────────────────────────────────────────────────

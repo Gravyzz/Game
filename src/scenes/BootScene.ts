@@ -80,6 +80,31 @@ export class BootScene extends Phaser.Scene {
     this.load.image('pizzaassembly-target-1', 'assets/pizzaassembly/pixil-frame-0-41.png');
     this.load.image('pizzaassembly-target-2', 'assets/pizzaassembly/pixil-frame-0-40.png');
     this.load.image('pizzaassembly-target-3', 'assets/pizzaassembly/pixil-frame-0-39.png');
+    this.load.image('surfer-knife-hit', 'assets/surfer/knife-hit.png');
+    this.load.image('surfer-sand', 'assets/surfer/sand.png');
+    this.load.image('surfer-bubble', 'assets/surfer/bubble.png');
+    this.load.image('surfer-fish-2', 'assets/surfer/fish-2.png');
+    this.load.image('surfer-fish-1', 'assets/surfer/fish-1.png');
+    this.load.image('surfer-hero', 'assets/surfer/surfer.png');
+    this.load.image('surfer-sun', 'assets/surfer/sun.png');
+    this.load.image('surfer-water-3', 'assets/surfer/water-3.png');
+    this.load.image('surfer-water-2', 'assets/surfer/water-2.png');
+    this.load.image('surfer-water-1', 'assets/surfer/water-1.png');
+    this.load.image('surfer-lightning-2', 'assets/surfer/lightning-2.png');
+    this.load.image('surfer-lightning-1', 'assets/surfer/lightning-1.png');
+    this.load.image('surfer-birds-2', 'assets/surfer/birds-2.png');
+    this.load.image('surfer-clouds-2', 'assets/surfer/clouds-2.png');
+    this.load.image('surfer-clouds-1', 'assets/surfer/clouds-1.png');
+    this.load.image('surfer-birds-1', 'assets/surfer/birds-1.png');
+    this.load.image('surfer-coral-4', 'assets/surfer/coral-4.png');
+    this.load.image('surfer-coral-3', 'assets/surfer/coral-3.png');
+    this.load.image('surfer-coral-2', 'assets/surfer/coral-2.png');
+    this.load.image('surfer-seaweed', 'assets/surfer/seaweed.png');
+    this.load.image('surfer-coral-1', 'assets/surfer/coral-1.png');
+    this.load.image('surfer-wave-2', 'assets/surfer/wave-2.png');
+    this.load.image('surfer-wave-1', 'assets/surfer/wave-1.png');
+    this.load.image('surfer-tornado', 'assets/surfer/tornado.png');
+    this.load.image('surfer-shield', 'assets/surfer/shield.png');
 
     // ===== Crossy Jeffrey =====
     this.load.image('jeff-car-white',         'assets/jeffrey/pixil-frame-0-8.png');
