@@ -17,20 +17,20 @@ import {
 const W        = GAME.WIDTH;
 const H        = GAME.HEIGHT;
 const CX       = W / 2;
-const CY       = 560;          // target centre y
-const RADIUS   = 145;          // salami radius
-const KNIFE_STUCK_RADIUS = RADIUS - 30;
-const KNIFE_Y0 = 955;          // knife resting position
+const CY       = 610;          // target centre y
+const RADIUS   = 123;          // target radius
+const KNIFE_STUCK_RADIUS = RADIUS - 23;
+const KNIFE_Y0 = 1012;         // knife resting position
 
 // Cached texture keys (живут в TextureManager, шарятся между ре-стартами сцены)
 const TEX_NOISE  = 'pa_noise_v2';
 const TEX_SALAMI = 'pa_salami_v2';
-const TEX_KNIFE  = 'pizzaassembly-knife-hit'; // одна текстура для летящего и воткнутого
+const TEX_KNIFE  = 'pizzaassembly-good-knife'; // одна текстура для летящего и воткнутого
 const PIXEL_FONT = '"Press Start 2P", monospace';
 const TARGET_TEXTURES = [
-  'pizzaassembly-target-1',
-  'pizzaassembly-target-2',
-  'pizzaassembly-target-3',
+  'pizzaassembly-new-pizza',
+  'pizzaassembly-new-cheese',
+  'pizzaassembly-new-sausage',
 ];
 
 // Воткнутый нож рисуется НИЖЕ круга — лезвие прячется под колбасой
@@ -39,7 +39,7 @@ const D_STUCK = DEPTH.midground + 5;
 // origin Y для ножа — точка у острия, которая садится на край цели
 const KNIFE_OY = 0.12;
 const HUD_KNIFE_ROTATION = -0.62;
-const PA_BG = 0x2f946b;
+const PA_BG = 0x130709;
 
 // ─── stages ──────────────────────────────────────────────────────────────────
 interface Stage {
@@ -144,10 +144,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.bakeTextures();
     [
       ...TARGET_TEXTURES,
-      'pizzaassembly-woodoo',
-      'pizzaassembly-floor',
-      'pizzaassembly-lanter',
-      'pizzaassembly-knife-hit',
+      'pizzaassembly-good-knife',
+      'pizzaassembly-knife-hit-bg',
+      'pizzaassembly-knife-hit-layout',
     ].forEach((key) => {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     });
@@ -174,9 +173,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
       fontSize: '42px',
     });
 
-    this.add.image(W - 194, 124, 'pizzaassembly-knife-hit')
+    this.add.image(W - 194, 124, TEX_KNIFE)
       .setOrigin(0.5)
-      .setDisplaySize(48, 48)
+      .setDisplaySize(32, 32)
       .setRotation(HUD_KNIFE_ROTATION)
       .setDepth(DEPTH.ui);
 
@@ -375,38 +374,10 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
   private drawRoom(): void {
     paintPageBackdrop(this, PA_BG);
-    this.add.rectangle(CX, H / 2, W, H, PA_BG).setDepth(DEPTH.background);
-
-    this.add.tileSprite(CX, H - 100, W, 220, 'pizzaassembly-floor')
+    this.add.image(CX, H / 2, 'pizzaassembly-knife-hit-bg')
       .setOrigin(0.5)
-      .setTileScale(2.1, 2.1)
-      .setDepth(DEPTH.background + 1);
-
-    const leftLamp = this.add.image(108, 340, 'pizzaassembly-lanter')
-      .setOrigin(0.5)
-      .setDisplaySize(110, 320)
-      .setDepth(DEPTH.midground);
-    const rightLamp = this.add.image(W - 108, 340, 'pizzaassembly-lanter')
-      .setOrigin(0.5)
-      .setDisplaySize(110, 320)
-      .setDepth(DEPTH.midground);
-
-    [leftLamp, rightLamp].forEach((lamp, i) => {
-      this.tweens.add({
-        targets: lamp,
-        alpha: { from: 0.86, to: 1 },
-        scaleX: { from: lamp.scaleX * 0.98, to: lamp.scaleX * 1.02 },
-        duration: 650 + i * 120,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      });
-    });
-
-    this.add.image(168, H - 40, 'pizzaassembly-woodoo')
-      .setOrigin(0.5, 1)
-      .setDisplaySize(205, 285)
-      .setDepth(DEPTH.midground + 1);
+      .setDisplaySize(W, H)
+      .setDepth(DEPTH.background);
   }
 
   private spawnKnife(): void {
@@ -415,13 +386,12 @@ export class PizzaAssemblyScene extends BaseMinigame {
       .setOrigin(0.5, KNIFE_OY)
       .setDepth(DEPTH.gameplay + 5)
       .setAlpha(0)
-      .setScale(0.48);
+      .setDisplaySize(35, 129);
 
     // Плавный fade-in + scale-up без overshoot
     this.tweens.add({
       targets: k,
       alpha:   1,
-      scale:   0.62,
       duration: 220,
       ease: 'Cubic.easeOut',
     });
@@ -469,9 +439,12 @@ export class PizzaAssemblyScene extends BaseMinigame {
     k.setDepth(D_STUCK);
 
     // Тонкий «втык» — лёгкий пульс scale без overshoot
+    const scaleX = k.scaleX;
+    const scaleY = k.scaleY;
     this.tweens.add({
       targets: k,
-      scale: { from: 0.68, to: 0.62 },
+      scaleX: { from: scaleX * 1.1, to: scaleX },
+      scaleY: { from: scaleY * 1.1, to: scaleY },
       duration: 160,
       ease: 'Cubic.easeOut',
     });
@@ -726,7 +699,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   }
 
   private currentTargetChipColor(): number {
-    if (this.salamiTexture === 'pizzaassembly-target-3') return 0x8c1734;
+    if (this.salamiTexture === 'pizzaassembly-new-sausage') return 0x8c1734;
     return 0xffe65a;
   }
 

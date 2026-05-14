@@ -87,6 +87,12 @@ export class BootScene extends Phaser.Scene {
     this.load.image('pizzaassembly-floor', 'assets/pizzaassembly/floor.png');
     this.load.image('pizzaassembly-lanter', 'assets/pizzaassembly/lanter.png');
     this.load.image('pizzaassembly-knife-hit', 'assets/pizzaassembly/knife-hit.png');
+    this.load.image('pizzaassembly-new-pizza', 'assets/pizzaassembly/new-pizza.png');
+    this.load.image('pizzaassembly-new-sausage', 'assets/pizzaassembly/new-sausage.png');
+    this.load.image('pizzaassembly-new-cheese', 'assets/pizzaassembly/new-cheese.png');
+    this.load.image('pizzaassembly-good-knife', 'assets/pizzaassembly/good-knife.png');
+    this.load.image('pizzaassembly-knife-hit-bg', 'assets/pizzaassembly/knife-hit-bg.png');
+    this.load.image('pizzaassembly-knife-hit-layout', 'assets/pizzaassembly/knife-hit-layout.png');
     this.load.image('surfer-knife-hit', 'assets/surfer/knife-hit.png');
     this.load.image('surfer-sand', 'assets/surfer/sand.png');
     this.load.image('surfer-bubble', 'assets/surfer/bubble.png');
