@@ -119,6 +119,19 @@ export class BootScene extends Phaser.Scene {
     this.load.image('surfer-wave-1', 'assets/surfer/wave-1.png');
     this.load.image('surfer-tornado', 'assets/surfer/tornado.png');
     this.load.image('surfer-shield', 'assets/surfer/shield.png');
+    this.load.image('dancebeat-bg', 'assets/dancebeat/bg.png');
+    this.load.image('dancebeat-up', 'assets/dancebeat/up.png');
+    this.load.image('dancebeat-up-grey', 'assets/dancebeat/up-grey.png');
+    this.load.image('dancebeat-up-pushed', 'assets/dancebeat/up-pushed.png');
+    this.load.image('dancebeat-down', 'assets/dancebeat/down.png');
+    this.load.image('dancebeat-down-grey', 'assets/dancebeat/down-grey.png');
+    this.load.image('dancebeat-down-pushed', 'assets/dancebeat/down-pushed.png');
+    this.load.image('dancebeat-left', 'assets/dancebeat/left.png');
+    this.load.image('dancebeat-left-grey', 'assets/dancebeat/left-grey.png');
+    this.load.image('dancebeat-left-pushed', 'assets/dancebeat/left-pushed.png');
+    this.load.image('dancebeat-right', 'assets/dancebeat/right.png');
+    this.load.image('dancebeat-right-grey', 'assets/dancebeat/right-grey.png');
+    this.load.image('dancebeat-right-pushed', 'assets/dancebeat/right-pushed.png');
 
     // ===== Crossy Jeffrey =====
     this.load.image('jeff-car-white',         'assets/jeffrey/pixil-frame-0-8.png');

@@ -1,13 +1,16 @@
 import Phaser from 'phaser';
 import { BaseMinigame } from '@minigames/BaseMinigame';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 
 /**
  * NEW-04 Танцпол — Simon-says на стрелках.
@@ -27,10 +30,7 @@ type Dir = 'up' | 'down' | 'left' | 'right';
 
 interface Zone {
   dir: Dir;
-  rect: Phaser.GameObjects.Rectangle;
-  arrow: Phaser.GameObjects.Text;
-  baseColor: number;
-  highlightColor: number;
+  button: Phaser.GameObjects.Image;
   cx: number;
   cy: number;
 }
@@ -52,11 +52,32 @@ const ROUND_CONFIGS: RoundCfg[] = [
 
 const TOTAL_ROUNDS = ROUND_CONFIGS.length;
 
-const ARROW_BY_DIR: Record<Dir, string> = {
-  up: '⬆',
-  down: '⬇',
-  left: '⬅',
-  right: '➡',
+const PIXEL_FONT = '"Press Start 2P", monospace';
+const BG_ZOOM = 1.8;
+const BG_OFFSET_Y = 200;
+const BUTTON_SIZE = 126;
+
+const BUTTON_TEXTURES: Record<Dir, { normal: string; grey: string; pushed: string }> = {
+  up: {
+    normal: 'dancebeat-up',
+    grey: 'dancebeat-up-grey',
+    pushed: 'dancebeat-up-pushed',
+  },
+  down: {
+    normal: 'dancebeat-down',
+    grey: 'dancebeat-down-grey',
+    pushed: 'dancebeat-down-pushed',
+  },
+  left: {
+    normal: 'dancebeat-left',
+    grey: 'dancebeat-left-grey',
+    pushed: 'dancebeat-left-pushed',
+  },
+  right: {
+    normal: 'dancebeat-right',
+    grey: 'dancebeat-right-grey',
+    pushed: 'dancebeat-right-pushed',
+  },
 };
 
 export class DanceBeatScene extends BaseMinigame {
@@ -77,6 +98,7 @@ export class DanceBeatScene extends BaseMinigame {
 
   // Состояние ввода
   private acceptingInput = false;
+  private inputLocked = false;
   private inputDeadlineAt = 0;
   private inputTimer: Phaser.Time.TimerEvent | null = null;
   private showTimers: Phaser.Time.TimerEvent[] = [];
@@ -97,48 +119,47 @@ export class DanceBeatScene extends BaseMinigame {
     this.playerStep = 0;
     this.finished = false;
     this.acceptingInput = false;
+    this.inputLocked = false;
     this.inputDeadlineAt = 0;
 
+    this.configurePixelAssets();
+
     // Фон
-    paintPageBackdrop(this, 0x121023);
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x121023);
-    this.drawDiscoFloor();
+    paintPageBackdrop(this, 0x120608);
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2 + BG_OFFSET_Y, 'dancebeat-bg');
+    bg.setOrigin(0.5);
+    bg.setDepth(DEPTH.background);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height) * BG_ZOOM);
     attachHomeButton(this);
-
-    // Заголовок
-    const title = new PosterText(this, WIDTH / 2, 80, 'ПОВТОРИ КОМБО', {
-      bgColor: COLORS.purple, textColor: '#FAF7F0',
-      fontSize: '30px', rotation: -0.025, paddingX: 22, paddingY: 10,
-    });
-    title.setDepth(DEPTH.ui);
-    this.add.existing(title);
-
-    const hint = this.add.text(WIDTH / 2, 138, 'смотри последовательность → повтори тапом или ↑↓←→', {
-      ...TEXT_STYLES.label, fontSize: '13px', color: '#FAF7F0',
-    });
-    hint.setOrigin(0.5);
-    hint.setDepth(DEPTH.ui);
+    createGlobalLivesDisplay(this);
 
     // Статус (раунд + длина)
-    this.statusText = this.add.text(WIDTH / 2, 175, '', {
-      ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#FFE600',
+    this.statusText = this.add.text(WIDTH - 34, 50, '', {
+      fontFamily: PIXEL_FONT,
+      fontSize: '22px',
+      color: '#FFFFFF',
+      align: 'right',
+      lineSpacing: 16,
     });
-    this.statusText.setOrigin(0.5);
+    this.statusText.setOrigin(1, 0);
     this.statusText.setDepth(DEPTH.ui);
 
     // «Большой» статус по центру: «СМОТРИ» / «ПОВТОРИ» / «K.O.»
     this.bigText = this.add.text(WIDTH / 2, HEIGHT / 2, '', {
-      ...TEXT_STYLES.hero, fontSize: '52px', color: '#FFE600',
+      fontFamily: PIXEL_FONT,
+      fontSize: '42px',
+      color: '#FFE600',
+      align: 'center',
     });
     this.bigText.setOrigin(0.5);
     this.bigText.setDepth(DEPTH.modal);
 
     // Полоса окна ввода
-    this.timerBarMaxW = WIDTH - 120;
-    this.timerBarBg = this.add.rectangle(WIDTH / 2, 220, this.timerBarMaxW, 14, COLORS.greyDark);
+    this.timerBarMaxW = WIDTH - 150;
+    this.timerBarBg = this.add.rectangle(WIDTH / 2, 210, this.timerBarMaxW, 12, 0x171717);
     this.timerBarBg.setStrokeStyle(2, COLORS.black);
     this.timerBarBg.setDepth(DEPTH.ui);
-    this.timerBar = this.add.rectangle(WIDTH / 2 - this.timerBarMaxW / 2, 220, this.timerBarMaxW, 10, COLORS.win);
+    this.timerBar = this.add.rectangle(WIDTH / 2 - this.timerBarMaxW / 2, 210, this.timerBarMaxW, 8, COLORS.win);
     this.timerBar.setOrigin(0, 0.5);
     this.timerBar.setDepth(DEPTH.ui + 1);
     this.timerBar.setVisible(false);
@@ -162,55 +183,86 @@ export class DanceBeatScene extends BaseMinigame {
   // ========== UI ==========
 
   private buildZones(): void {
-    const { WIDTH, HEIGHT } = GAME;
+    const { WIDTH } = GAME;
     const cx = WIDTH / 2;
-    const cy = HEIGHT * 0.66;
-    const padBetween = 24;
-    const buttonSize = Math.min(220, (WIDTH - 100) / 3);
 
     const positions: Record<Dir, { x: number; y: number }> = {
-      up:    { x: cx, y: cy - buttonSize - padBetween },
-      down:  { x: cx, y: cy + buttonSize + padBetween },
-      left:  { x: cx - buttonSize - padBetween, y: cy },
-      right: { x: cx + buttonSize + padBetween, y: cy },
+      up:    { x: cx, y: 452 },
+      down:  { x: cx, y: 648 },
+      left:  { x: cx - 118, y: 552 },
+      right: { x: cx + 118, y: 552 },
     };
 
     (Object.keys(positions) as Dir[]).forEach((dir) => {
       const pos = positions[dir];
 
-      const rect = this.add.rectangle(pos.x, pos.y, buttonSize, buttonSize, 0x4a4a8a);
-      rect.setStrokeStyle(6, COLORS.black);
-      rect.setDepth(DEPTH.gameplay);
-      rect.setInteractive({ useHandCursor: true });
-      rect.on('pointerdown', () => this.onPlayerInput(dir));
-
-      const arrow = this.add.text(pos.x, pos.y, ARROW_BY_DIR[dir], {
-        fontFamily: 'Arial, sans-serif', fontSize: `${Math.floor(buttonSize * 0.55)}px`,
-        color: '#FAF7F0',
-      });
-      arrow.setOrigin(0.5);
-      arrow.setDepth(DEPTH.gameplay + 1);
+      const button = this.add.image(pos.x, pos.y, BUTTON_TEXTURES[dir].grey);
+      button.setOrigin(0.5);
+      button.setDisplaySize(BUTTON_SIZE, BUTTON_SIZE);
+      button.setDepth(DEPTH.gameplay + 1);
+      button.setInteractive({ useHandCursor: true });
+      button.disableInteractive();
+      button.on('pointerdown', () => this.onPlayerInput(dir));
 
       this.zones[dir] = {
-        dir, rect, arrow,
-        baseColor: 0x4a4a8a, highlightColor: COLORS.yellow,
-        cx: pos.x, cy: pos.y,
+        dir,
+        button,
+        cx: pos.x,
+        cy: pos.y,
       };
     });
   }
 
-  private highlightZone(dir: Dir, durationMs: number): void {
+  private setButtonsMode(mode: 'grey' | 'normal'): void {
+    (Object.keys(this.zones) as Dir[]).forEach((dir) => {
+      this.setButtonState(dir, mode);
+    });
+  }
+
+  private setButtonsInputEnabled(enabled: boolean): void {
+    (Object.keys(this.zones) as Dir[]).forEach((dir) => {
+      const button = this.zones[dir].button;
+      if (enabled) button.setInteractive({ useHandCursor: true });
+      else button.disableInteractive();
+    });
+  }
+
+  private setButtonState(dir: Dir, state: 'grey' | 'normal' | 'pushed'): void {
+    const zone = this.zones[dir];
+    if (!zone) return;
+    zone.button.setTexture(BUTTON_TEXTURES[dir][state]);
+    zone.button.setDisplaySize(BUTTON_SIZE, BUTTON_SIZE);
+  }
+
+  private showSequenceButton(dir: Dir, durationMs: number): void {
+    this.setButtonsMode('grey');
     const z = this.zones[dir];
-    z.rect.setFillStyle(z.highlightColor);
-    z.arrow.setColor('#0A0A0A');
+    this.setButtonState(dir, 'normal');
     this.tweens.add({
-      targets: [z.rect, z.arrow], scale: { from: 1.08, to: 1 },
+      targets: z.button,
+      scaleX: { from: z.button.scaleX * 1.08, to: z.button.scaleX },
+      scaleY: { from: z.button.scaleY * 1.08, to: z.button.scaleY },
       duration: 180, ease: 'Back.easeOut',
     });
     SoundManager.playSfx('tap');
     this.time.delayedCall(durationMs, () => {
-      z.rect.setFillStyle(z.baseColor);
-      z.arrow.setColor('#FAF7F0');
+      if (!this.finished && !this.acceptingInput) this.setButtonsMode('grey');
+    });
+  }
+
+  private pressButton(dir: Dir, durationMs: number): void {
+    const z = this.zones[dir];
+    this.setButtonState(dir, 'pushed');
+    this.tweens.add({
+      targets: z.button,
+      scaleX: { from: z.button.scaleX * 0.94, to: z.button.scaleX },
+      scaleY: { from: z.button.scaleY * 0.94, to: z.button.scaleY },
+      duration: 120,
+      ease: 'Back.easeOut',
+    });
+    SoundManager.playSfx('tap');
+    this.time.delayedCall(durationMs, () => {
+      if (!this.finished && this.acceptingInput) this.setButtonState(dir, 'normal');
     });
   }
 
@@ -226,10 +278,13 @@ export class DanceBeatScene extends BaseMinigame {
     this.currentSeq = this.generateSequence(cfg.length);
     this.playerStep = 0;
     this.acceptingInput = false;
+    this.inputLocked = false;
 
-    this.statusText.setText(`РАУНД ${this.roundIndex + 1} / ${TOTAL_ROUNDS}  •  длина ${cfg.length}`);
+    this.statusText.setText(`раунд ${this.roundIndex + 1}/${TOTAL_ROUNDS}\nповтори ${cfg.length}`);
     this.timerBar.setVisible(false);
     this.timerBarBg.setVisible(false);
+    this.setButtonsMode('grey');
+    this.setButtonsInputEnabled(false);
     this.setBig('СМОТРИ', '#FFE600');
 
     // Небольшая задержка перед началом показа
@@ -259,13 +314,14 @@ export class DanceBeatScene extends BaseMinigame {
 
   private playSequence(cfg: RoundCfg): void {
     this.clearShowTimers();
+    this.setButtonsInputEnabled(false);
 
     let elapsed = 0;
     this.currentSeq.forEach((dir) => {
       const at = elapsed;
       const t = this.time.delayedCall(at, () => {
         if (this.finished) return;
-        this.highlightZone(dir, cfg.showStepMs);
+        this.showSequenceButton(dir, cfg.showStepMs);
       });
       this.showTimers.push(t);
       elapsed += cfg.showStepMs + cfg.showGapMs;
@@ -281,7 +337,10 @@ export class DanceBeatScene extends BaseMinigame {
 
   private startPlayerInput(cfg: RoundCfg): void {
     this.acceptingInput = true;
+    this.inputLocked = false;
     this.playerStep = 0;
+    this.setButtonsMode('normal');
+    this.setButtonsInputEnabled(true);
     this.setBig('ПОВТОРИ', '#4ADE80');
     this.tweens.add({
       targets: this.bigText, alpha: { from: 1, to: 0 }, duration: 700, delay: 350,
@@ -324,24 +383,27 @@ export class DanceBeatScene extends BaseMinigame {
   // ========== ВВОД ==========
 
   private onPlayerInput(dir: Dir): void {
-    if (!this.acceptingInput || this.finished) return;
+    if (!this.acceptingInput || this.inputLocked || this.finished) return;
+    this.inputLocked = true;
     const expected = this.currentSeq[this.playerStep];
     const cfg = ROUND_CONFIGS[this.roundIndex];
 
     if (dir !== expected) {
-      this.highlightZone(dir, 180);
+      this.pressButton(dir, 180);
       Haptics.trigger('miss');
       this.handleFail('НЕ ТОТ');
       return;
     }
 
     // Верное нажатие
-    this.highlightZone(dir, 160);
+    this.pressButton(dir, 160);
     Haptics.trigger('tap');
     this.playerStep += 1;
 
     if (this.playerStep >= this.currentSeq.length) {
       this.acceptingInput = false;
+      this.inputLocked = false;
+      this.setButtonsInputEnabled(false);
       if (this.inputTimer) { this.inputTimer.remove(); this.inputTimer = null; }
       this.timerBar.setVisible(false);
       this.timerBarBg.setVisible(false);
@@ -351,6 +413,9 @@ export class DanceBeatScene extends BaseMinigame {
 
     // Сбрасываем окно для следующей стрелки
     this.startStepTimer(cfg.inputWindowMs);
+    this.time.delayedCall(150, () => {
+      if (this.acceptingInput && !this.finished) this.inputLocked = false;
+    });
   }
 
   private handleRoundCleared(): void {
@@ -374,6 +439,9 @@ export class DanceBeatScene extends BaseMinigame {
   private handleFail(reason: string): void {
     if (this.finished) return;
     this.acceptingInput = false;
+    this.inputLocked = false;
+    this.setButtonsInputEnabled(false);
+    this.setButtonsMode('grey');
     if (this.inputTimer) { this.inputTimer.remove(); this.inputTimer = null; }
     this.timerBar.setVisible(false);
     this.timerBarBg.setVisible(false);
@@ -433,7 +501,11 @@ export class DanceBeatScene extends BaseMinigame {
     const msg = this.add.text(
       WIDTH / 2, HEIGHT / 2,
       win ? RU.minigame.win : RU.minigame.lose,
-      { ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444' },
+      {
+        fontFamily: PIXEL_FONT,
+        fontSize: '48px',
+        color: win ? '#4ADE80' : '#EF4444',
+      },
     );
     msg.setOrigin(0.5);
     msg.setDepth(DEPTH.modal + 1);
@@ -468,21 +540,14 @@ export class DanceBeatScene extends BaseMinigame {
     this.bigText.setColor(color);
   }
 
-  private drawDiscoFloor(): void {
-    const { WIDTH, HEIGHT } = GAME;
-    const key = 'dancebeat-disco';
-    if (!this.textures.exists(key)) {
-      const g = this.make.graphics({ x: 0, y: 0 }, false);
-      for (let i = 0; i < 80; i++) {
-        const x = Math.random() * WIDTH;
-        const y = Math.random() * HEIGHT;
-        const r = Math.random() * 2.4 + 0.4;
-        g.fillStyle(0x7a5cff, 0.06 + Math.random() * 0.05);
-        g.fillCircle(x, y, r);
+  private configurePixelAssets(): void {
+    [
+      'dancebeat-bg',
+      ...Object.values(BUTTON_TEXTURES).flatMap((set) => [set.normal, set.grey, set.pushed]),
+    ].forEach((key) => {
+      if (this.textures.exists(key)) {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
       }
-      g.generateTexture(key, WIDTH, HEIGHT);
-      g.destroy();
-    }
-    this.add.image(WIDTH / 2, HEIGHT / 2, key).setDepth(DEPTH.background);
+    });
   }
 }
