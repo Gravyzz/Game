@@ -4,7 +4,6 @@ import { COLORS } from '@config/colors';
 import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import {
@@ -19,14 +18,14 @@ import {
 const W        = GAME.WIDTH;
 const H        = GAME.HEIGHT;
 const CX       = W / 2;
-const CY       = 490;          // salami centre y
+const CY       = 560;          // target centre y
 const RADIUS   = 145;          // salami radius
-const KNIFE_Y0 = 1090;         // knife resting position
+const KNIFE_Y0 = 955;          // knife resting position
 
 // Cached texture keys (живут в TextureManager, шарятся между ре-стартами сцены)
 const TEX_NOISE  = 'pa_noise_v2';
 const TEX_SALAMI = 'pa_salami_v2';
-const TEX_KNIFE  = 'pa_knife_v2';        // одна текстура для летящего и воткнутого
+const TEX_KNIFE  = 'pizzaassembly-knife-hit'; // одна текстура для летящего и воткнутого
 const TARGET_TEXTURES = [
   'pizzaassembly-target-1',
   'pizzaassembly-target-2',
@@ -36,8 +35,9 @@ const TARGET_TEXTURES = [
 // Воткнутый нож рисуется НИЖЕ круга — лезвие прячется под колбасой
 const D_STUCK = DEPTH.midground + 5;
 
-// origin Y для ножа — точка крепления = граница лезвия и гарды
-const KNIFE_OY = 96 / 148;
+// origin Y для ножа — точка у острия, которая садится на край цели
+const KNIFE_OY = 0.12;
+const PA_BG = 0x2f946b;
 
 // ─── stages ──────────────────────────────────────────────────────────────────
 interface Stage {
@@ -140,29 +140,26 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.inTransition = true;
 
     this.bakeTextures();
-    TARGET_TEXTURES.forEach((key) => {
+    [
+      ...TARGET_TEXTURES,
+      'pizzaassembly-woodoo',
+      'pizzaassembly-floor',
+      'pizzaassembly-lanter',
+      'pizzaassembly-knife-hit',
+    ].forEach((key) => {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     });
 
-    // Фон + запечённый шум
-    paintPageBackdrop(this, COLORS.cream);
-    this.add.rectangle(CX, H / 2, W, H, COLORS.cream).setDepth(DEPTH.background);
-    this.add.image(CX, H / 2, TEX_NOISE).setDepth(DEPTH.background);
+    this.drawRoom();
     attachHomeButton(this);
 
-    const title = new PosterText(this, CX, 65, 'КОЛБАСКА НА НОЖАХ', {
-      bgColor: COLORS.red, textColor: '#FAF7F0',
-      fontSize: '26px', rotation: -0.025, paddingX: 18, paddingY: 10,
-    });
-    title.setDepth(DEPTH.ui);
-    this.add.existing(title);
-
-    // Бейдж стейджа (название тира + N/3)
     this.stageLbl = this.add
-      .text(CX, 102, '', {
-        ...TEXT_STYLES.subtitle, fontSize: '16px', color: this.stage.color,
+      .text(W - 36, 54, '', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '22px',
+        color: '#0A0A0A',
       })
-      .setOrigin(0.5, 0)
+      .setOrigin(1, 0)
       .setDepth(DEPTH.ui);
 
     this.livesHud = createGlobalLivesDisplay(this, {
@@ -175,9 +172,18 @@ export class PizzaAssemblyScene extends BaseMinigame {
       fontSize: '34px',
     });
 
+    this.add.image(W - 132, 122, 'pizzaassembly-knife-hit')
+      .setOrigin(0.5)
+      .setDisplaySize(54, 54)
+      .setDepth(DEPTH.ui);
+
     this.progLbl = this.add
-      .text(CX, 130, '', { ...TEXT_STYLES.subtitle, fontSize: '22px', color: '#0A0A0A' })
-      .setOrigin(0.5, 0)
+      .text(W - 36, 108, '', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '28px',
+        color: '#FAF7F0',
+      })
+      .setOrigin(1, 0)
       .setDepth(DEPTH.ui);
 
     // Центральная цель
@@ -362,19 +368,55 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
   // ─── construction ──────────────────────────────────────────────────────────
 
+  private drawRoom(): void {
+    paintPageBackdrop(this, PA_BG);
+    this.add.rectangle(CX, H / 2, W, H, PA_BG).setDepth(DEPTH.background);
+
+    this.add.tileSprite(CX, H - 100, W, 220, 'pizzaassembly-floor')
+      .setOrigin(0.5)
+      .setTileScale(2.1, 2.1)
+      .setDepth(DEPTH.background + 1);
+
+    const leftLamp = this.add.image(108, 340, 'pizzaassembly-lanter')
+      .setOrigin(0.5)
+      .setDisplaySize(110, 320)
+      .setDepth(DEPTH.midground);
+    const rightLamp = this.add.image(W - 108, 340, 'pizzaassembly-lanter')
+      .setOrigin(0.5)
+      .setDisplaySize(110, 320)
+      .setDepth(DEPTH.midground);
+
+    [leftLamp, rightLamp].forEach((lamp, i) => {
+      this.tweens.add({
+        targets: lamp,
+        alpha: { from: 0.86, to: 1 },
+        scaleX: { from: lamp.scaleX * 0.98, to: lamp.scaleX * 1.02 },
+        duration: 650 + i * 120,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    });
+
+    this.add.image(168, H - 40, 'pizzaassembly-woodoo')
+      .setOrigin(0.5, 1)
+      .setDisplaySize(205, 285)
+      .setDepth(DEPTH.midground + 1);
+  }
+
   private spawnKnife(): void {
     const k = this.add
       .image(CX, KNIFE_Y0, TEX_KNIFE)
       .setOrigin(0.5, KNIFE_OY)
       .setDepth(DEPTH.gameplay + 5)
       .setAlpha(0)
-      .setScale(0.7);
+      .setScale(0.48);
 
     // Плавный fade-in + scale-up без overshoot
     this.tweens.add({
       targets: k,
       alpha:   1,
-      scale:   1,
+      scale:   0.62,
       duration: 220,
       ease: 'Cubic.easeOut',
     });
@@ -424,7 +466,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     // Тонкий «втык» — лёгкий пульс scale без overshoot
     this.tweens.add({
       targets: k,
-      scale: { from: 1.08, to: 1 },
+      scale: { from: 0.68, to: 0.62 },
       duration: 160,
       ease: 'Cubic.easeOut',
     });
@@ -475,7 +517,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
         this.updateHUD();
 
         if (this.lives <= 0) {
-          this.finish(false);
+          this.playLoseAnimation(() => this.finish(false));
         } else {
           this.time.delayedCall(220, () => {
             if (!this.done && !this.inTransition) {
@@ -507,6 +549,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
     SoundManager.playSfx('win');
     Haptics.trigger('win');
+    this.playRoundWinAnimation();
 
     this.tweens.add({
       targets: banner, alpha: 1, scale: 1,
@@ -605,8 +648,8 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
   private refreshStageLabel(): void {
     this.stageLbl
-      .setText(`${this.stage.name}  ${this.stageIdx + 1}/${TOTAL_STAGES}`)
-      .setColor(this.stage.color);
+      .setText(`${this.stage.name.toLowerCase()} ${this.stageIdx + 1}/${TOTAL_STAGES}`)
+      .setColor('#0A0A0A');
   }
 
   // ─── HARD modifiers ────────────────────────────────────────────────────────
@@ -670,11 +713,72 @@ export class PizzaAssemblyScene extends BaseMinigame {
     });
   }
 
+  private playRoundWinAnimation(): void {
+    this.tweens.add({
+      targets: this.salami,
+      scale: { from: this.salami.scale * 1.08, to: this.salami.scale },
+      duration: 520,
+      ease: 'Elastic.easeOut',
+    });
+
+    for (let i = 0; i < 28; i++) {
+      const a = (i / 28) * Math.PI * 2;
+      const dist = 120 + Math.random() * 70;
+      const spark = this.add.rectangle(CX, CY, 8, 8, i % 2 === 0 ? 0xffe600 : 0xfaf7f0)
+        .setDepth(DEPTH.effects)
+        .setAlpha(0.95)
+        .setRotation(a);
+      this.tweens.add({
+        targets: spark,
+        x: CX + Math.cos(a) * dist,
+        y: CY + Math.sin(a) * dist,
+        alpha: 0,
+        scale: 0.25,
+        duration: 620 + Math.random() * 220,
+        ease: 'Cubic.easeOut',
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  private playLoseAnimation(after: () => void): void {
+    this.inTransition = true;
+    this.canThrow = false;
+
+    const text = this.add.text(CX, H / 2, 'ПРОМАХ!', {
+      ...TEXT_STYLES.hero,
+      fontSize: '58px',
+      color: '#FF2E2E',
+    }).setOrigin(0.5).setDepth(DEPTH.toast).setAlpha(0).setScale(0.65);
+
+    this.tweens.add({
+      targets: this.salami,
+      angle: '+=10',
+      duration: 70,
+      yoyo: true,
+      repeat: 5,
+      ease: 'Stepped',
+    });
+    this.tweens.add({ targets: text, alpha: 1, scale: 1, duration: 220, ease: 'Cubic.easeOut' });
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      y: text.y - 40,
+      delay: 650,
+      duration: 300,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        text.destroy();
+        after();
+      },
+    });
+  }
+
   // ─── HUD ───────────────────────────────────────────────────────────────────
 
   private updateHUD(): void {
     this.livesHud.update();
-    this.progLbl.setText(`🔪 ${this.stageStuck} / ${this.stage.goal}`);
+    this.progLbl.setText(`${this.stageStuck}/${this.stage.goal}`);
   }
 
   // ─── finish ────────────────────────────────────────────────────────────────

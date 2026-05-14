@@ -37,6 +37,11 @@ export class DevMinigameMenuScene extends Phaser.Scene {
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
 
+    this.setPixelTexture('splash-tree-grey');
+    this.setPixelTexture('splash-tree-purple');
+    this.setPixelTexture('splash-tree-blue');
+    this.drawTreeBackdrop();
+
     const title = this.add.text(WIDTH / 2, 115, 'МИНИ ИГРЫ', {
       fontFamily: this.pixelFont,
       fontSize: '42px',
@@ -130,6 +135,32 @@ export class DevMinigameMenuScene extends Phaser.Scene {
     this.add.existing(backBtn);
 
     this.cameras.main.fadeIn(250, 90, 84, 249);
+  }
+
+  private drawTreeBackdrop(): void {
+    const trees = [
+      { key: 'splash-tree-grey', x: 48, y: 825, w: 180, h: 430, alpha: 0.9 },
+      { key: 'splash-tree-grey', x: 622, y: 835, w: 190, h: 450, alpha: 0.9 },
+      { key: 'splash-tree-blue', x: 258, y: 915, w: 180, h: 440, alpha: 0.92 },
+      { key: 'splash-tree-blue', x: 520, y: 1005, w: 185, h: 455, alpha: 0.88 },
+      { key: 'splash-tree-purple', x: 92, y: 1110, w: 220, h: 555, alpha: 0.95 },
+      { key: 'splash-tree-purple', x: 365, y: 1150, w: 235, h: 590, alpha: 0.95 },
+      { key: 'splash-tree-blue', x: 655, y: 1150, w: 215, h: 535, alpha: 0.92 },
+    ];
+
+    trees.forEach((tree) => {
+      const img = this.add.image(tree.x, tree.y, tree.key);
+      img.setOrigin(0.5, 1);
+      img.setDisplaySize(tree.w, tree.h);
+      img.setAlpha(tree.alpha);
+      img.setDepth(DEPTH.background + 1);
+    });
+  }
+
+  private setPixelTexture(key: string): void {
+    if (this.textures.exists(key)) {
+      this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
   }
 
   private launchMinigame(sceneKey: string, durationMs: number): void {

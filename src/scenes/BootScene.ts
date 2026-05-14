@@ -27,6 +27,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('plus-pixel',              'assets/ui/plus.png');
     this.load.image('minus-pixel',             'assets/ui/minus.png');
     this.load.image('cancel-pixel',            'assets/ui/cancel.png');
+    this.load.image('splash-tree-grey',        'assets/ui/tree-grey.png');
+    this.load.image('splash-tree-purple',      'assets/ui/tree-purple.png');
+    this.load.image('splash-tree-blue',        'assets/ui/tree-blue.png');
     this.load.image('firestarter-oven-1', 'assets/firestarter/oven-1.png');
     this.load.image('firestarter-oven-2', 'assets/firestarter/oven-2.png');
     this.load.image('firestarter-oven-3', 'assets/firestarter/oven-3.png');
@@ -80,6 +83,10 @@ export class BootScene extends Phaser.Scene {
     this.load.image('pizzaassembly-target-1', 'assets/pizzaassembly/pixil-frame-0-41.png');
     this.load.image('pizzaassembly-target-2', 'assets/pizzaassembly/pixil-frame-0-40.png');
     this.load.image('pizzaassembly-target-3', 'assets/pizzaassembly/pixil-frame-0-39.png');
+    this.load.image('pizzaassembly-woodoo', 'assets/pizzaassembly/woodoo.png');
+    this.load.image('pizzaassembly-floor', 'assets/pizzaassembly/floor.png');
+    this.load.image('pizzaassembly-lanter', 'assets/pizzaassembly/lanter.png');
+    this.load.image('pizzaassembly-knife-hit', 'assets/pizzaassembly/knife-hit.png');
     this.load.image('surfer-knife-hit', 'assets/surfer/knife-hit.png');
     this.load.image('surfer-sand', 'assets/surfer/sand.png');
     this.load.image('surfer-bubble', 'assets/surfer/bubble.png');
