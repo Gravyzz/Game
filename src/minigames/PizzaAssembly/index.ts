@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BaseMinigame } from '@minigames/BaseMinigame';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
@@ -20,12 +19,14 @@ const H        = GAME.HEIGHT;
 const CX       = W / 2;
 const CY       = 560;          // target centre y
 const RADIUS   = 145;          // salami radius
+const KNIFE_STUCK_RADIUS = RADIUS - 30;
 const KNIFE_Y0 = 955;          // knife resting position
 
 // Cached texture keys (живут в TextureManager, шарятся между ре-стартами сцены)
 const TEX_NOISE  = 'pa_noise_v2';
 const TEX_SALAMI = 'pa_salami_v2';
 const TEX_KNIFE  = 'pizzaassembly-knife-hit'; // одна текстура для летящего и воткнутого
+const PIXEL_FONT = '"Press Start 2P", monospace';
 const TARGET_TEXTURES = [
   'pizzaassembly-target-1',
   'pizzaassembly-target-2',
@@ -37,6 +38,7 @@ const D_STUCK = DEPTH.midground + 5;
 
 // origin Y для ножа — точка у острия, которая садится на край цели
 const KNIFE_OY = 0.12;
+const HUD_KNIFE_ROTATION = -0.62;
 const PA_BG = 0x2f946b;
 
 // ─── stages ──────────────────────────────────────────────────────────────────
@@ -163,18 +165,19 @@ export class PizzaAssemblyScene extends BaseMinigame {
       .setDepth(DEPTH.ui);
 
     this.livesHud = createGlobalLivesDisplay(this, {
-      x: 78,
-      countX: 54,
-      stackFirstX: 118,
-      y: 132,
-      heartSize: 52,
-      heartGap: 64,
-      fontSize: '34px',
+      x: 150,
+      countX: 150,
+      stackFirstX: 214,
+      y: 80,
+      heartSize: 62,
+      heartGap: 82,
+      fontSize: '42px',
     });
 
-    this.add.image(W - 132, 122, 'pizzaassembly-knife-hit')
+    this.add.image(W - 194, 124, 'pizzaassembly-knife-hit')
       .setOrigin(0.5)
-      .setDisplaySize(54, 54)
+      .setDisplaySize(48, 48)
+      .setRotation(HUD_KNIFE_ROTATION)
       .setDepth(DEPTH.ui);
 
     this.progLbl = this.add
@@ -197,7 +200,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
     const hint = this.add
       .text(CX, KNIFE_Y0 + 90, 'ТАП → БРОСИТЬ НОЖ', {
-        ...TEXT_STYLES.label, fontSize: '18px', color: '#0A0A0A',
+        fontFamily: PIXEL_FONT,
+        fontSize: '18px',
+        color: '#0A0A0A',
       })
       .setOrigin(0.5)
       .setDepth(DEPTH.ui);
@@ -242,7 +247,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
       const ga = k.localAngle + this.circleRot;
       const cs = Math.cos(ga);
       const sn = Math.sin(ga);
-      k.sprite.setPosition(CX + cs * RADIUS, CY + sn * RADIUS);
+      k.sprite.setPosition(CX + cs * KNIFE_STUCK_RADIUS, CY + sn * KNIFE_STUCK_RADIUS);
       k.sprite.setRotation(ga - Math.PI / 2);
     }
 
@@ -251,8 +256,8 @@ export class PizzaAssemblyScene extends BaseMinigame {
       this.knifeY -= this.stage.knifeSpd * dt;
       this.knife.setY(this.knifeY);
 
-      if (this.knifeY <= CY + RADIUS) {
-        this.knifeY = CY + RADIUS;     // защёлкиваем точно на ободе — без подёргивания
+      if (this.knifeY <= CY + KNIFE_STUCK_RADIUS) {
+        this.knifeY = CY + KNIFE_STUCK_RADIUS; // защёлкиваем глубже в цель — без подёргивания
         this.knife.setY(this.knifeY);
         this.landKnife();
       }
@@ -477,6 +482,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     SoundManager.playSfx('perfect');
     Haptics.trigger('perfect');
     this.spawnImpactRing();
+    this.spawnHitChips(CX, CY + KNIFE_STUCK_RADIUS);
     this.updateHUD();
 
     if (this.stageStuck >= this.stage.goal) {
@@ -540,7 +546,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
     // Победный «STAGE CLEAR»
     const banner = this.add
       .text(CX, H / 2, 'СТЕЙДЖ ПРОЙДЕН!', {
-        ...TEXT_STYLES.hero, fontSize: '46px', color: '#4ADE80',
+        fontFamily: PIXEL_FONT,
+        fontSize: '36px',
+        color: '#4ADE80',
       })
       .setOrigin(0.5)
       .setDepth(DEPTH.toast)
@@ -623,7 +631,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
     const txt = this.add
       .text(CX, H / 2, label, {
-        ...TEXT_STYLES.hero, fontSize: '64px', color: stage.color,
+        fontFamily: PIXEL_FONT,
+        fontSize: '44px',
+        color: stage.color,
       })
       .setOrigin(0.5)
       .setDepth(DEPTH.toast)
@@ -679,7 +689,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
     const arrow = this.add
       .text(CX, CY - RADIUS - 55, target > 0 ? '→ РАЗВОРОТ' : '← РАЗВОРОТ', {
-        ...TEXT_STYLES.subtitle, fontSize: '30px', color: '#FF2E2E',
+        fontFamily: PIXEL_FONT,
+        fontSize: '24px',
+        color: '#FF2E2E',
       })
       .setOrigin(0.5)
       .setAlpha(0)
@@ -711,6 +723,37 @@ export class PizzaAssemblyScene extends BaseMinigame {
       ease: 'Cubic.easeOut',
       onComplete: () => ring.destroy(),
     });
+  }
+
+  private currentTargetChipColor(): number {
+    if (this.salamiTexture === 'pizzaassembly-target-3') return 0x8c1734;
+    return 0xffe65a;
+  }
+
+  private spawnHitChips(x: number, y: number): void {
+    const color = this.currentTargetChipColor();
+    for (let i = 0; i < 10; i++) {
+      const chip = this.add.rectangle(
+        x + Phaser.Math.Between(-10, 10),
+        y + Phaser.Math.Between(-8, 8),
+        Phaser.Math.Between(5, 9),
+        Phaser.Math.Between(5, 9),
+        color,
+      )
+        .setDepth(DEPTH.effects)
+        .setAlpha(0.95)
+        .setRotation(Math.random() * Math.PI);
+      this.tweens.add({
+        targets: chip,
+        x: chip.x + Phaser.Math.Between(-55, 55),
+        y: chip.y + Phaser.Math.Between(25, 85),
+        alpha: 0,
+        angle: Phaser.Math.Between(-120, 120),
+        duration: 520 + Math.random() * 180,
+        ease: 'Cubic.easeOut',
+        onComplete: () => chip.destroy(),
+      });
+    }
   }
 
   private playRoundWinAnimation(): void {
@@ -746,8 +789,8 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.canThrow = false;
 
     const text = this.add.text(CX, H / 2, 'ПРОМАХ!', {
-      ...TEXT_STYLES.hero,
-      fontSize: '58px',
+      fontFamily: PIXEL_FONT,
+      fontSize: '48px',
       color: '#FF2E2E',
     }).setOrigin(0.5).setDepth(DEPTH.toast).setAlpha(0).setScale(0.65);
 
@@ -796,7 +839,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.add.rectangle(CX, H / 2, W, H, COLORS.black, 0.65).setDepth(DEPTH.modal);
     this.add
       .text(CX, H / 2, win ? RU.minigame.win : RU.minigame.lose, {
-        ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444',
+        fontFamily: PIXEL_FONT,
+        fontSize: '42px',
+        color: win ? '#4ADE80' : '#EF4444',
       })
       .setOrigin(0.5)
       .setDepth(DEPTH.modal + 1);
