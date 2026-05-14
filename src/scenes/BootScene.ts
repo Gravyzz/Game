@@ -14,6 +14,7 @@ export class BootScene extends Phaser.Scene {
   preload(): void {
     // ===== Бренд =====
     this.load.image('make-love-pizza-logo-pixel', 'assets/branding/logo-make-love-pizza-pixel.png');
+    this.load.image('main-menu-bg', 'assets/branding/main-menu-bg.png');
 
     // ===== UI =====
     this.load.image('heart-pixel',             'assets/ui/heart-pixel.png');

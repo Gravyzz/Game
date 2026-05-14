@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS } from '@config/colors';
 import { GAME, DEPTH } from '@config/game';
-import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { GameState } from '@core/GameState';
@@ -33,38 +32,22 @@ export class SplashScene extends Phaser.Scene {
     this.setPixelTexture('pizza-pixel');
     this.setPixelTexture('gamepad-pixel');
     this.setPixelTexture('make-love-pizza-logo-pixel');
+    this.setPixelTexture('main-menu-bg');
     this.setPixelTexture('plus-pixel');
     this.setPixelTexture('minus-pixel');
     this.setPixelTexture('cancel-pixel');
-    this.setPixelTexture('splash-tree-grey');
-    this.setPixelTexture('splash-tree-purple');
-    this.setPixelTexture('splash-tree-blue');
 
     const screenContent = this.add.container(WIDTH / 2, HEIGHT / 2);
     screenContent.setSize(WIDTH, HEIGHT);
     screenContent.setDepth(DEPTH.ui);
 
-    this.drawTreeBackdrop();
+    this.add.image(WIDTH / 2, HEIGHT / 2, 'main-menu-bg')
+      .setOrigin(0.5)
+      .setDisplaySize(WIDTH, HEIGHT)
+      .setDepth(DEPTH.background + 1);
 
     // ===== Сердца: количество жизней/доступа к сессии =====
     this.drawHearts();
-
-    // ===== Главное лого Make Love Pizza =====
-    const logoBrand = this.add.image(0, 305 - HEIGHT / 2, 'make-love-pizza-logo-pixel');
-    logoBrand.setOrigin(0.5);
-    logoBrand.setDisplaySize(500, 333);
-    logoBrand.setDepth(DEPTH.ui);
-    screenContent.add(logoBrand);
-
-    const adventures = this.add.text(0, 485 - HEIGHT / 2, RU.splash.tagline, {
-      fontFamily: this.pixelFont,
-      fontSize: '42px',
-      color: '#0A0A0A',
-      align: 'center',
-    });
-    adventures.setOrigin(0.5);
-    adventures.setDepth(DEPTH.ui);
-    screenContent.add(adventures);
 
     // ===== Главная кнопка =====
     const startBtn = this.createPixelButton(
@@ -95,26 +78,6 @@ export class SplashScene extends Phaser.Scene {
     attachSoundButton(this);
 
     this.cameras.main.fadeIn(400, 90, 84, 249);
-  }
-
-  private drawTreeBackdrop(): void {
-    const trees = [
-      { key: 'splash-tree-grey', x: 48, y: 825, w: 180, h: 430, alpha: 0.9 },
-      { key: 'splash-tree-grey', x: 622, y: 835, w: 190, h: 450, alpha: 0.9 },
-      { key: 'splash-tree-blue', x: 258, y: 915, w: 180, h: 440, alpha: 0.92 },
-      { key: 'splash-tree-blue', x: 520, y: 1005, w: 185, h: 455, alpha: 0.88 },
-      { key: 'splash-tree-purple', x: 92, y: 1110, w: 220, h: 555, alpha: 0.95 },
-      { key: 'splash-tree-purple', x: 365, y: 1150, w: 235, h: 590, alpha: 0.95 },
-      { key: 'splash-tree-blue', x: 655, y: 1150, w: 215, h: 535, alpha: 0.92 },
-    ];
-
-    trees.forEach((tree) => {
-      const img = this.add.image(tree.x, tree.y, tree.key);
-      img.setOrigin(0.5, 1);
-      img.setDisplaySize(tree.w, tree.h);
-      img.setAlpha(tree.alpha);
-      img.setDepth(DEPTH.background + 1);
-    });
   }
 
   private drawHearts(): void {
