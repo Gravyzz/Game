@@ -62,6 +62,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('recipe-balloon-g', 'assets/recipememo/balloon-g.png');
     this.load.image('recipe-balloon-o', 'assets/recipememo/balloon-o.png');
     this.load.image('recipe-balloon-r', 'assets/recipememo/balloon-r.png');
+    this.load.image('dontwork-bg', 'assets/dontwork/ninja-bg.png');
     this.load.image('chopchop-product-1', 'assets/chopchop/pixil-frame-0-34.png');
     this.load.image('chopchop-product-2', 'assets/chopchop/pixil-frame-0-33.png');
     this.load.image('chopchop-product-3', 'assets/chopchop/pixil-frame-0-32.png');

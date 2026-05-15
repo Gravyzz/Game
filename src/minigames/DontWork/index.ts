@@ -244,8 +244,11 @@ export class DontWorkScene extends BaseMinigame {
 
     // Background
     paintPageBackdrop(this, COLORS.purple);
-    this.add.rectangle(CX, H / 2, W, H, COLORS.purple).setDepth(DEPTH.background);
-    this.add.image(CX, H / 2, TEX_NOISE).setDepth(DEPTH.background);
+    this.textures.get('dontwork-bg').setFilter(Phaser.Textures.FilterMode.NEAREST);
+    const bg = this.add.image(CX, H / 2, 'dontwork-bg')
+      .setOrigin(0.5)
+      .setDepth(DEPTH.background);
+    bg.setScale(Math.max(W / bg.width, H / bg.height));
     attachHomeButton(this);
 
     // Title
