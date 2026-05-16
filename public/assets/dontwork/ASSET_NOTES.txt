@@ -1,0 +1,45 @@
+DontWork asset pack
+===================
+
+Background:
+- ninja-bg.png
+
+Ingredients / flying food objects:
+- ingredients/pepperoni.png
+- ingredients/cola.png
+- ingredients/cookie.png
+- ingredients/frenchfries.png
+- ingredients/pasta.png
+- ingredients/roll.png
+- ingredients/runaway.png
+- ingredients/5s.png
+- ingredients/lime.png
+- ingredients/bacon.png
+- ingredients/green-rings.png
+- ingredients/mushroom.png
+- ingredients/berry.png
+- ingredients/meatballs.png
+- ingredients/cheese.png
+- ingredients/chili.png
+- ingredients/tomato.png
+
+Original duplicated chopchop filenames are also kept in ingredients/:
+- ingredients/pixil-frame-0-25.png ... ingredients/pixil-frame-0-34.png
+
+Gameplay textures / possible replacements:
+- textures/knife.png
+- textures/bomb.png
+- textures/bonus-timer.png
+- textures/bonus-slowmo.png
+- textures/bonus-finger.png
+- textures/axe.png
+
+FX / result-style textures:
+- fx/ice.png
+- fx/coal.png
+- fx/ok.png
+- fx/knife-hit.png
+
+These files are copied from existing project assets so DontWork can have a
+self-contained visual pack before the scene is redesigned or rewired to use
+dedicated texture keys.
