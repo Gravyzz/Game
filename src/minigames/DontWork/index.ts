@@ -4,7 +4,6 @@ import { COLORS } from '@config/colors';
 import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import {
@@ -37,6 +36,8 @@ const CX = W / 2;
 const GRAVITY = 1400;
 const SLICE_TOLERANCE = 60;
 const TEX_NOISE = 'dw_noise_v2';
+const PIXEL_FONT = '"Press Start 2P", monospace';
+const DISPLAY_SCORE_GOAL = 150;
 
 type ObjType = 'bad' | 'good' | 'bomb' | 'pwr-slowmo' | 'pwr-life' | 'pwr-rage';
 
@@ -53,58 +54,54 @@ interface Stage {
   bossHP:        number;
   badEmojis:     string[];
   goodEmojis:    string[];
+  bgTexture:      string;
 }
 
-const BAD_BASE  = ['📧', '✉️', '⏰', '📊'];
-const BAD_EXTRA = ['📎', '📞', '💻'];
+const BAD_BASE  = ['dontwork-papers', 'dontwork-folder', 'dontwork-folderr'];
+const BAD_EXTRA = ['dontwork-clip', 'dontwork-stapler'];
 const GOOD      = [
-  'recipe-pepperoni',
-  'recipe-cola',
-  'recipe-cookie',
-  'recipe-frenchfries',
-  'recipe-pasta',
-  'recipe-roll',
-  'recipe-runaway',
-  'recipe-5s',
+  'dontwork-basic-pizza',
+  'dontwork-bolognese',
+  'dontwork-caesar-salad',
+  'dontwork-cheese-pizza',
+  'dontwork-coke',
+  'dontwork-french-fries',
 ];
-const BOMB_EMOJI = '💼';
+const BOMB_EMOJI = 'dontwork-bomb';
 
 const PWR_EMOJI: Record<'pwr-slowmo' | 'pwr-life' | 'pwr-rage', string> = {
-  'pwr-slowmo': '⏳',
-  'pwr-life':   '🍺',
-  'pwr-rage':   '⚡',
-};
-
-const PWR_LABEL: Record<'pwr-slowmo' | 'pwr-life' | 'pwr-rage', string> = {
-  'pwr-slowmo': 'SLOW-MO',
-  'pwr-life':   '+ЖИЗНЬ',
-  'pwr-rage':   'RAGE ×3',
+  'pwr-slowmo': 'dontwork-coffee',
+  'pwr-life':   'dontwork-coffee',
+  'pwr-rage':   'dontwork-coffee',
 };
 
 const STAGES: Stage[] = [
   {
-    name: 'ОФИС',  color: '#4ADE80',
+    name: 'офис',  color: '#0A0A0A',
     hint: '✂️ режь дедлайны  •  ❌ не задень кайф',
     goal: 6,  spawnInterval: 1050,
     goodChance: 0.25, bombChance: 0,    pwrChance: 0,
     hasBoss: false, bossHP: 0,
     badEmojis: BAD_BASE, goodEmojis: GOOD.slice(0, 3),
+    bgTexture: 'dontwork-office-bg',
   },
   {
-    name: 'ЧАТ БОССА', color: '#FFE600',
+    name: 'у босса', color: '#0A0A0A',
     hint: '⚠ появилась 💼 БОМБА — мгновенная смерть',
     goal: 8,  spawnInterval: 800,
     goodChance: 0.30, bombChance: 0.13, pwrChance: 0,
     hasBoss: false, bossHP: 0,
     badEmojis: [...BAD_BASE, BAD_EXTRA[0]], goodEmojis: GOOD.slice(0, 4),
+    bgTexture: 'dontwork-boss-bg',
   },
   {
-    name: 'АВРАЛ', color: '#FF2E2E',
+    name: 'дедлайн', color: '#0A0A0A',
     hint: '🎁 хватай бонусы  •  завали босса KPI',
     goal: 99, spawnInterval: 650,
     goodChance: 0.28, bombChance: 0.18, pwrChance: 0.10,
     hasBoss: true, bossHP: 10,
     badEmojis: [...BAD_BASE, ...BAD_EXTRA], goodEmojis: GOOD,
+    bgTexture: 'dontwork-deadline-bg',
   },
 ];
 
@@ -140,33 +137,33 @@ function decorationFor(type: ObjType): Decor {
   switch (type) {
     case 'bad':
       return {
-        radius: 46, fontSize: '64px',
-        fillColor: 0x4ade80, fillAlpha: 0.16,
-        strokeColor: 0x4ade80, strokeWidth: 4, strokeAlpha: 0.95,
+        radius: 56, fontSize: '64px',
+        fillColor: 0x72df67, fillAlpha: 0.18,
+        strokeColor: 0x72df67, strokeWidth: 4, strokeAlpha: 0.95,
         label: null, labelColor: '#4ADE80', pulse: null,
       };
     case 'good':
       return {
-        radius: 0, fontSize: '64px',
-        fillColor: 0,        fillAlpha: 0,
-        strokeColor: 0,      strokeWidth: 0, strokeAlpha: 0,
+        radius: 56, fontSize: '64px',
+        fillColor: 0xff2e2e, fillAlpha: 0.12,
+        strokeColor: 0xff2e2e, strokeWidth: 4, strokeAlpha: 0.95,
         label: null, labelColor: '#FAF7F0', pulse: null,
       };
     case 'bomb':
       return {
-        radius: 52, fontSize: '70px',
-        fillColor: 0xff2e2e, fillAlpha: 0.55,
-        strokeColor: 0x0a0a0a, strokeWidth: 6, strokeAlpha: 1,
-        label: 'БОМБА!', labelColor: '#FF2E2E', pulse: 'bomb',
+        radius: 64, fontSize: '70px',
+        fillColor: 0xff2e2e, fillAlpha: 0.14,
+        strokeColor: 0xff2e2e, strokeWidth: 4, strokeAlpha: 1,
+        label: null, labelColor: '#FF2E2E', pulse: 'bomb',
       };
     case 'pwr-slowmo':
     case 'pwr-life':
     case 'pwr-rage':
       return {
-        radius: 46, fontSize: '60px',
-        fillColor: 0xffe600, fillAlpha: 0.28,
-        strokeColor: 0xffe600, strokeWidth: 4, strokeAlpha: 1,
-        label: PWR_LABEL[type], labelColor: '#FFE600', pulse: 'pwr',
+        radius: 56, fontSize: '60px',
+        fillColor: 0xffe55c, fillAlpha: 0.18,
+        strokeColor: 0xffe55c, strokeWidth: 4, strokeAlpha: 1,
+        label: null, labelColor: '#FFE600', pulse: 'pwr',
       };
   }
 }
@@ -184,6 +181,7 @@ export class DontWorkScene extends BaseMinigame {
   private streak       = 0;
   private comboInSwipe = 0;
   private totalScore   = 0;
+  private errors       = 0;
 
   // Buffs
   private timeScale  = 1;
@@ -202,9 +200,11 @@ export class DontWorkScene extends BaseMinigame {
   private stageLbl!:  Phaser.GameObjects.Text;
   private livesHud!:  GlobalLivesDisplay;
   private scoreLbl!:  Phaser.GameObjects.Text;
+  private errorsLbl!: Phaser.GameObjects.Text;
   private streakLbl!: Phaser.GameObjects.Text;
+  private bgImage!:   Phaser.GameObjects.Image;
   private bossCtx:    Phaser.GameObjects.Container | null = null;
-  private bossLbl:    Phaser.GameObjects.Text       | null = null;
+  private bossLbl:    Phaser.GameObjects.Image      | null = null;
   private bossHpFill: Phaser.GameObjects.Rectangle  | null = null;
 
   // Trail
@@ -229,6 +229,7 @@ export class DontWorkScene extends BaseMinigame {
     this.streak       = 0;
     this.comboInSwipe = 0;
     this.totalScore   = 0;
+    this.errors       = 0;
     this.timeScale    = 1;
     this.rageEndsAt   = 0;
     this.finished     = false;
@@ -236,7 +237,17 @@ export class DontWorkScene extends BaseMinigame {
     this.canPlay      = false;
     this.trailPoints  = [];
 
-    GOOD.forEach((key) => {
+    [
+      ...GOOD,
+      ...BAD_BASE,
+      ...BAD_EXTRA,
+      BOMB_EMOJI,
+      'dontwork-coffee',
+      'dontwork-kpi-boss',
+      'dontwork-office-bg',
+      'dontwork-boss-bg',
+      'dontwork-deadline-bg',
+    ].forEach((key) => {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     });
 
@@ -244,47 +255,67 @@ export class DontWorkScene extends BaseMinigame {
 
     // Background
     paintPageBackdrop(this, COLORS.purple);
-    this.textures.get('dontwork-bg').setFilter(Phaser.Textures.FilterMode.NEAREST);
-    const bg = this.add.image(CX, H / 2, 'dontwork-bg')
+    this.bgImage = this.add.image(CX, H / 2, this.stage.bgTexture)
       .setOrigin(0.5)
       .setDepth(DEPTH.background);
-    bg.setScale(Math.max(W / bg.width, H / bg.height));
+    this.fitStageBackground();
     attachHomeButton(this);
 
-    // Title
-    const title = new PosterText(this, CX, 70, 'РЕЖЬ ДЕДЛАЙНЫ', {
-      bgColor: COLORS.yellow, textColor: '#0A0A0A',
-      fontSize: '26px', rotation: -0.025, paddingX: 18, paddingY: 9,
-    });
-    title.setDepth(DEPTH.ui);
-    this.add.existing(title);
+    this.add.rectangle(W - 154, 82, 252, 116, 0xdddddd, 0.96)
+      .setStrokeStyle(5, 0x0a0a0a, 1)
+      .setDepth(DEPTH.ui);
 
     this.stageLbl = this.add
-      .text(CX, 105, '', { ...TEXT_STYLES.subtitle, fontSize: '15px', color: this.stage.color })
-      .setOrigin(0.5, 0)
+      .text(W - 270, 38, '', {
+        ...TEXT_STYLES.subtitle,
+        fontFamily: PIXEL_FONT,
+        fontSize: '16px',
+        color: '#0A0A0A',
+      })
+      .setOrigin(0, 0)
       .setDepth(DEPTH.ui);
 
     this.livesHud = createGlobalLivesDisplay(this, {
-      x: 78,
-      countX: 54,
-      stackFirstX: 118,
-      y: 138,
+      x: 98,
+      countX: 64,
+      stackFirstX: 116,
+      y: 62,
       heartSize: 52,
-      heartGap: 64,
+      heartGap: 58,
       fontSize: '34px',
       color: '#FAF7F0',
     });
 
     this.scoreLbl = this.add
-      .text(W - 28, 138, '', { ...TEXT_STYLES.subtitle, fontSize: '18px', color: '#FAF7F0' })
-      .setOrigin(1, 0)
+      .text(W - 270, 76, '', {
+        ...TEXT_STYLES.subtitle,
+        fontFamily: PIXEL_FONT,
+        fontSize: '15px',
+        color: '#2CA044',
+      })
+      .setOrigin(0, 0)
+      .setDepth(DEPTH.ui);
+
+    this.errorsLbl = this.add
+      .text(W - 270, 109, '', {
+        ...TEXT_STYLES.subtitle,
+        fontFamily: PIXEL_FONT,
+        fontSize: '15px',
+        color: '#C24A4A',
+      })
+      .setOrigin(0, 0)
       .setDepth(DEPTH.ui);
 
     // Постоянная легенда — что резать, что не трогать
     this.buildLegend();
 
     this.streakLbl = this.add
-      .text(CX, 220, '', { ...TEXT_STYLES.subtitle, fontSize: '20px', color: '#FFE600' })
+      .text(CX, 220, '', {
+        ...TEXT_STYLES.subtitle,
+        fontFamily: PIXEL_FONT,
+        fontSize: '20px',
+        color: '#FFE600',
+      })
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.ui)
       .setAlpha(0);
@@ -346,30 +377,37 @@ export class DontWorkScene extends BaseMinigame {
     this.tweens.killAll();
   }
 
-  // ─── legend (top of screen) ────────────────────────────────────────────────
+  // ─── legend ────────────────────────────────────────────────────────────────
 
   private buildLegend(): void {
-    const Y = 178;
+    const panelW = W - 70;
+    const panelH = 116;
+    const panelX = CX;
+    const panelY = H - 88;
+    this.add.rectangle(panelX, panelY, panelW, panelH, 0xdddddd, 0.96)
+      .setStrokeStyle(5, 0x0a0a0a, 1)
+      .setDepth(DEPTH.ui);
+
     const cells = [
-      { swatch: 0x4ade80, swatchAlpha: 0.85, swatchStroke: 0x4ade80, label: '✂️ режь',  color: '#4ADE80' },
-      { swatch: 0x000000, swatchAlpha: 0,    swatchStroke: 0xfaf7f0, label: '❌ нет',   color: '#FAF7F0' },
-      { swatch: 0xff2e2e, swatchAlpha: 0.7,  swatchStroke: 0x0a0a0a, label: '💀 бомба', color: '#FF2E2E' },
-      { swatch: 0xffe600, swatchAlpha: 0.6,  swatchStroke: 0xffe600, label: '✨ бонус', color: '#FFE600' },
+      { x: panelX - 205, y: panelY - 30, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
+      { x: panelX + 92,  y: panelY - 30, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
+      { x: panelX - 205, y: panelY + 36, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
+      { x: panelX + 92,  y: panelY + 36, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
     ];
 
-    const cellW = 170;
-    const startX = CX - (cellW * cells.length) / 2 + cellW / 2;
-
-    for (let i = 0; i < cells.length; i++) {
-      const x = startX + i * cellW;
-      const c = cells[i];
-
-      this.add.circle(x - 50, Y, 9, c.swatch, c.swatchAlpha)
-        .setStrokeStyle(2, c.swatchStroke, 1)
+    for (const c of cells) {
+      this.add.circle(c.x, c.y, 25, c.ring, 0.22)
+        .setStrokeStyle(3, c.ring, 0.95)
         .setDepth(DEPTH.ui);
+      this.add.image(c.x, c.y, c.icon)
+        .setDisplaySize(42, 42)
+        .setDepth(DEPTH.ui + 1);
 
-      this.add.text(x - 30, Y, c.label, {
-        ...TEXT_STYLES.subtitle, fontSize: '14px', color: c.color,
+      this.add.text(c.x + 50, c.y, c.label, {
+        ...TEXT_STYLES.subtitle,
+        fontFamily: PIXEL_FONT,
+        fontSize: '15px',
+        color: '#C24A4A',
       }).setOrigin(0, 0.5).setDepth(DEPTH.ui);
     }
   }
@@ -381,6 +419,8 @@ export class DontWorkScene extends BaseMinigame {
     this.stage       = STAGES[idx];
     this.stageBadCut = 0;
     this.bossHP      = this.stage.bossHP;
+    this.bgImage.setTexture(this.stage.bgTexture);
+    this.fitStageBackground();
     this.refreshHud();
 
     if (this.stage.hasBoss) this.spawnBoss();
@@ -432,7 +472,12 @@ export class DontWorkScene extends BaseMinigame {
     // Stage clear banner
     const banner = this.add
       .text(CX, H / 2, 'СТЕЙДЖ ПРОЙДЕН!', {
-        ...TEXT_STYLES.hero, fontSize: '46px', color: '#4ADE80',
+        ...TEXT_STYLES.hero,
+        fontFamily: PIXEL_FONT,
+        fontSize: '40px',
+        color: '#4ADE80',
+        stroke: '#0A0A0A',
+        strokeThickness: 7,
       })
       .setOrigin(0.5).setDepth(DEPTH.toast).setAlpha(0).setScale(0.85);
 
@@ -469,13 +514,23 @@ export class DontWorkScene extends BaseMinigame {
 
     const txt = this.add
       .text(CX, H / 2 - 24, `${stage.name}  ${idx + 1}/${TOTAL_STAGES}`, {
-        ...TEXT_STYLES.hero, fontSize: '60px', color: stage.color,
+        ...TEXT_STYLES.hero,
+        fontFamily: PIXEL_FONT,
+        fontSize: '52px',
+        color: '#FAF7F0',
+        stroke: '#0A0A0A',
+        strokeThickness: 8,
       })
       .setOrigin(0.5).setDepth(DEPTH.toast).setAlpha(0).setScale(0.7);
 
     const hint = this.add
       .text(CX, H / 2 + 36, stage.hint, {
-        ...TEXT_STYLES.subtitle, fontSize: '18px', color: '#FAF7F0',
+        ...TEXT_STYLES.subtitle,
+        fontFamily: PIXEL_FONT,
+        fontSize: '16px',
+        color: '#FAF7F0',
+        stroke: '#0A0A0A',
+        strokeThickness: 5,
       })
       .setOrigin(0.5).setDepth(DEPTH.toast).setAlpha(0);
 
@@ -534,18 +589,21 @@ export class DontWorkScene extends BaseMinigame {
 
     if (this.textures.exists(emoji)) {
       const image = this.add.image(0, 0, emoji).setOrigin(0.5);
-      image.setDisplaySize(84, 84);
+      const size = this.getObjectDisplaySize(emoji, type);
+      image.setDisplaySize(size.w, size.h);
       ctx.add(image);
     } else {
-      const text = this.add.text(0, 0, emoji, { fontSize: decor.fontSize }).setOrigin(0.5);
+      const text = this.add.text(0, 0, emoji, {
+        fontFamily: PIXEL_FONT,
+        fontSize: decor.fontSize,
+      }).setOrigin(0.5);
       ctx.add(text);
     }
 
     if (decor.label) {
       const lbl = this.add.text(0, decor.radius + 14, decor.label, {
-        fontFamily: TEXT_STYLES.subtitle.fontFamily,
+        fontFamily: PIXEL_FONT,
         fontSize: '14px',
-        fontStyle: 'italic 800',
         color: decor.labelColor,
         stroke: '#0A0A0A',
         strokeThickness: 4,
@@ -579,6 +637,17 @@ export class DontWorkScene extends BaseMinigame {
     if (type === 'good') return this.stage.goodEmojis[Math.floor(Math.random() * this.stage.goodEmojis.length)];
     if (type === 'bomb') return BOMB_EMOJI;
     return PWR_EMOJI[type as keyof typeof PWR_EMOJI];
+  }
+
+  private getObjectDisplaySize(texture: string, type: ObjType): { w: number; h: number } {
+    if (type === 'bomb') return { w: 100, h: 100 };
+    if (type === 'pwr-slowmo' || type === 'pwr-life' || type === 'pwr-rage') return { w: 72, h: 72 };
+    if (texture === 'dontwork-french-fries') return { w: 78, h: 90 };
+    if (texture === 'dontwork-coke') return { w: 56, h: 92 };
+    if (texture === 'dontwork-clip') return { w: 76, h: 76 };
+    if (texture === 'dontwork-folder' || texture === 'dontwork-folderr') return { w: 88, h: 78 };
+    if (texture === 'dontwork-stapler') return { w: 86, h: 62 };
+    return { w: 86, h: 86 };
   }
 
   private destroyObject(obj: FlyingObject): void {
@@ -702,6 +771,7 @@ export class DontWorkScene extends BaseMinigame {
 
   private onCutGood(x: number, y: number): void {
     this.streak = 0;
+    this.errors++;
     this.lives--;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
@@ -717,6 +787,7 @@ export class DontWorkScene extends BaseMinigame {
     this.cameras.main.shake(260, 0.022);
     SoundManager.playSfx('lose');
     Haptics.trigger('lose');
+    this.errors = this.maxLives;
     this.lives = 0;
     this.refreshHud();
     this.finish(false);
@@ -724,6 +795,7 @@ export class DontWorkScene extends BaseMinigame {
 
   private onMissBad(): void {
     this.streak = 0;
+    this.errors++;
     this.lives--;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
@@ -758,25 +830,25 @@ export class DontWorkScene extends BaseMinigame {
   // ─── boss ──────────────────────────────────────────────────────────────────
 
   private spawnBoss(): void {
-    const c = this.add.container(CX, 270).setDepth(DEPTH.ui);
+    const c = this.add.container(CX, 245).setDepth(DEPTH.gameplay);
 
-    const txt = this.add.text(0, -8, '📋 KPI', { fontSize: '46px' }).setOrigin(0.5);
-    txt.setStroke('#FF2E2E', 6);
+    const boss = this.add.image(0, -18, 'dontwork-kpi-boss').setOrigin(0.5);
+    boss.setDisplaySize(130, 130);
 
-    const bw = 280, bh = 14;
-    const frame = this.add.rectangle(0, 30, bw, bh, 0x0a0a0a)
-      .setStrokeStyle(2, COLORS.cream);
-    const fill  = this.add.rectangle(-bw / 2 + 1, 30, bw - 2, bh - 2, 0x4ade80)
+    const bw = 280, bh = 18;
+    const frame = this.add.rectangle(0, 72, bw, bh, 0x0a0a0a)
+      .setStrokeStyle(3, 0x0a0a0a);
+    const fill  = this.add.rectangle(-bw / 2 + 3, 72, bw - 6, bh - 6, 0x4ade80)
       .setOrigin(0, 0.5);
     fill.setData('maxHP', this.bossHP);
 
-    c.add([txt, frame, fill]);
+    c.add([boss, frame, fill]);
     c.setAlpha(0).setScale(0.7);
 
     this.tweens.add({ targets: c, alpha: 1, scale: 1, duration: 350, ease: 'Cubic.easeOut' });
 
     this.bossCtx    = c;
-    this.bossLbl    = txt;
+    this.bossLbl    = boss;
     this.bossHpFill = fill;
   }
 
@@ -847,7 +919,10 @@ export class DontWorkScene extends BaseMinigame {
 
   private showCombo(x: number, y: number, mult: number): void {
     const t = this.add.text(x, y - 50, `×${mult}`, {
-      ...TEXT_STYLES.hero, fontSize: '38px', color: '#FFE600',
+      ...TEXT_STYLES.hero,
+      fontFamily: PIXEL_FONT,
+      fontSize: '38px',
+      color: '#FFE600',
     }).setOrigin(0.5).setDepth(DEPTH.toast).setAlpha(0).setScale(0.6);
     this.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 160, ease: 'Cubic.easeOut' });
     this.tweens.add({
@@ -871,7 +946,10 @@ export class DontWorkScene extends BaseMinigame {
 
   private showToast(text: string, color: string): void {
     const t = this.add.text(CX, H / 2 - 100, text, {
-      ...TEXT_STYLES.hero, fontSize: '42px', color,
+      ...TEXT_STYLES.hero,
+      fontFamily: PIXEL_FONT,
+      fontSize: '42px',
+      color,
     }).setOrigin(0.5).setDepth(DEPTH.toast).setAlpha(0).setScale(0.7);
     this.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 220, ease: 'Cubic.easeOut' });
     this.tweens.add({
@@ -893,10 +971,29 @@ export class DontWorkScene extends BaseMinigame {
 
   private refreshHud(): void {
     this.livesHud.update();
-    this.scoreLbl.setText(`✂️ ${this.totalScore}`);
+    const stageScore = this.getStageDisplayScore();
+    const stageScoreGoal = this.getStageDisplayScoreGoal();
+    this.scoreLbl.setText(`очки ${stageScore}/${stageScoreGoal}`);
+    this.errorsLbl.setText(`ошибки ${Math.min(this.errors, this.maxLives)}/${this.maxLives}`);
     this.stageLbl
       .setText(`${this.stage.name}  ${this.stageIdx + 1}/${TOTAL_STAGES}`)
       .setColor(this.stage.color);
+  }
+
+  private getStageDisplayScore(): number {
+    const goal = this.stage.hasBoss ? this.stage.bossHP : this.stage.goal;
+    const done = this.stage.hasBoss ? Math.max(0, this.stage.bossHP - this.bossHP) : this.stageBadCut;
+    if (goal <= 0) return 0;
+    return Math.min(DISPLAY_SCORE_GOAL, Math.round((done / goal) * DISPLAY_SCORE_GOAL));
+  }
+
+  private getStageDisplayScoreGoal(): number {
+    return DISPLAY_SCORE_GOAL;
+  }
+
+  private fitStageBackground(): void {
+    this.bgImage.setPosition(CX, H / 2);
+    this.bgImage.setScale(Math.max(W / this.bgImage.width, H / this.bgImage.height));
   }
 
   // ─── finish ────────────────────────────────────────────────────────────────
@@ -913,7 +1010,10 @@ export class DontWorkScene extends BaseMinigame {
     this.add.rectangle(CX, H / 2, W, H, COLORS.black, 0.65).setDepth(DEPTH.modal);
     this.add
       .text(CX, H / 2, win ? RU.minigame.win : RU.minigame.lose, {
-        ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444',
+        ...TEXT_STYLES.hero,
+        fontFamily: PIXEL_FONT,
+        fontSize: '48px',
+        color: win ? '#4ADE80' : '#EF4444',
       })
       .setOrigin(0.5)
       .setDepth(DEPTH.modal + 1);

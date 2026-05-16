@@ -83,7 +83,7 @@ export const RU = {
     // Имена минок (используются на табло «уровень N: ...»)
     names: {
       RhythmBattle:  'ОЛДСКУЛ vs ШОКИНГ БЛЮ',
-      DontWork:      'ДОНТВОРК: РАСКОЛБАС',
+      DontWork:      'РЕЖЕМ ДЕДЛАЙНЫ',
       NightDelivery: 'НОЧНАЯ ДОСТАВКА',
       FireStarter:   'ФАЕРСТАРТЕР: ПЕЧЬ',
       Surfer:        'СЁРФЕР НА ВОЛНЕ',
@@ -98,7 +98,7 @@ export const RU = {
     // Короткий tutorial-стикер перед каждой минкой
     hints: {
       RhythmBattle:  'ТАПАЙ В РИТМ',
-      DontWork:      'РЕЖЬ ДЕДЛАЙНЫ',
+      DontWork:      'РЕЖЕМ ДЕДЛАЙНЫ',
       NightDelivery: 'СВАЙП ВВЕРХ/ВНИЗ',
       FireStarter:   'ТАЙМИНГ — ОДИН ТАП',
       Surfer:        'ТАП — ПРЫЖОК',
