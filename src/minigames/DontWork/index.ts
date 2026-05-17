@@ -381,32 +381,32 @@ export class DontWorkScene extends BaseMinigame {
 
   private buildLegend(): void {
     const panelW = W - 70;
-    const panelH = 116;
+    const panelH = 150;
     const panelX = CX;
-    const panelY = H - 88;
+    const panelY = H - 105;
     this.add.rectangle(panelX, panelY, panelW, panelH, 0xdddddd, 0.96)
-      .setStrokeStyle(5, 0x0a0a0a, 1)
+      .setStrokeStyle(6, 0x0a0a0a, 1)
       .setDepth(DEPTH.ui);
 
     const cells = [
-      { x: panelX - 205, y: panelY - 30, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
-      { x: panelX + 92,  y: panelY - 30, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
-      { x: panelX - 205, y: panelY + 36, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
-      { x: panelX + 92,  y: panelY + 36, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
+      { x: panelX - 210, y: panelY - 40, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
+      { x: panelX + 90,  y: panelY - 40, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
+      { x: panelX - 210, y: panelY + 42, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
+      { x: panelX + 90,  y: panelY + 42, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
     ];
 
     for (const c of cells) {
-      this.add.circle(c.x, c.y, 25, c.ring, 0.22)
-        .setStrokeStyle(3, c.ring, 0.95)
+      this.add.circle(c.x, c.y, 34, c.ring, 0.22)
+        .setStrokeStyle(4, c.ring, 0.95)
         .setDepth(DEPTH.ui);
       this.add.image(c.x, c.y, c.icon)
-        .setDisplaySize(42, 42)
+        .setDisplaySize(58, 58)
         .setDepth(DEPTH.ui + 1);
 
-      this.add.text(c.x + 50, c.y, c.label, {
+      this.add.text(c.x + 64, c.y, c.label, {
         ...TEXT_STYLES.subtitle,
         fontFamily: PIXEL_FONT,
-        fontSize: '15px',
+        fontSize: '19px',
         color: '#C24A4A',
       }).setOrigin(0, 0.5).setDepth(DEPTH.ui);
     }

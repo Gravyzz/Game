@@ -84,7 +84,7 @@ const PRODUCT_VISUAL_SIZE = 150;
 const HUD_TEXT_COLOR = '#FFFFFF';
 const HUD_TEXT_STROKE = '#0A0A0A';
 const HUD_TEXT_STROKE_THICKNESS = 5;
-const PERK_ROULETTE_ICON_SIZE = 59;
+const PERK_ROULETTE_ICON_SIZE = 88;
 
 const BAR_WIDTH = 360;
 const BAR_HEIGHT = 40;
@@ -231,7 +231,7 @@ export class ChopChopScene extends BaseMinigame {
     // === Диди (верх) ===
     this.didiPortrait = this.add.image(175, 350, 'chopchop-didi');
     this.didiPortrait.setOrigin(0.5);
-    this.didiPortrait.setDisplaySize(150, 150);
+    this.didiPortrait.setDisplaySize(180, 180);
     this.didiPortrait.setDepth(DEPTH.ui);
 
     const didiName = this.add.text(DIDI_BAR_X + BAR_WIDTH / 2 - 45, DIDI_BAR_Y - 58, 'ДИДИ', {
@@ -340,7 +340,7 @@ export class ChopChopScene extends BaseMinigame {
     // === Игрок (низ) ===
     this.playerPortrait = this.add.image(535, 905, 'chopchop-jeffri');
     this.playerPortrait.setOrigin(0.5);
-    this.playerPortrait.setDisplaySize(150, 150);
+    this.playerPortrait.setDisplaySize(180, 180);
     this.playerPortrait.setDepth(DEPTH.ui);
 
     const playerName = this.add.text(105, PLAYER_BAR_Y - 56, 'ТЫ', {
@@ -729,7 +729,7 @@ export class ChopChopScene extends BaseMinigame {
     }
     if (!this.activePerk) return;
     const p = PERKS[this.activePerk];
-    this.perkBadgeText = this.add.text(WIDTH / 2, 380,
+    this.perkBadgeText = this.add.text(WIDTH / 2, PLAYER_BAR_Y - 86,
       `${p.emoji} ${p.name}`,
       {
         fontFamily: PIXEL_FONT,
@@ -744,6 +744,12 @@ export class ChopChopScene extends BaseMinigame {
 
   private pickRandomPerk(): PerkId {
     return PERK_IDS[Phaser.Math.Between(0, PERK_IDS.length - 1)];
+  }
+
+  private fitPerkRouletteIcon(icon: Phaser.GameObjects.Image): number {
+    const scale = PERK_ROULETTE_ICON_SIZE / Math.max(icon.width, icon.height);
+    icon.setScale(scale);
+    return scale;
   }
 
   /** Рулетка перков а-ля казино: карточка быстро прокручивает варианты, замедляется и
@@ -776,7 +782,7 @@ export class ChopChopScene extends BaseMinigame {
 
     const perkIcon = this.add.image(WIDTH / 2, HEIGHT / 2 - 50, PERKS[PERK_IDS[0]].texture);
     perkIcon.setOrigin(0.5);
-    perkIcon.setDisplaySize(PERK_ROULETTE_ICON_SIZE, PERK_ROULETTE_ICON_SIZE);
+    let perkIconBaseScale = this.fitPerkRouletteIcon(perkIcon);
     perkIcon.setDepth(DEPTH.modal + 2);
 
     const name = this.add.text(WIDTH / 2, HEIGHT / 2 + 30, '', {
@@ -837,16 +843,18 @@ export class ChopChopScene extends BaseMinigame {
       const cur = PERK_IDS[step % PERK_IDS.length];
       const p = PERKS[cur];
       perkIcon.setTexture(p.texture);
-      perkIcon.setDisplaySize(PERK_ROULETTE_ICON_SIZE, PERK_ROULETTE_ICON_SIZE);
+      perkIconBaseScale = this.fitPerkRouletteIcon(perkIcon);
       name.setText(p.name);
       name.setColor(p.isCurse ? '#FF6B6B' : '#5DFF8E');
       slotBg.setStrokeStyle(6, p.isCurse ? COLORS.lose : COLORS.win);
 
       // Тик-пульс
       this.tweens.killTweensOf(perkIcon);
-      perkIcon.setScale(1.0);
+      perkIcon.setScale(perkIconBaseScale);
       this.tweens.add({
-        targets: perkIcon, scale: { from: 1.18, to: 1 }, duration: 90,
+        targets: perkIcon,
+        scale: { from: perkIconBaseScale * 1.18, to: perkIconBaseScale },
+        duration: 90,
       });
 
       SoundManager.playSfx('tap');
@@ -857,7 +865,7 @@ export class ChopChopScene extends BaseMinigame {
         // Финальная остановка
         const final = PERKS[perkId];
         perkIcon.setTexture(final.texture);
-        perkIcon.setDisplaySize(PERK_ROULETTE_ICON_SIZE, PERK_ROULETTE_ICON_SIZE);
+        perkIconBaseScale = this.fitPerkRouletteIcon(perkIcon);
         name.setText(final.name);
         name.setColor(final.isCurse ? '#FF6B6B' : '#5DFF8E');
         slotBg.setStrokeStyle(6, final.isCurse ? COLORS.lose : COLORS.win);
@@ -867,9 +875,10 @@ export class ChopChopScene extends BaseMinigame {
         titleTop.setColor(final.isCurse ? '#EF4444' : '#0A8C45');
 
         this.tweens.killTweensOf(perkIcon);
-        perkIcon.setScale(1);
+        perkIcon.setScale(perkIconBaseScale);
         this.tweens.add({
-          targets: perkIcon, scale: { from: 1.6, to: 1 },
+          targets: perkIcon,
+          scale: { from: perkIconBaseScale * 1.35, to: perkIconBaseScale },
           duration: 450, ease: 'Back.easeOut',
         });
         desc.setText(final.desc);
@@ -1169,7 +1178,7 @@ export class ChopChopScene extends BaseMinigame {
       this.playerWins += 1;
       SoundManager.playSfx('perfect');
       Haptics.trigger('win');
-      this.setBig('ПОБЕДА!', '#0A0A0A');
+      this.setBig('ПОБЕДА!', '#FFFFFF');
     } else {
       this.didiWins += 1;
       SoundManager.playSfx('miss');

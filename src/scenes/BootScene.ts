@@ -45,6 +45,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('firestarter-picture', 'assets/firestarter/picture.png');
     this.load.image('firestarter-plant', 'assets/firestarter/plant.png');
     this.load.image('firestarter-lamp', 'assets/firestarter/lamp.png');
+    this.load.image('recipe-bg', 'assets/recipememo/bg.png');
     this.load.image('recipe-card-cover', 'assets/recipememo/card-cover.png');
     this.load.image('recipe-card-face', 'assets/recipememo/card-face.png');
     this.load.image('recipe-5s', 'assets/recipememo/5s.png');

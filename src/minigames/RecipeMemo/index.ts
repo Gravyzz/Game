@@ -45,8 +45,6 @@ const PAIR_ICONS = [
   'recipe-runaway',
 ];
 const RECIPE_BG = 0xefd2a7;
-const BOARD_GREEN = 0x2a5520;
-const BOTTOM_PANEL = 0x3a342b;
 
 interface RoundCfg {
   pairs: number;
@@ -130,24 +128,23 @@ export class RecipeMemoScene extends BaseMinigame {
     this.preparePixelTextures();
 
     paintPageBackdrop(this, RECIPE_BG);
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, RECIPE_BG)
-      .setStrokeStyle(4, COLORS.black)
-      .setDepth(DEPTH.background);
-    this.add.rectangle(WIDTH / 2, HEIGHT - 135, WIDTH, 270, BOTTOM_PANEL)
-      .setDepth(DEPTH.background + 1);
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'recipe-bg');
+    bg.setOrigin(0.5);
+    bg.setDepth(DEPTH.background);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
     this.drawTopHud();
 
     // Таймер-бар
     const barW = WIDTH - 92;
     this.timerBarMaxWidth = barW - 10;
-    this.timerBarBg = this.add.rectangle(WIDTH / 2, 225, barW, 28, COLORS.cream);
+    this.timerBarBg = this.add.rectangle(WIDTH / 2, 175, barW, 28, COLORS.cream);
     this.timerBarBg.setStrokeStyle(7, COLORS.black);
     this.timerBarBg.setDepth(DEPTH.ui);
-    this.timerBar = this.add.rectangle(WIDTH / 2 - barW / 2 + 5, 225, this.timerBarMaxWidth, 18, COLORS.win);
+    this.timerBar = this.add.rectangle(WIDTH / 2 - barW / 2 + 5, 175, this.timerBarMaxWidth, 18, COLORS.win);
     this.timerBar.setOrigin(0, 0.5);
     this.timerBar.setDepth(DEPTH.ui + 1);
 
-    this.sandWatch = this.add.image(78, 175, 'recipe-sand-watch');
+    this.sandWatch = this.add.image(78, 125, 'recipe-sand-watch');
     this.sandWatch.setDisplaySize(36, 36);
     this.sandWatch.setAngle(180);
     this.sandWatch.setDepth(DEPTH.ui);
@@ -161,7 +158,7 @@ export class RecipeMemoScene extends BaseMinigame {
       yoyo: true,
       ease: 'Cubic.easeInOut',
     });
-    this.timerText = this.add.text(112, 160, '', {
+    this.timerText = this.add.text(112, 110, '', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '30px',
       color: '#0A0A0A',
@@ -187,34 +184,34 @@ export class RecipeMemoScene extends BaseMinigame {
     this.mistakesText.setDepth(DEPTH.ui);
 
     // Кнопка «ПОДСМОТРЕТЬ»
-    this.peekBtn = this.add.rectangle(WIDTH / 2, 1080, WIDTH - 190, 78, 0xff4e25);
-    this.peekBtn.setStrokeStyle(4, COLORS.black);
+    this.peekBtn = this.add.rectangle(WIDTH / 2, 1102, WIDTH - 154, 66, 0xd93b35);
+    this.peekBtn.setStrokeStyle(5, COLORS.black);
     this.peekBtn.setDepth(DEPTH.ui);
     this.peekBtn.setInteractive({ useHandCursor: true });
     this.peekBtn.on('pointerdown', () => this.onPeek());
 
-    this.peekIcon = this.add.image(WIDTH / 2 - 135, 1080, 'recipe-magnifer');
-    this.peekIcon.setDisplaySize(55, 55);
+    this.peekIcon = this.add.image(WIDTH / 2 - 150, 1102, 'recipe-magnifer');
+    this.peekIcon.setDisplaySize(46, 46);
     this.peekIcon.setDepth(DEPTH.ui + 1);
 
-    this.peekLabel = this.add.text(WIDTH / 2 + 55, 1080, '', {
+    this.peekLabel = this.add.text(WIDTH / 2 + 48, 1102, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '28px',
+      fontSize: '24px',
       color: '#FAF7F0',
       align: 'center',
     });
     this.peekLabel.setOrigin(0.5);
     this.peekLabel.setDepth(DEPTH.ui + 1);
 
-    const helpPanel = this.add.rectangle(WIDTH / 2, 1192, WIDTH - 190, 128, 0x5a54f9);
-    helpPanel.setStrokeStyle(4, COLORS.black);
+    const helpPanel = this.add.rectangle(WIDTH / 2, 1202, WIDTH - 154, 112, 0xf6e3bd);
+    helpPanel.setStrokeStyle(5, 0x1d4e91);
     helpPanel.setDepth(DEPTH.ui);
-    const helpText = this.add.text(WIDTH / 2, 1192, 'Собери все рецепты!\nне угадал = -10 сек\nподсмотреть больше\n1 раза = -20 сек', {
+    const helpText = this.add.text(WIDTH / 2, 1202, 'СОБЕРИ ВСЕ РЕЦЕПТЫ!\nОШИБКА: -10 СЕК.\nПОДСМОТР: -20 СЕК.', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '19px',
-      color: '#FAF7F0',
+      fontSize: '17px',
+      color: '#0A0A0A',
       align: 'center',
-      lineSpacing: 12,
+      lineSpacing: 9,
     });
     helpText.setOrigin(0.5);
     helpText.setDepth(DEPTH.ui + 1);
@@ -252,6 +249,7 @@ export class RecipeMemoScene extends BaseMinigame {
     [
       'heart-pixel',
       'home-pixel',
+      'recipe-bg',
       'recipe-card-cover',
       'recipe-card-face',
       'recipe-5s',
@@ -338,17 +336,13 @@ export class RecipeMemoScene extends BaseMinigame {
     });
     const shuffledDeck = this.shuffle(deck);
 
-    // Доступная зона: зелёная доска из макета
-    const boardX = WIDTH / 2;
-    const boardY = 625;
-    const boardW = WIDTH - 24;
-    const boardH = 740;
-    this.board = this.add.rectangle(boardX, boardY, boardW, boardH, BOARD_GREEN);
-    this.board.setStrokeStyle(7, 0x7a4a2a);
-    this.board.setDepth(DEPTH.midground);
+    // Доступная зона совпадает с игровым полем, уже нарисованным на фоне.
+    const boardY = 525;
+    const boardW = WIDTH - 54;
+    const boardH = 676;
 
-    const gridTop = boardY - boardH / 2 + 58;
-    const gridBottom = boardY + boardH / 2 - 58;
+    const gridTop = boardY - boardH / 2 + 70;
+    const gridBottom = boardY + boardH / 2 - 60;
     const gridArea = gridBottom - gridTop;
 
     const visualCols = cfg.cols;
@@ -537,6 +531,7 @@ export class RecipeMemoScene extends BaseMinigame {
   }
 
   private flashCard(card: Card, color: number): void {
+    this.spawnMatchGlow(card);
     card.iconImage.setTint(color);
     this.tweens.add({
       targets: card.container,
@@ -545,6 +540,44 @@ export class RecipeMemoScene extends BaseMinigame {
       yoyo: true,
       onComplete: () => card.iconImage.clearTint(),
     });
+  }
+
+  private spawnMatchGlow(card: Card): void {
+    const { x, y } = card.container;
+    const glow = this.add.circle(x, y, Math.max(card.container.width, card.container.height) * 0.48, 0xffe7a5, 0.34);
+    glow.setDepth(DEPTH.gameplay - 1);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: glow,
+      scale: 1.35,
+      alpha: 0,
+      duration: 650,
+      ease: 'Sine.easeOut',
+      onComplete: () => glow.destroy(),
+    });
+
+    for (let i = 0; i < 14; i++) {
+      const spark = this.add.rectangle(
+        x + Phaser.Math.Between(-36, 36),
+        y + Phaser.Math.Between(-36, 36),
+        Phaser.Math.Between(4, 7),
+        Phaser.Math.Between(4, 7),
+        Phaser.Utils.Array.GetRandom([0xfff2b3, 0xffdc73, 0xffffff]),
+        0.95,
+      );
+      spark.setDepth(DEPTH.gameplay + 2);
+      spark.setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: spark,
+        x: spark.x + Phaser.Math.Between(-28, 28),
+        y: spark.y + Phaser.Math.Between(-36, 20),
+        alpha: 0,
+        scale: 0.35,
+        duration: Phaser.Math.Between(420, 780),
+        ease: 'Sine.easeOut',
+        onComplete: () => spark.destroy(),
+      });
+    }
   }
 
   private checkRoundComplete(): void {
