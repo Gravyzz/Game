@@ -175,7 +175,7 @@ export class RecipeMemoScene extends BaseMinigame {
     this.statusText.setOrigin(1, 0);
     this.statusText.setDepth(DEPTH.ui);
 
-    this.mistakesText = this.add.text(WIDTH - 48, 162, '', {
+    this.mistakesText = this.add.text(WIDTH - 48, 128, '', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '30px',
       color: '#FF2E2E',
@@ -337,7 +337,7 @@ export class RecipeMemoScene extends BaseMinigame {
     const shuffledDeck = this.shuffle(deck);
 
     // Доступная зона совпадает с игровым полем, уже нарисованным на фоне.
-    const boardY = 525;
+    const boardY = 555;
     const boardW = WIDTH - 54;
     const boardH = 676;
 
