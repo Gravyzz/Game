@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BaseMinigame } from '@minigames/BaseMinigame';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
@@ -55,18 +54,37 @@ const ROUND_CONFIG: RoundCfg[] = [
 ];
 
 const PRODUCTS = [
-  'chopchop-product-1',
-  'chopchop-product-2',
-  'chopchop-product-3',
-  'chopchop-product-4',
-  'chopchop-product-5',
-  'chopchop-product-6',
-  'chopchop-product-7',
-  'chopchop-product-8',
-  'chopchop-product-9',
-  'chopchop-product-10',
+  'chopchop-product-bacon',
+  'chopchop-product-basilic',
+  'chopchop-product-blue-cheese',
+  'chopchop-product-cheese',
+  'chopchop-product-holopenio',
+  'chopchop-product-italian-weed',
+  'chopchop-product-ham',
+  'chopchop-product-maslins',
+  'chopchop-product-meat',
+  'chopchop-product-olive',
+  'chopchop-product-onion',
+  'chopchop-product-parmedjano',
+  'chopchop-product-purple-basilic',
+  'chopchop-product-pineaple',
+  'chopchop-product-pepper',
+  'chopchop-product-peperoni',
+  'chopchop-product-parsley',
+  'chopchop-product-red-onion',
+  'chopchop-product-salad',
+  'chopchop-product-sausage',
+  'chopchop-product-sause',
+  'chopchop-product-shampinions',
+  'chopchop-product-sweet-pepper',
+  'chopchop-product-tomato',
+  'chopchop-product-viled-tomatoes',
 ];
 const PRODUCT_VISUAL_SIZE = 150;
+const HUD_TEXT_COLOR = '#FFFFFF';
+const HUD_TEXT_STROKE = '#0A0A0A';
+const HUD_TEXT_STROKE_THICKNESS = 5;
+const PERK_ROULETTE_ICON_SIZE = 59;
 
 const BAR_WIDTH = 360;
 const BAR_HEIGHT = 40;
@@ -190,14 +208,22 @@ export class ChopChopScene extends BaseMinigame {
     this.dullKnifeFlip = false;
 
     // Фон
-    paintPageBackdrop(this, 0xffeb3f);
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0xffeb3f);
+    paintPageBackdrop(this, 0x1d1712);
+    this.textures.get('chopchop-bg').setFilter(Phaser.Textures.FilterMode.NEAREST);
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'chopchop-bg');
+    bg.setOrigin(0.5);
+    bg.setDepth(DEPTH.background);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
     attachHomeButton(this);
     createGlobalLivesDisplay(this);
 
     // Счёт раундов — пиксельный шрифт как на мейн-меню
     this.scoreText = this.add.text(WIDTH / 2, 210, '', {
-      fontFamily: PIXEL_FONT, fontSize: '26px', color: '#0A0A0A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '26px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     this.scoreText.setOrigin(0.5);
     this.scoreText.setDepth(DEPTH.ui);
@@ -209,7 +235,11 @@ export class ChopChopScene extends BaseMinigame {
     this.didiPortrait.setDepth(DEPTH.ui);
 
     const didiName = this.add.text(DIDI_BAR_X + BAR_WIDTH / 2 - 45, DIDI_BAR_Y - 58, 'ДИДИ', {
-      fontFamily: PIXEL_FONT, fontSize: '18px', color: '#0A0A0A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '18px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     didiName.setOrigin(0.5);
     didiName.setDepth(DEPTH.ui);
@@ -224,27 +254,43 @@ export class ChopChopScene extends BaseMinigame {
     this.didiBar.setDepth(DEPTH.gameplay + 1);
 
     this.didiCountText = this.add.text(DIDI_BAR_X, DIDI_BAR_Y, '', {
-      fontFamily: PIXEL_FONT, fontSize: '18px', color: '#0A0A0A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '18px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     this.didiCountText.setOrigin(0.5);
     this.didiCountText.setDepth(DEPTH.ui);
 
     // === Центр ===
     this.roundText = this.add.text(WIDTH - 70, 150, '', {
-      fontFamily: PIXEL_FONT, fontSize: '22px', color: '#ff3b21',
+      fontFamily: PIXEL_FONT,
+      fontSize: '22px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     this.roundText.setOrigin(1, 0.5);
     this.roundText.setDepth(DEPTH.ui);
 
     this.modeText = this.add.text(WIDTH / 2, 255, '', {
-      fontFamily: PIXEL_FONT, fontSize: '14px', color: '#0A0A0A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '14px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     this.modeText.setOrigin(0.5);
     this.modeText.setDepth(DEPTH.ui);
     this.modeText.setVisible(false);
 
     this.bigText = this.add.text(WIDTH / 2, HEIGHT * 0.5, '', {
-      fontFamily: PIXEL_FONT, fontSize: '48px', color: '#FFE600',
+      fontFamily: PIXEL_FONT,
+      fontSize: '48px',
+      color: '#FFE600',
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: 8,
     });
     this.bigText.setOrigin(0.5);
     this.bigText.setDepth(DEPTH.modal);
@@ -298,7 +344,11 @@ export class ChopChopScene extends BaseMinigame {
     this.playerPortrait.setDepth(DEPTH.ui);
 
     const playerName = this.add.text(105, PLAYER_BAR_Y - 56, 'ТЫ', {
-      fontFamily: PIXEL_FONT, fontSize: '18px', color: '#0A0A0A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '18px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     playerName.setOrigin(0, 0.5);
     playerName.setDepth(DEPTH.ui);
@@ -313,7 +363,11 @@ export class ChopChopScene extends BaseMinigame {
     this.playerBar.setDepth(DEPTH.gameplay + 1);
 
     this.playerCountText = this.add.text(PLAYER_BAR_X, PLAYER_BAR_Y, '', {
-      fontFamily: PIXEL_FONT, fontSize: '18px', color: '#0A0A0A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '18px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     this.playerCountText.setOrigin(0.5);
     this.playerCountText.setDepth(DEPTH.ui);
@@ -323,7 +377,11 @@ export class ChopChopScene extends BaseMinigame {
     this.tapZoneBg.setStrokeStyle(6, COLORS.black);
     this.tapZoneBg.setDepth(DEPTH.gameplay);
     this.tapZoneLabel = this.add.text(WIDTH / 2, TAP_BUTTON_Y, 'TAP!', {
-      fontFamily: PIXEL_FONT, fontSize: '52px', color: '#FFFFFF',
+      fontFamily: PIXEL_FONT,
+      fontSize: '52px',
+      color: '#FFFFFF',
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: 7,
     });
     this.tapZoneLabel.setOrigin(0.5);
     this.tapZoneLabel.setDepth(DEPTH.gameplay + 1);
@@ -673,7 +731,13 @@ export class ChopChopScene extends BaseMinigame {
     const p = PERKS[this.activePerk];
     this.perkBadgeText = this.add.text(WIDTH / 2, 380,
       `${p.emoji} ${p.name}`,
-      { ...TEXT_STYLES.label, fontSize: '14px', color: p.isCurse ? '#EF4444' : '#4ADE80' });
+      {
+        fontFamily: PIXEL_FONT,
+        fontSize: '14px',
+        color: p.isCurse ? '#EF4444' : '#4ADE80',
+        stroke: HUD_TEXT_STROKE,
+        strokeThickness: 4,
+      });
     this.perkBadgeText.setOrigin(0.5);
     this.perkBadgeText.setDepth(DEPTH.ui);
   }
@@ -696,7 +760,11 @@ export class ChopChopScene extends BaseMinigame {
     cardBg.setDepth(DEPTH.modal + 1);
 
     const titleTop = this.add.text(WIDTH / 2, HEIGHT / 2 - 150, 'РУЛЕТКА', {
-      fontFamily: PIXEL_FONT, fontSize: '20px', color: '#0A0A0A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '20px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     titleTop.setOrigin(0.5);
     titleTop.setDepth(DEPTH.modal + 2);
@@ -708,17 +776,25 @@ export class ChopChopScene extends BaseMinigame {
 
     const perkIcon = this.add.image(WIDTH / 2, HEIGHT / 2 - 50, PERKS[PERK_IDS[0]].texture);
     perkIcon.setOrigin(0.5);
-    perkIcon.setDisplaySize(118, 118);
+    perkIcon.setDisplaySize(PERK_ROULETTE_ICON_SIZE, PERK_ROULETTE_ICON_SIZE);
     perkIcon.setDepth(DEPTH.modal + 2);
 
     const name = this.add.text(WIDTH / 2, HEIGHT / 2 + 30, '', {
-      fontFamily: PIXEL_FONT, fontSize: '20px', color: '#FAF7F0',
+      fontFamily: PIXEL_FONT,
+      fontSize: '20px',
+      color: '#FAF7F0',
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: HUD_TEXT_STROKE_THICKNESS,
     });
     name.setOrigin(0.5);
     name.setDepth(DEPTH.modal + 2);
 
     const desc = this.add.text(WIDTH / 2, HEIGHT / 2 + 130, '', {
-      fontFamily: 'Onest, system-ui, sans-serif', fontSize: '16px', color: '#1A1A1A',
+      fontFamily: PIXEL_FONT,
+      fontSize: '14px',
+      color: HUD_TEXT_COLOR,
+      stroke: HUD_TEXT_STROKE,
+      strokeThickness: 4,
       align: 'center', wordWrap: { width: 480 },
     });
     desc.setOrigin(0.5);
@@ -761,7 +837,7 @@ export class ChopChopScene extends BaseMinigame {
       const cur = PERK_IDS[step % PERK_IDS.length];
       const p = PERKS[cur];
       perkIcon.setTexture(p.texture);
-      perkIcon.setDisplaySize(118, 118);
+      perkIcon.setDisplaySize(PERK_ROULETTE_ICON_SIZE, PERK_ROULETTE_ICON_SIZE);
       name.setText(p.name);
       name.setColor(p.isCurse ? '#FF6B6B' : '#5DFF8E');
       slotBg.setStrokeStyle(6, p.isCurse ? COLORS.lose : COLORS.win);
@@ -781,7 +857,7 @@ export class ChopChopScene extends BaseMinigame {
         // Финальная остановка
         const final = PERKS[perkId];
         perkIcon.setTexture(final.texture);
-        perkIcon.setDisplaySize(118, 118);
+        perkIcon.setDisplaySize(PERK_ROULETTE_ICON_SIZE, PERK_ROULETTE_ICON_SIZE);
         name.setText(final.name);
         name.setColor(final.isCurse ? '#FF6B6B' : '#5DFF8E');
         slotBg.setStrokeStyle(6, final.isCurse ? COLORS.lose : COLORS.win);
