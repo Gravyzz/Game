@@ -78,13 +78,6 @@ export const MINIGAME_POOL: MinigameMeta[] = [
     class: 'medium',
   },
   {
-    key: 'FiveDollar',
-    i18nKey: 'FiveDollar',
-    hintI18nKey: 'FiveDollar',
-    durationMs: 40_000,
-    class: 'medium',
-  },
-  {
     key: 'Surfer',
     i18nKey: 'Surfer',
     hintI18nKey: 'Surfer',
