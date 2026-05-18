@@ -62,19 +62,28 @@ const TRAIN_SPEED_BY_LEVEL: Record<number, [number, number]> = {
 
 const COLORS_GRASS = [0x9cd66f, 0xa6da77, 0x88c75d];
 const COLOR_ROAD = 0x303035;
-const COLOR_ROAD_LINE = 0xfff0a8;
 const COLORS_RAIL = [0x7d5a3b, 0x896645];
 const COLOR_PAVEMENT = 0xd0d4d8;
 const COLOR_PAVEMENT_DARK = 0xb6bcc1;
 
-const CAR_TEXTURES = ['jeff-car-white', 'jeff-car-green', 'jeff-car-black', 'jeff-car-blue'];
+const CAR_TEXTURES = Array.from({ length: 11 }, (_, i) => `jeff-car-${i + 1}`);
+const TREE_TEXTURES = Array.from({ length: 8 }, (_, i) => `jeff-tree-${i + 1}`);
+const ROAD_FLOORS = ['jeff-floor-road-1', 'jeff-floor-road-2'];
+const SAFE_FLOORS = ['jeff-floor-snow', 'jeff-floor-parking'];
+const PAVEMENT_FLOORS = [
+  ...Array.from({ length: 8 }, (_, i) => `jeff-floor-sidewalk-${i + 1}`),
+  'jeff-floor-grid',
+  'jeff-floor-puddle',
+];
+const CITY_OBSTACLES = [
+  ...Array.from({ length: 15 }, (_, i) => `jeff-building-${i + 1}`),
+  ...Array.from({ length: 1 }, (_, i) => `jeff-barrier-${i + 1}`),
+  ...Array.from({ length: 8 }, (_, i) => `jeff-barrier-extra-${i + 1}`),
+  ...Array.from({ length: 6 }, (_, i) => `jeff-column-${i + 1}`),
+];
 
 // Декорации тротуара — рандомно из списка
-const PAVEMENT_OBSTACLES = [
-  'jeff-lamp', 'jeff-bench', 'jeff-trash',
-  'jeff-house-blue', 'jeff-house-orange', 'jeff-house-green', 'jeff-house-yellow',
-  'jeff-building-red', 'jeff-building-green', 'jeff-building-orange', 'jeff-building-blue',
-];
+const PAVEMENT_OBSTACLES = CITY_OBSTACLES;
 
 type RowKind = 'grass' | 'road' | 'rail' | 'pavement';
 type Direction = 'left' | 'right';
@@ -118,12 +127,13 @@ export class JeffreySurferScene extends BaseMinigame {
 
   // Спрайт игрока
   private playerSprite!: Phaser.GameObjects.Container;
-  private playerBody!: Phaser.GameObjects.Rectangle;
-  private playerBox!: Phaser.GameObjects.Rectangle;
+  private playerImage!: Phaser.GameObjects.Image;
   private moving = false;
 
   // Контейнер мира — двигаем его, чтобы скроллить
   private world!: Phaser.GameObjects.Container;
+  private obstacleLayer!: Phaser.GameObjects.Container;
+  private vehicleLayer!: Phaser.GameObjects.Container;
 
   // Top HUD
   private stepsText!: Phaser.GameObjects.Text;
@@ -170,6 +180,10 @@ export class JeffreySurferScene extends BaseMinigame {
 
     this.world = this.add.container(0, 0);
     this.world.setDepth(DEPTH.gameplay);
+    this.obstacleLayer = this.add.container(0, 0);
+    this.obstacleLayer.setDepth(DEPTH.gameplay + 1);
+    this.vehicleLayer = this.add.container(0, 0);
+    this.vehicleLayer.setDepth(DEPTH.gameplay + 2);
 
     // Стартовые ряды — генерим вперёд на 30 рядов от старта игрока (worldY=0).
     // Дальше cullFarRows будет подгенерировать вперёд игрока по мере его движения.
@@ -232,13 +246,10 @@ export class JeffreySurferScene extends BaseMinigame {
     this.refreshWorldOffset();
 
     const c = this.add.container(0, 0);
-    this.playerBody = this.add.rectangle(0, 0, TILE * 0.7, TILE * 0.7, 0xffd166);
-    this.playerBody.setStrokeStyle(3, 0x111111);
-    this.playerBox = this.add.rectangle(0, -TILE * 0.4, TILE * 0.55, TILE * 0.18, 0xd9534f);
-    this.playerBox.setStrokeStyle(2, 0x111111);
-    const eyeL = this.add.rectangle(-TILE * 0.13, -TILE * 0.05, 8, 8, 0x111111);
-    const eyeR = this.add.rectangle(TILE * 0.13, -TILE * 0.05, 8, 8, 0x111111);
-    c.add([this.playerBody, this.playerBox, eyeL, eyeR]);
+    this.playerImage = this.add.image(0, -TILE * 0.12, 'jeff-player-kurer');
+    this.playerImage.setOrigin(0.5);
+    this.fitImage(this.playerImage, TILE * 0.72, TILE * 1.18);
+    c.add(this.playerImage);
     c.setDepth(DEPTH.gameplay + 5);
     this.playerSprite = c;
 
@@ -373,7 +384,7 @@ export class JeffreySurferScene extends BaseMinigame {
       onComplete: () => { this.moving = false; },
     });
     this.tweens.add({
-      targets: this.playerBox, y: { from: -TILE * 0.55, to: -TILE * 0.4 },
+      targets: this.playerImage, y: { from: -TILE * 0.28, to: -TILE * 0.12 },
       duration: MOVE_DURATION_MS, ease: 'Sine.easeOut',
     });
 
@@ -484,36 +495,21 @@ export class JeffreySurferScene extends BaseMinigame {
   private drawRowVisuals(row: Row): void {
     const { WIDTH } = GAME;
     const screenY = this.worldYToScreenY(row.worldY);
-    const rect = this.add.rectangle(WIDTH / 2, screenY, WIDTH, TILE, row.fillColor);
-    rect.setData('rowY', row.worldY);
-    this.world.add(rect);
+    const floor = this.add.tileSprite(WIDTH / 2, screenY, WIDTH, TILE, this.floorTextureForRow(row));
+    floor.setData('rowY', row.worldY);
+    this.world.add(floor);
 
     if (row.kind === 'road') {
-      const stripe = this.add.graphics();
-      stripe.fillStyle(COLOR_ROAD_LINE, 0.85);
-      for (let x = 8; x < WIDTH; x += TILE) {
-        stripe.fillRect(x, screenY - 2, TILE * 0.45, 4);
-      }
-      stripe.setData('rowY', row.worldY);
-      this.world.add(stripe);
+      return;
     }
     if (row.kind === 'rail') {
-      const g = this.add.graphics();
-      g.fillStyle(0x4a3a25, 1);
-      for (let x = 4; x < WIDTH; x += 30) {
-        g.fillRect(x, screenY - TILE * 0.35, 22, TILE * 0.7);
-      }
-      g.fillStyle(0x666666, 1);
-      g.fillRect(0, screenY - 14, WIDTH, 4);
-      g.fillRect(0, screenY + 10, WIDTH, 4);
-      g.setData('rowY', row.worldY);
-      this.world.add(g);
+      return;
     }
     if (row.kind === 'pavement') {
       const g = this.add.graphics();
-      g.fillStyle(COLOR_PAVEMENT_DARK, 0.7);
+      g.fillStyle(COLOR_PAVEMENT_DARK, 0.25);
       for (let x = 0; x < WIDTH; x += TILE) {
-        g.fillRect(x + TILE - 4, screenY - TILE / 2, 4, TILE);
+        g.fillRect(x + TILE - 3, screenY - TILE / 2, 3, TILE);
       }
       g.setData('rowY', row.worldY);
       this.world.add(g);
@@ -524,10 +520,23 @@ export class JeffreySurferScene extends BaseMinigame {
         const obs = this.makeObstacle(row, col);
         if (obs) {
           obs.setData('rowY', row.worldY);
-          this.world.add(obs);
+          this.obstacleLayer.add(obs);
         }
       });
     }
+  }
+
+  private floorTextureForRow(row: Row): string {
+    if (row.kind === 'road') {
+      return ROAD_FLOORS[Math.abs(row.worldY) % ROAD_FLOORS.length];
+    }
+    if (row.kind === 'rail') {
+      return 'jeff-floor-railway';
+    }
+    if (row.kind === 'pavement') {
+      return PAVEMENT_FLOORS[Math.abs(row.worldY) % PAVEMENT_FLOORS.length];
+    }
+    return SAFE_FLOORS[Math.abs(row.worldY) % SAFE_FLOORS.length];
   }
 
   private makeObstacle(row: Row, col: number): Phaser.GameObjects.Image | null {
@@ -536,27 +545,29 @@ export class JeffreySurferScene extends BaseMinigame {
     const x = this.colToScreenX(col);
     const y = this.worldYToScreenY(row.worldY);
     if (row.kind === 'grass') {
-      const tree = this.add.image(x, y + 8, 'jeff-tree');
+      const tex = TREE_TEXTURES[Phaser.Math.Between(0, TREE_TEXTURES.length - 1)];
+      const tree = this.add.image(x, y + 8, tex);
       tree.setOrigin(0.5, 1);
       // Дерево чуть выше тайла, корнями стоит на земле
-      tree.setDisplaySize(TILE * 0.9, TILE * 1.1);
+      this.fitImage(tree, TILE * 0.95, TILE * 1.35);
       return tree;
     }
     if (row.kind === 'pavement') {
       const tex = PAVEMENT_OBSTACLES[Phaser.Math.Between(0, PAVEMENT_OBSTACLES.length - 1)];
       const obj = this.add.image(x, y + 8, tex);
       obj.setOrigin(0.5, 1);
-      // Высокие здания крупнее, фонари/мусорки/скамейки — поменьше
-      const isTall = tex.startsWith('jeff-building');
-      const isMedium = tex.startsWith('jeff-house');
-      if (isTall) obj.setDisplaySize(TILE * 0.95, TILE * 1.55);
-      else if (isMedium) obj.setDisplaySize(TILE * 0.9, TILE * 0.9);
-      else if (tex === 'jeff-bench') obj.setDisplaySize(TILE * 0.95, TILE * 0.6);
-      else if (tex === 'jeff-trash') obj.setDisplaySize(TILE * 0.6, TILE * 0.75);
-      else /* lamp */ obj.setDisplaySize(TILE * 0.42, TILE * 1.0);
+      if (tex.startsWith('jeff-building')) this.fitImage(obj, TILE * 1.55, TILE * 1.65);
+      else if (tex.startsWith('jeff-column')) this.fitImage(obj, TILE * 0.9, TILE * 1.35);
+      else this.fitImage(obj, TILE * 1.0, TILE * 1.0);
       return obj;
     }
     return null;
+  }
+
+  private fitImage(image: Phaser.GameObjects.Image, maxW: number, maxH: number): void {
+    const source = image.texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+    const scale = Math.min(maxW / source.width, maxH / source.height);
+    image.setDisplaySize(source.width * scale, source.height * scale);
   }
 
   private colToScreenX(col: number): number {
@@ -581,7 +592,7 @@ export class JeffreySurferScene extends BaseMinigame {
 
     // Размер: машина ~1.4 тайла шириной, поезд оставляем как есть (запечён 4×TILE)
     if (!isTrain) {
-      sprite.setDisplaySize(TILE * 1.4, TILE * 0.95);
+      this.fitImage(sprite, TILE * 1.9, TILE * 0.95);
     }
 
     // Инвертированная логика: PNG-машины фактически смотрят ВПРАВО, поэтому
@@ -594,7 +605,7 @@ export class JeffreySurferScene extends BaseMinigame {
     sprite.x = startX;
     // НЕ ставим setData('rowY') — иначе cullFarRows уничтожит машину через
     // world.getAll(), а потом ещё раз через this.vehicles map.
-    this.world.add(sprite);
+    this.vehicleLayer.add(sprite);
 
     const v: Vehicle = {
       sprite, worldY: row.worldY, x: startX,
@@ -611,7 +622,7 @@ export class JeffreySurferScene extends BaseMinigame {
     const flash = this.add.rectangle(WIDTH / 2, screenY, WIDTH, TILE, 0xff2e2e, 0.4);
     // Без rowY: жизнь warning'а контролируется только своим твином, чтобы cullFarRows
     // не уничтожил его раньше времени.
-    this.world.add(flash);
+    this.vehicleLayer.add(flash);
     this.tweens.add({
       targets: flash, alpha: { from: 0.4, to: 0 },
       duration: 500, repeat: 1, yoyo: true,
@@ -725,11 +736,13 @@ export class JeffreySurferScene extends BaseMinigame {
     );
     this.rows.forEach((_row, y) => {
       if (y < minKeep || y > maxKeep) {
-        this.world.getAll().forEach((obj) => {
-          const owner = obj as Phaser.GameObjects.GameObject & { getData?: (k: string) => unknown };
-          if (owner.getData && owner.getData('rowY') === y) {
-            obj.destroy();
-          }
+        [this.world, this.obstacleLayer].forEach((layer) => {
+          layer.getAll().forEach((obj) => {
+            const owner = obj as Phaser.GameObjects.GameObject & { getData?: (k: string) => unknown };
+            if (owner.getData && owner.getData('rowY') === y) {
+              obj.destroy();
+            }
+          });
         });
         this.rows.delete(y);
         const vList = this.vehicles.get(y);
@@ -766,6 +779,8 @@ export class JeffreySurferScene extends BaseMinigame {
   /** Двигаем мир-контейнер согласно cameraWorldY и подстраиваем игрока. */
   private refreshWorldOffset(): void {
     if (this.world) this.world.y = this.cameraWorldY * TILE;
+    if (this.obstacleLayer) this.obstacleLayer.y = this.cameraWorldY * TILE;
+    if (this.vehicleLayer) this.vehicleLayer.y = this.cameraWorldY * TILE;
     // playerSprite может ещё не существовать (вызов из spawnPlayer ДО создания контейнера)
     if (this.playerSprite && !this.moving) {
       const { x, y } = this.tileToScreen(this.playerCol, this.playerWorldY);
