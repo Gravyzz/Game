@@ -15,6 +15,7 @@ export class BootScene extends Phaser.Scene {
     // ===== Бренд =====
     this.load.image('make-love-pizza-logo-pixel', 'assets/branding/logo-make-love-pizza-pixel.png');
     this.load.image('main-menu-bg', 'assets/branding/main-menu-bg.png');
+    this.load.image('play-interlevel-bg', 'assets/play/interlevel-bg.jpeg');
 
     // ===== UI =====
     this.load.image('heart-pixel',             'assets/ui/heart-pixel.png');
@@ -170,22 +171,21 @@ export class BootScene extends Phaser.Scene {
     this.load.image('dancebeat-right-pushed', 'assets/dancebeat/right-pushed.png');
 
     // ===== Crossy Jeffrey =====
-    this.load.image('jeff-car-white',         'assets/jeffrey/pixil-frame-0-8.png');
-    this.load.image('jeff-car-green',         'assets/jeffrey/pixil-frame-0-9.png');
-    this.load.image('jeff-car-black',         'assets/jeffrey/pixil-frame-0-10.png');
-    this.load.image('jeff-car-blue',          'assets/jeffrey/pixil-frame-0-11.png');
-    this.load.image('jeff-tree',              'assets/jeffrey/pixil-frame-0-12.png');
-    this.load.image('jeff-trash',             'assets/jeffrey/pixil-frame-0-13.png');
-    this.load.image('jeff-bench',             'assets/jeffrey/pixil-frame-0-14.png');
-    this.load.image('jeff-building-red',      'assets/jeffrey/pixil-frame-0-15.png');
-    this.load.image('jeff-building-green',    'assets/jeffrey/pixil-frame-0-16.png');
-    this.load.image('jeff-building-orange',   'assets/jeffrey/pixil-frame-0-17.png');
-    this.load.image('jeff-building-blue',     'assets/jeffrey/pixil-frame-0-18.png');
-    this.load.image('jeff-house-blue',        'assets/jeffrey/pixil-frame-0-19.png');
-    this.load.image('jeff-house-orange',      'assets/jeffrey/pixil-frame-0-20.png');
-    this.load.image('jeff-house-green',       'assets/jeffrey/pixil-frame-0-21.png');
-    this.load.image('jeff-house-yellow',      'assets/jeffrey/pixil-frame-0-22.png');
-    this.load.image('jeff-lamp',              'assets/jeffrey/pixil-frame-0-23.png');
+    this.load.image('jeff-player-kurer', 'assets/jeffrey/player-kurer.png');
+    for (let i = 1; i <= 11; i += 1) this.load.image(`jeff-car-${i}`, `assets/jeffrey/car-${i}.png`);
+    for (let i = 1; i <= 8; i += 1) this.load.image(`jeff-tree-${i}`, `assets/jeffrey/tree-${i}.png`);
+    for (let i = 1; i <= 1; i += 1) this.load.image(`jeff-barrier-${i}`, `assets/jeffrey/barrier-${i}.png`);
+    for (let i = 1; i <= 8; i += 1) this.load.image(`jeff-barrier-extra-${i}`, `assets/jeffrey/barrier-extra-${i}.png`);
+    for (let i = 1; i <= 6; i += 1) this.load.image(`jeff-column-${i}`, `assets/jeffrey/column-${i}.png`);
+    for (let i = 1; i <= 15; i += 1) this.load.image(`jeff-building-${i}`, `assets/jeffrey/building-${i}.png`);
+    this.load.image('jeff-floor-puddle', 'assets/jeffrey/floors/puddle.png');
+    this.load.image('jeff-floor-grid', 'assets/jeffrey/floors/grid.png');
+    this.load.image('jeff-floor-snow', 'assets/jeffrey/floors/snow.png');
+    this.load.image('jeff-floor-railway', 'assets/jeffrey/floors/railway.png');
+    this.load.image('jeff-floor-parking', 'assets/jeffrey/floors/parking.png');
+    this.load.image('jeff-floor-road-1', 'assets/jeffrey/floors/road-1.png');
+    this.load.image('jeff-floor-road-2', 'assets/jeffrey/floors/road-2.png');
+    for (let i = 1; i <= 8; i += 1) this.load.image(`jeff-floor-sidewalk-${i}`, `assets/jeffrey/floors/sidewalk-${i}.png`);
   }
 
   async create(): Promise<void> {
@@ -207,10 +207,16 @@ export class BootScene extends Phaser.Scene {
 
     // Все Jeffrey-ассеты — пиксельные, нужен NEAREST фильтр чтобы не блюрило
     [
-      'jeff-car-white', 'jeff-car-green', 'jeff-car-black', 'jeff-car-blue',
-      'jeff-tree', 'jeff-trash', 'jeff-bench', 'jeff-lamp',
-      'jeff-building-red', 'jeff-building-green', 'jeff-building-orange', 'jeff-building-blue',
-      'jeff-house-blue', 'jeff-house-orange', 'jeff-house-green', 'jeff-house-yellow',
+      'jeff-player-kurer',
+      ...Array.from({ length: 11 }, (_, i) => `jeff-car-${i + 1}`),
+      ...Array.from({ length: 8 }, (_, i) => `jeff-tree-${i + 1}`),
+      ...Array.from({ length: 1 }, (_, i) => `jeff-barrier-${i + 1}`),
+      ...Array.from({ length: 8 }, (_, i) => `jeff-barrier-extra-${i + 1}`),
+      ...Array.from({ length: 6 }, (_, i) => `jeff-column-${i + 1}`),
+      ...Array.from({ length: 15 }, (_, i) => `jeff-building-${i + 1}`),
+      'jeff-floor-puddle', 'jeff-floor-grid', 'jeff-floor-snow', 'jeff-floor-railway',
+      'jeff-floor-parking', 'jeff-floor-road-1', 'jeff-floor-road-2',
+      ...Array.from({ length: 8 }, (_, i) => `jeff-floor-sidewalk-${i + 1}`),
     ].forEach((k) => {
       if (this.textures.exists(k)) {
         this.textures.get(k).setFilter(Phaser.Textures.FilterMode.NEAREST);

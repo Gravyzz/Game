@@ -1,15 +1,15 @@
 import Phaser from 'phaser';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { PosterText } from '@ui/PosterText';
 import { EventBus } from '@core/EventBus';
 import { SessionState } from '@core/SessionState';
 import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
 import { getDifficultyForLevel } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
+
+const PIXEL_FONT = '"Press Start 2P", monospace';
 
 /**
  * Диспетчер минок.
@@ -62,81 +62,123 @@ export class MinigameRunnerScene extends Phaser.Scene {
     const level = SessionState.getCurrentLevel();
     const meta = SessionState.getMinigameAtLevel(level);
 
-    // Чёрный фон
-    const bg = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black);
+    // Атмосферный фон пиццерии
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'play-interlevel-bg');
+    bg.setOrigin(0.5);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
     bg.setDepth(DEPTH.background);
+    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.16)
+      .setDepth(DEPTH.background + 1);
 
     // Уровень
-    const levelText = this.add.text(
+    const levelPanel = this.createPixelPanel(
       WIDTH / 2,
-      HEIGHT / 2 - 100,
+      HEIGHT * 0.62,
       `${RU.choice.levelLabel} ${level} / 4`,
       {
-        ...TEXT_STYLES.subtitle,
-        fontSize: '22px',
-        color: '#FAF7F0',
-      }
-    );
-    levelText.setOrigin(0.5);
-    levelText.setAlpha(0);
-    levelText.setDepth(DEPTH.ui);
-
-    // Название минки
-    const namePoster = new PosterText(
-      this,
-      WIDTH / 2,
-      HEIGHT / 2 - 30,
-      RU.minigame.names[meta.i18nKey] ?? meta.key,
-      {
-        bgColor: COLORS.red,
+        bgColor: 0x171717,
         textColor: '#FAF7F0',
-        fontSize: '36px',
-        rotation: -0.025,
-        paddingX: 24,
-        paddingY: 12,
-      }
-    );
-    namePoster.setDepth(DEPTH.ui);
-    namePoster.setAlpha(0);
-    this.add.existing(namePoster);
-
-    // Хинт-стикер
-    const hintPoster = new PosterText(
-      this,
-      WIDTH / 2,
-      HEIGHT / 2 + 60,
-      RU.minigame.hints[meta.hintI18nKey] ?? '',
-      {
-        bgColor: COLORS.yellow,
-        textColor: '#0A0A0A',
         fontSize: '22px',
-        rotation: 0.03,
         paddingX: 18,
         paddingY: 8,
+        strokeColor: 0xfaf7f0,
+        strokeAlpha: 0.25,
       }
     );
-    hintPoster.setDepth(DEPTH.ui);
-    hintPoster.setAlpha(0);
-    this.add.existing(hintPoster);
+    levelPanel.setAlpha(0);
+    levelPanel.setDepth(DEPTH.ui);
+
+    // Название минки
+    const namePanel = this.createPixelPanel(
+      WIDTH / 2,
+      HEIGHT * 0.69,
+      RU.minigame.names[meta.i18nKey] ?? meta.key,
+      {
+        bgColor: 0xd8323f,
+        textColor: '#FAF7F0',
+        fontSize: '36px',
+        paddingX: 28,
+        paddingY: 18,
+        strokeColor: 0x0a0a0a,
+      }
+    );
+    namePanel.setAlpha(0);
+    namePanel.setDepth(DEPTH.ui);
+
+    // Хинт-стикер
+    const hintPanel = this.createPixelPanel(
+      WIDTH / 2,
+      HEIGHT * 0.77,
+      RU.minigame.hints[meta.hintI18nKey] ?? '',
+      {
+        bgColor: 0xffd228,
+        textColor: '#0A0A0A',
+        fontSize: '22px',
+        paddingX: 22,
+        paddingY: 12,
+        strokeColor: 0x0a0a0a,
+      }
+    );
+    hintPanel.setAlpha(0);
+    hintPanel.setDepth(DEPTH.ui);
 
     // «ПОЕХАЛИ!» внизу
-    const goText = this.add.text(WIDTH / 2, HEIGHT / 2 + 160, RU.minigame.starting, {
-      ...TEXT_STYLES.subtitle,
+    const goPanel = this.createPixelPanel(WIDTH / 2, HEIGHT * 0.84, RU.minigame.starting, {
+      bgColor: 0x171717,
+      bgAlpha: 0.76,
+      textColor: '#FFE600',
       fontSize: '18px',
-      color: '#FFE600',
+      paddingX: 18,
+      paddingY: 8,
+      strokeColor: 0xffe600,
+      strokeAlpha: 0.25,
     });
-    goText.setOrigin(0.5);
-    goText.setAlpha(0);
-    goText.setDepth(DEPTH.ui);
+    goPanel.setAlpha(0);
+    goPanel.setDepth(DEPTH.ui);
 
     // Каскадная анимация появления
-    this.tweens.add({ targets: levelText,  alpha: 1, duration: 250, delay: 100 });
-    this.tweens.add({ targets: namePoster, alpha: 1, scale: { from: 0.7, to: 1 }, duration: 350, delay: 250, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: hintPoster, alpha: 1, scale: { from: 0.7, to: 1 }, duration: 350, delay: 500, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: goText,     alpha: 1, duration: 250, delay: 800 });
+    this.tweens.add({ targets: levelPanel, alpha: 1, duration: 250, delay: 100 });
+    this.tweens.add({ targets: namePanel, alpha: 1, scale: { from: 0.7, to: 1 }, duration: 350, delay: 250, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: hintPanel, alpha: 1, scale: { from: 0.7, to: 1 }, duration: 350, delay: 500, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: goPanel, alpha: 1, duration: 250, delay: 800 });
 
     // Через 1.6 сек запускаем минку
     this.time.delayedCall(1600, () => this.launchMinigame());
+  }
+
+  private createPixelPanel(
+    x: number,
+    y: number,
+    text: string,
+    options: {
+      bgColor: number;
+      textColor: string;
+      fontSize: string;
+      paddingX: number;
+      paddingY: number;
+      bgAlpha?: number;
+      strokeColor?: number;
+      strokeAlpha?: number;
+    },
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    const label = this.add.text(0, 0, text.toUpperCase(), {
+      fontFamily: PIXEL_FONT,
+      fontSize: options.fontSize,
+      color: options.textColor,
+      align: 'center',
+      wordWrap: { width: GAME.WIDTH - 130 },
+    });
+    label.setOrigin(0.5);
+
+    const panelW = label.width + options.paddingX * 2;
+    const panelH = label.height + options.paddingY * 2;
+    const shadow = this.add.rectangle(7, 7, panelW, panelH, 0x000000, 0.7);
+    const bg = this.add.rectangle(0, 0, panelW, panelH, options.bgColor, options.bgAlpha ?? 0.96);
+    bg.setStrokeStyle(5, options.strokeColor ?? 0x0a0a0a, options.strokeAlpha ?? 1);
+
+    container.add([shadow, bg, label]);
+    return container;
   }
 
   /** Запуск scene минки + подписка на результат */
