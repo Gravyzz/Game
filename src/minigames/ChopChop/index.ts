@@ -264,7 +264,9 @@ export class ChopChopScene extends BaseMinigame {
     this.didiCountText.setDepth(DEPTH.ui);
 
     // === Центр ===
-    this.roundText = this.add.text(WIDTH - 70, 150, '', {
+    // Раунд-счётчик в одной горизонтальной линии с home-кнопкой и сердечками
+    // (y=80), а не у y=150 — иначе HUD рассинхронен по вертикали.
+    this.roundText = this.add.text(WIDTH - 30, 80, '', {
       fontFamily: PIXEL_FONT,
       fontSize: '22px',
       color: HUD_TEXT_COLOR,

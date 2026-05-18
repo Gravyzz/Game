@@ -161,31 +161,32 @@ export class RecipeMemoScene extends BaseMinigame {
       yoyo: true,
       ease: 'Cubic.easeInOut',
     });
-    this.timerText = this.add.text(485, 65, '', {
+    // Текст таймера с origin (0, 0.5) — точно на одной линии с песочными
+    // часами (обе y=80).
+    this.timerText = this.add.text(485, 80, '', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '28px',
       color: '#0A0A0A',
     });
+    this.timerText.setOrigin(0, 0.5);
     this.timerText.setDepth(DEPTH.ui);
 
-    // «угадано» и «раунд» подняты выше: были y=55 и y=128 — упирались в
-    // шкалу таймера на y=175 (всего 3px зазора). Теперь стэк ужат на ~50px.
-    this.statusText = this.add.text(WIDTH - 30, 25, '', {
+    // «угадано X/Y» — одна строка над верхним рядом, «раунд X» — под ним,
+    // чтобы не пересекаться с таймером «33 c» в той же x-полосе.
+    this.statusText = this.add.text(WIDTH - 30, 42, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '22px',
+      fontSize: '20px',
       color: '#0A0A0A',
-      align: 'center',
-      lineSpacing: 8,
     });
-    this.statusText.setOrigin(1, 0);
+    this.statusText.setOrigin(1, 0.5);
     this.statusText.setDepth(DEPTH.ui);
 
-    this.mistakesText = this.add.text(WIDTH - 30, 95, '', {
+    this.mistakesText = this.add.text(WIDTH - 30, 120, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '22px',
+      fontSize: '20px',
       color: '#FF2E2E',
     });
-    this.mistakesText.setOrigin(1, 0);
+    this.mistakesText.setOrigin(1, 0.5);
     this.mistakesText.setDepth(DEPTH.ui);
 
     // Кнопка «ПОДСМОТРЕТЬ»
@@ -717,7 +718,7 @@ export class RecipeMemoScene extends BaseMinigame {
 
   private updateHud(): void {
     this.livesHud.update();
-    this.statusText.setText(`угадано\n${this.matchedPairs}/${this.currentCfg.pairs}`);
+    this.statusText.setText(`угадано ${this.matchedPairs}/${this.currentCfg.pairs}`);
 
     // Каждый промах — минус 10 сек, с самого первого
     this.mistakesText.setText(`раунд ${this.roundIndex + 1}`);

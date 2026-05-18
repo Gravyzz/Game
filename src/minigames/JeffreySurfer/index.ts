@@ -257,15 +257,16 @@ export class JeffreySurferScene extends BaseMinigame {
     const hudBg = this.add.rectangle(WIDTH / 2, 56, WIDTH, 112, 0x000000, 0.55);
     hudBg.setDepth(DEPTH.ui);
 
-    // HUD-надписи и home-кнопка теперь все на y=80 (центр home-иконки) —
-    // одна горизонтальная линейка вместо рассинхрона y=38/80.
-    this.stepsText = this.add.text(120, 80, '', {
+    // Текст HUD центрирован по вертикали полупрозрачной зоны (y=56 = центр
+    // hudBg на y=56, высота 112). home-кнопка на y=80 выходит за нижнюю
+    // границу зоны, поэтому ровняем не на неё, а на саму подложку.
+    this.stepsText = this.add.text(120, 56, '', {
       fontFamily: pixel, fontSize: '22px', color: '#FAF7F0',
     });
     this.stepsText.setOrigin(0, 0.5);
     this.stepsText.setDepth(DEPTH.ui + 1);
 
-    this.goalText = this.add.text(WIDTH - 28, 80, '', {
+    this.goalText = this.add.text(WIDTH - 28, 56, '', {
       fontFamily: pixel, fontSize: '18px', color: '#FFE600',
     });
     this.goalText.setOrigin(1, 0.5);
