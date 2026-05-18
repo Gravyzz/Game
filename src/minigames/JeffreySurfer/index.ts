@@ -735,11 +735,13 @@ export class JeffreySurferScene extends BaseMinigame {
     );
     this.rows.forEach((_row, y) => {
       if (y < minKeep || y > maxKeep) {
-        this.world.getAll().forEach((obj) => {
-          const owner = obj as Phaser.GameObjects.GameObject & { getData?: (k: string) => unknown };
-          if (owner.getData && owner.getData('rowY') === y) {
-            obj.destroy();
-          }
+        [this.world, this.obstacleLayer].forEach((layer) => {
+          layer.getAll().forEach((obj) => {
+            const owner = obj as Phaser.GameObjects.GameObject & { getData?: (k: string) => unknown };
+            if (owner.getData && owner.getData('rowY') === y) {
+              obj.destroy();
+            }
+          });
         });
         this.rows.delete(y);
         const vList = this.vehicles.get(y);
@@ -776,6 +778,8 @@ export class JeffreySurferScene extends BaseMinigame {
   /** Двигаем мир-контейнер согласно cameraWorldY и подстраиваем игрока. */
   private refreshWorldOffset(): void {
     if (this.world) this.world.y = this.cameraWorldY * TILE;
+    if (this.obstacleLayer) this.obstacleLayer.y = this.cameraWorldY * TILE;
+    if (this.vehicleLayer) this.vehicleLayer.y = this.cameraWorldY * TILE;
     // playerSprite может ещё не существовать (вызов из spawnPlayer ДО создания контейнера)
     if (this.playerSprite && !this.moving) {
       const { x, y } = this.tileToScreen(this.playerCol, this.playerWorldY);
