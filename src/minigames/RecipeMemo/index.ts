@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BaseMinigame } from '@minigames/BaseMinigame';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
@@ -45,6 +44,7 @@ const PAIR_ICONS = [
   'recipe-runaway',
 ];
 const RECIPE_BG = 0xefd2a7;
+const PIXEL_FONT = '"Press Start 2P", monospace';
 
 interface RoundCfg {
   pairs: number;
@@ -162,7 +162,7 @@ export class RecipeMemoScene extends BaseMinigame {
       ease: 'Cubic.easeInOut',
     });
     this.timerText = this.add.text(485, 65, '', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: PIXEL_FONT,
       fontSize: '28px',
       color: '#0A0A0A',
     });
@@ -171,7 +171,7 @@ export class RecipeMemoScene extends BaseMinigame {
     // «угадано» и «раунд» подняты выше: были y=55 и y=128 — упирались в
     // шкалу таймера на y=175 (всего 3px зазора). Теперь стэк ужат на ~50px.
     this.statusText = this.add.text(WIDTH - 30, 25, '', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: PIXEL_FONT,
       fontSize: '22px',
       color: '#0A0A0A',
       align: 'center',
@@ -181,7 +181,7 @@ export class RecipeMemoScene extends BaseMinigame {
     this.statusText.setDepth(DEPTH.ui);
 
     this.mistakesText = this.add.text(WIDTH - 30, 95, '', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: PIXEL_FONT,
       fontSize: '22px',
       color: '#FF2E2E',
     });
@@ -200,7 +200,7 @@ export class RecipeMemoScene extends BaseMinigame {
     this.peekIcon.setDepth(DEPTH.ui + 1);
 
     this.peekLabel = this.add.text(WIDTH / 2 + 48, 1102, '', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: PIXEL_FONT,
       fontSize: '24px',
       color: '#FAF7F0',
       align: 'center',
@@ -212,7 +212,7 @@ export class RecipeMemoScene extends BaseMinigame {
     helpPanel.setStrokeStyle(5, 0x1d4e91);
     helpPanel.setDepth(DEPTH.ui);
     const helpText = this.add.text(WIDTH / 2, 1202, 'СОБЕРИ ВСЕ РЕЦЕПТЫ!\nОШИБКА: -10 СЕК.\nПОДСМОТР: -20 СЕК.', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: PIXEL_FONT,
       fontSize: '17px',
       color: '#0A0A0A',
       align: 'center',
@@ -643,7 +643,7 @@ export class RecipeMemoScene extends BaseMinigame {
           HEIGHT + 70,
           Phaser.Utils.Array.GetRandom(labels),
           {
-            fontFamily: '"Press Start 2P", monospace',
+            fontFamily: PIXEL_FONT,
             fontSize: '28px',
             color: Phaser.Utils.Array.GetRandom(['#FF2E2E', '#FFE600', '#25B855', '#0AACE0']),
             align: 'center',
@@ -736,7 +736,10 @@ export class RecipeMemoScene extends BaseMinigame {
   private spawnPenaltyToast(label: string): void {
     const { WIDTH, HEIGHT } = GAME;
     const toast = this.add.text(WIDTH / 2, HEIGHT / 2, label, {
-      ...TEXT_STYLES.hero, fontSize: '64px', color: '#EF4444',
+      fontFamily: PIXEL_FONT,
+      fontSize: '64px',
+      color: '#EF4444',
+      align: 'center',
     });
     toast.setOrigin(0.5);
     toast.setDepth(DEPTH.modal + 2);
@@ -755,7 +758,10 @@ export class RecipeMemoScene extends BaseMinigame {
     this.bannerOverlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, 200, COLORS.black, 0.55);
     this.bannerOverlay.setDepth(DEPTH.modal);
     this.bannerText = this.add.text(WIDTH / 2, HEIGHT / 2, text, {
-      ...TEXT_STYLES.hero, fontSize: '52px', color: '#FFE600',
+      fontFamily: PIXEL_FONT,
+      fontSize: '52px',
+      color: '#FFE600',
+      align: 'center',
     });
     this.bannerText.setOrigin(0.5);
     this.bannerText.setDepth(DEPTH.modal + 1);
@@ -795,7 +801,12 @@ export class RecipeMemoScene extends BaseMinigame {
     const msg = this.add.text(
       WIDTH / 2, HEIGHT / 2,
       win ? RU.minigame.win : RU.minigame.lose,
-      { ...TEXT_STYLES.hero, fontSize: '56px', color: win ? '#4ADE80' : '#EF4444' },
+      {
+        fontFamily: PIXEL_FONT,
+        fontSize: '56px',
+        color: win ? '#4ADE80' : '#EF4444',
+        align: 'center',
+      },
     );
     msg.setOrigin(0.5);
     msg.setDepth(DEPTH.modal + 1);
