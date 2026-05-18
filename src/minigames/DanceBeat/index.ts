@@ -316,6 +316,15 @@ export class DanceBeatScene extends BaseMinigame {
     this.clearShowTimers();
     this.setButtonsInputEnabled(false);
 
+    // Прячем «СМОТРИ» — иначе он на DEPTH.modal залазит поверх стрелок при показе.
+    // setBig('ПОВТОРИ') в startPlayerInput сам восстановит alpha=1.
+    this.tweens.add({
+      targets: this.bigText,
+      alpha: 0,
+      duration: 200,
+      ease: 'Sine.easeOut',
+    });
+
     let elapsed = 0;
     this.currentSeq.forEach((dir) => {
       const at = elapsed;

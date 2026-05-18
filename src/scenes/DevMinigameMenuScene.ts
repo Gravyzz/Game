@@ -45,7 +45,9 @@ export class DevMinigameMenuScene extends Phaser.Scene {
     const title = this.add.text(WIDTH / 2, 115, 'МИНИ ИГРЫ', {
       fontFamily: this.pixelFont,
       fontSize: '42px',
-      color: '#0A0A0A',
+      color: '#FAF7F0',
+      stroke: '#0A0A0A',
+      strokeThickness: 9,
       align: 'center',
     });
     title.setOrigin(0.5);
@@ -73,9 +75,11 @@ export class DevMinigameMenuScene extends Phaser.Scene {
       medium: COLORS.yellow,
       hard: COLORS.red,
     };
+    // Все надписи кнопок — белые с чёрной пиксельной обводкой; единый стиль
+    // вместо разноцветного текста под цвет фона.
     const classTextColors: Record<string, string> = {
-      easy: '#0A0A0A',
-      medium: '#0A0A0A',
+      easy: '#FAF7F0',
+      medium: '#FAF7F0',
       hard: '#FAF7F0',
     };
 
@@ -99,20 +103,15 @@ export class DevMinigameMenuScene extends Phaser.Scene {
           textColor: classTextColors[meta.class] ?? '#FAF7F0',
           fontSize: '15px',
           fontFamily: this.pixelFont,
+          pixel: true,
+          // Кнопка низкая (64px) — STEP/BORDER поменьше, чтобы чамфер не съел кнопку.
+          pixelStyle: { step: 4, border: 4, corner: 12 },
+          textStroke: '#0A0A0A',
+          textStrokeWidth: 7,
         }
       );
       btn.setDepth(DEPTH.ui);
       this.add.existing(btn);
-
-      const classLabel = this.add.text(x, y + 38, `[${meta.class}] ${meta.key}`, {
-        fontFamily: this.pixelFont,
-        fontSize: '11px',
-        color: '#FAF7F0',
-        align: 'center',
-      });
-      classLabel.setOrigin(0.5);
-      classLabel.setAlpha(0.55);
-      classLabel.setDepth(DEPTH.ui);
     });
 
     // Назад на сплеш
@@ -126,9 +125,13 @@ export class DevMinigameMenuScene extends Phaser.Scene {
         width: 320,
         height: 70,
         bgColor: COLORS.cream,
-        textColor: '#0A0A0A',
+        textColor: '#FAF7F0',
         fontSize: '20px',
         fontFamily: this.pixelFont,
+        pixel: true,
+        pixelStyle: { step: 4, border: 4, corner: 12 },
+        textStroke: '#0A0A0A',
+        textStrokeWidth: 4,
       }
     );
     backBtn.setDepth(DEPTH.ui);

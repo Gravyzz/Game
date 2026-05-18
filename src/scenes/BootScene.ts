@@ -217,13 +217,16 @@ export class BootScene extends Phaser.Scene {
       }
     });
 
-    // Прячем HTML-лоадер — теперь рулит Phaser
+    // Снимаем HTML-лоадер ТОЛЬКО когда SplashScene уже отрисовала первый кадр.
+    // Если убрать раньше (фейдом или setTimeout) — на 400мс camera fadeIn сплеша
+    // оба слоя одновременно полупрозрачные, видна каша из тайл-звёзд лоадера
+    // поверх логотипа. К моменту CREATE камера сплеша = сплошной #5a54f9, что
+    // совпадает с фоном лоадера → переход незаметен, без флеша.
     const htmlLoader = document.getElementById('boot-loader');
-    if (htmlLoader) {
-      htmlLoader.classList.add('hidden');
-      // Удаляем из DOM после анимации, чтобы не перехватывал тачи
-      setTimeout(() => htmlLoader.remove(), 500);
-    }
+    const splash = this.scene.get('SplashScene');
+    splash.events.once(Phaser.Scenes.Events.CREATE, () => {
+      htmlLoader?.remove();
+    });
 
     this.scene.start('SplashScene');
   }

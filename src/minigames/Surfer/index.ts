@@ -269,13 +269,15 @@ export class SurferScene extends BaseMinigame {
     }
     this.waveGfx = this.add.graphics().setDepth(DEPTH.midground + 1);
 
+    // Стейдж и счётчик «пройдено» теперь в одной горизонтальной линии под
+    // сердечками (y=130), а не в вертикальном стэке y=104/174 справа.
     this.stageLbl = this.add
-      .text(W - 26, 174, '', { fontFamily: PIXEL_FONT, fontSize: '20px', color: '#ff2e2e' })
-      .setOrigin(1, 0).setDepth(DEPTH.ui);
+      .text(140, 140, '', { fontFamily: PIXEL_FONT, fontSize: '20px', color: '#ff2e2e' })
+      .setOrigin(0, 0.5).setDepth(DEPTH.ui);
 
     this.progLbl = this.add
-      .text(W - 26, 104, '', { fontFamily: PIXEL_FONT, fontSize: '21px', color: '#0A0A0A', align: 'right', lineSpacing: 4 })
-      .setOrigin(1, 0).setDepth(DEPTH.ui);
+      .text(W - 26, 140, '', { fontFamily: PIXEL_FONT, fontSize: '20px', color: '#0A0A0A' })
+      .setOrigin(1, 0.5).setDepth(DEPTH.ui);
 
     this.livesHud = createGlobalLivesDisplay(this);
 
@@ -1031,7 +1033,7 @@ export class SurferScene extends BaseMinigame {
   private refreshHud(): void {
     this.livesHud.update();
     const starsPart = this.starCount > 0 ? `  ⭐ ${this.starCount}` : '';
-    this.progLbl.setText(`ПРОЙДЕНО\n${this.stagePassed}/${this.stage.goal}${starsPart}`);
+    this.progLbl.setText(`ПРОЙДЕНО ${this.stagePassed}/${this.stage.goal}${starsPart}`);
     this.stageLbl
       .setText(`${this.stage.name} ${this.stageIdx + 1}/${TOTAL_STAGES}`)
       .setColor(this.stage.color);

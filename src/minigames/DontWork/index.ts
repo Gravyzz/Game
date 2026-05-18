@@ -261,12 +261,14 @@ export class DontWorkScene extends BaseMinigame {
     this.fitStageBackground();
     attachHomeButton(this);
 
-    this.add.rectangle(W - 154, 82, 252, 116, 0xdddddd, 0.96)
+    // Весь HUD выровнен по y=80 (центр home-кнопки). Сердечки, центр панели
+    // и сама home-кнопка теперь визуально на одной линии.
+    this.add.rectangle(W - 154, 80, 252, 116, 0xdddddd, 0.96)
       .setStrokeStyle(5, 0x0a0a0a, 1)
       .setDepth(DEPTH.ui);
 
     this.stageLbl = this.add
-      .text(W - 270, 38, '', {
+      .text(W - 270, 36, '', {
         ...TEXT_STYLES.subtitle,
         fontFamily: PIXEL_FONT,
         fontSize: '16px',
@@ -276,10 +278,10 @@ export class DontWorkScene extends BaseMinigame {
       .setDepth(DEPTH.ui);
 
     this.livesHud = createGlobalLivesDisplay(this, {
-      x: 98,
-      countX: 64,
-      stackFirstX: 116,
-      y: 62,
+      x: 140,
+      countX: 106,
+      stackFirstX: 158,
+      y: 80,
       heartSize: 52,
       heartGap: 58,
       fontSize: '34px',
@@ -287,7 +289,7 @@ export class DontWorkScene extends BaseMinigame {
     });
 
     this.scoreLbl = this.add
-      .text(W - 270, 76, '', {
+      .text(W - 270, 74, '', {
         ...TEXT_STYLES.subtitle,
         fontFamily: PIXEL_FONT,
         fontSize: '15px',
@@ -297,7 +299,7 @@ export class DontWorkScene extends BaseMinigame {
       .setDepth(DEPTH.ui);
 
     this.errorsLbl = this.add
-      .text(W - 270, 109, '', {
+      .text(W - 270, 107, '', {
         ...TEXT_STYLES.subtitle,
         fontFamily: PIXEL_FONT,
         fontSize: '15px',
@@ -389,24 +391,24 @@ export class DontWorkScene extends BaseMinigame {
       .setDepth(DEPTH.ui);
 
     const cells = [
-      { x: panelX - 210, y: panelY - 40, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
-      { x: panelX + 90,  y: panelY - 40, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
-      { x: panelX - 210, y: panelY + 42, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
-      { x: panelX + 90,  y: panelY + 42, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
+      { x: panelX - 220, y: panelY - 40, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
+      { x: panelX + 40,  y: panelY - 40, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
+      { x: panelX - 220, y: panelY + 42, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
+      { x: panelX + 40,  y: panelY + 42, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
     ];
 
     for (const c of cells) {
-      this.add.circle(c.x, c.y, 34, c.ring, 0.22)
+      this.add.circle(c.x, c.y, 32, c.ring, 0.22)
         .setStrokeStyle(4, c.ring, 0.95)
         .setDepth(DEPTH.ui);
       this.add.image(c.x, c.y, c.icon)
-        .setDisplaySize(58, 58)
+        .setDisplaySize(54, 54)
         .setDepth(DEPTH.ui + 1);
 
-      this.add.text(c.x + 64, c.y, c.label, {
+      this.add.text(c.x + 48, c.y, c.label, {
         ...TEXT_STYLES.subtitle,
         fontFamily: PIXEL_FONT,
-        fontSize: '19px',
+        fontSize: '16px',
         color: '#C24A4A',
       }).setOrigin(0, 0.5).setDepth(DEPTH.ui);
     }

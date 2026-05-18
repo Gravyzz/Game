@@ -252,7 +252,10 @@
         }
       }
 
-      /* Лоадер до загрузки Phaser — чтобы не пустой чёрный экран на старте */
+      /* Лоадер до загрузки Phaser — чтобы не пустой чёрный экран на старте.
+         SplashScene убирает его через DOM.remove() по своему CREATE-эвенту,
+         поэтому ни opacity-transition, ни .hidden-класс тут не нужны:
+         фон лоадера и фон сплеша одного цвета — переход незаметен. */
       #boot-loader {
         position: fixed;
         inset: 0;
@@ -272,32 +275,13 @@
         line-height: 1.55;
         text-align: center;
         z-index: 100;
-        transition: opacity 0.4s;
         animation: app-bg-pulse 3.2s ease-in-out infinite alternate;
-      }
-
-      #boot-loader::before {
-        content: '';
-        position: fixed;
-        inset: -160px 0 0;
-        pointer-events: none;
-        background-image: url('/assets/ui/star-pixel.png'), url('/assets/ui/star-pixel.png');
-        background-repeat: repeat;
-        background-size: 220px 220px, 310px 310px;
-        background-position: 24px 0, 140px -90px;
-        opacity: 0.55;
-        animation: app-stars-fall 8s linear infinite;
       }
 
       #boot-loader > div {
         position: relative;
         z-index: 1;
         max-width: 680px;
-      }
-
-      #boot-loader.hidden {
-        opacity: 0;
-        pointer-events: none;
       }
 
     </style>

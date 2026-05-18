@@ -144,7 +144,10 @@ export class RecipeMemoScene extends BaseMinigame {
     this.timerBar.setOrigin(0, 0.5);
     this.timerBar.setDepth(DEPTH.ui + 1);
 
-    this.sandWatch = this.add.image(78, 125, 'recipe-sand-watch');
+    // Sandwatch + timer перенесены из под home-кнопки на центр-право
+    // верхнего ряда, в одну линейку с сердечками. Home/lives/timer теперь
+    // в разных зонах, без вертикального стэка.
+    this.sandWatch = this.add.image(450, 80, 'recipe-sand-watch');
     this.sandWatch.setDisplaySize(36, 36);
     this.sandWatch.setAngle(180);
     this.sandWatch.setDepth(DEPTH.ui);
@@ -158,16 +161,18 @@ export class RecipeMemoScene extends BaseMinigame {
       yoyo: true,
       ease: 'Cubic.easeInOut',
     });
-    this.timerText = this.add.text(112, 110, '', {
+    this.timerText = this.add.text(485, 65, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '30px',
+      fontSize: '28px',
       color: '#0A0A0A',
     });
     this.timerText.setDepth(DEPTH.ui);
 
-    this.statusText = this.add.text(WIDTH - 45, 55, '', {
+    // «угадано» и «раунд» подняты выше: были y=55 и y=128 — упирались в
+    // шкалу таймера на y=175 (всего 3px зазора). Теперь стэк ужат на ~50px.
+    this.statusText = this.add.text(WIDTH - 30, 25, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '30px',
+      fontSize: '22px',
       color: '#0A0A0A',
       align: 'center',
       lineSpacing: 8,
@@ -175,9 +180,9 @@ export class RecipeMemoScene extends BaseMinigame {
     this.statusText.setOrigin(1, 0);
     this.statusText.setDepth(DEPTH.ui);
 
-    this.mistakesText = this.add.text(WIDTH - 48, 128, '', {
+    this.mistakesText = this.add.text(WIDTH - 30, 95, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '30px',
+      fontSize: '22px',
       color: '#FF2E2E',
     });
     this.mistakesText.setOrigin(1, 0);
@@ -272,7 +277,9 @@ export class RecipeMemoScene extends BaseMinigame {
 
   private drawTopHud(): void {
     attachHomeButton(this);
-    this.livesHud = createGlobalLivesDisplay(this);
+    // Сердечки отодвинуты вправо от home-кнопки (та занимает x=6..102),
+    // чтоб не липли друг к другу.
+    this.livesHud = createGlobalLivesDisplay(this, { x: 200, y: 80 });
   }
 
   // ========== РАУНД ==========

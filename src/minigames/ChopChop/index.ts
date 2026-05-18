@@ -907,6 +907,10 @@ export class ChopChopScene extends BaseMinigame {
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
     if (!this.accepting || this.finished) return;
+    // Тап попал в UI-кнопку (home / sound) — это не игровой ввод. Без этой
+    // проверки клик по «домой» одновременно открывал модалку и засчитывался
+    // как нарезка овоща / штраф за бомбу — home-кнопка казалась «сломанной».
+    if (this.input.hitTestPointer(p).length > 0) return;
     if (this.currentMode === 'swipe') {
       this.swipeActive = true;
       this.prevPointerX = p.x;

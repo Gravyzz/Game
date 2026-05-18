@@ -6,6 +6,7 @@ import { Haptics } from '@core/Haptics';
 import { GameState } from '@core/GameState';
 import { SessionState } from '@core/SessionState';
 import { attachSoundButton } from '@utils/SceneHelpers';
+import { drawPixelButton } from '@utils/PixelButton';
 
 /**
  * Splash — стартовый экран.
@@ -64,7 +65,7 @@ export class SplashScene extends Phaser.Scene {
 
     const miniGamesBtn = this.createPixelButton(
       0,
-      895 - HEIGHT / 2,
+      870 - HEIGHT / 2,
       510,
       120,
       'MINI\nGAMES',
@@ -309,35 +310,40 @@ export class SplashScene extends Phaser.Scene {
     button.setSize(width, height);
     button.setDepth(DEPTH.ui);
 
-    const bg = this.add.rectangle(0, 0, width, height, bgColor);
-    bg.setStrokeStyle(6, COLORS.black);
+    // Жирная пиксельная плашка: STEP=8, BORDER=8 → грубее и крупнее,
+    // как чанковые NES-шные кнопки в референсе.
+    const g = this.add.graphics();
+    g.setPosition(-width / 2, -height / 2);
+    drawPixelButton(g, width, height, bgColor, { step: 8, border: 8, corner: 24 });
 
     const icon = this.add.image(-width / 2 + 85, 0, iconKey);
     icon.setDisplaySize(86, 86);
 
-    const text = this.add.text(70, 4, label, {
+    const text = this.add.text(0, 4, label, {
       fontFamily: this.pixelFont,
       fontSize: label.includes('\n') ? '37px' : '42px',
-      color: '#0A0A0A',
+      color: '#FAF7F0',
+      stroke: '#0A0A0A',
+      strokeThickness: 9,
       align: 'center',
       lineSpacing: 10,
     });
     text.setOrigin(0.5);
 
-    button.add([bg, icon, text]);
+    // Прозрачный хит-прямоугольник во всю кнопку — иконка и текст не
+    // интерактивны, тап ловится здесь и проходит через них без проблем.
+    const hit = this.add.rectangle(0, 0, width, height, 0xffffff, 0);
+    hit.setInteractive({ useHandCursor: true });
 
-    // Делаем интерактивным сам bg-прямоугольник: его собственный hitArea
-    // совпадает с видимой площадью — тап ловится по всей кнопке, включая
-    // области, перекрытые иконкой и текстом (они не интерактивны и пропускают
-    // событие к bg).
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerdown', () => {
+    button.add([g, icon, text, hit]);
+
+    hit.on('pointerdown', () => {
       Haptics.trigger('tap');
       SoundManager.playSfx('tap');
       onClick();
     });
-    bg.on('pointerover', () => button.setScale(1.03));
-    bg.on('pointerout', () => button.setScale(1));
+    hit.on('pointerover', () => button.setScale(1.03));
+    hit.on('pointerout', () => button.setScale(1));
 
     return button;
   }

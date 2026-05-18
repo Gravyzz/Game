@@ -154,8 +154,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.drawRoom();
     attachHomeButton(this);
 
+    // Стейдж — мелкая подпись над основной HUD-линией.
     this.stageLbl = this.add
-      .text(W - 36, 54, '', {
+      .text(W - 36, 36, '', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '22px',
         color: '#0A0A0A',
@@ -173,14 +174,16 @@ export class PizzaAssemblyScene extends BaseMinigame {
       fontSize: '42px',
     });
 
-    this.add.image(W - 194, 124, TEX_KNIFE)
+    // Иконка ножа + счётчик прогресса подняты с y=124/108 на y=80 —
+    // одна линия с домик-кнопкой и сердечками.
+    this.add.image(W - 194, 80, TEX_KNIFE)
       .setOrigin(0.5)
       .setDisplaySize(32, 32)
       .setRotation(HUD_KNIFE_ROTATION)
       .setDepth(DEPTH.ui);
 
     this.progLbl = this.add
-      .text(W - 36, 108, '', {
+      .text(W - 36, 66, '', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '28px',
         color: '#FAF7F0',

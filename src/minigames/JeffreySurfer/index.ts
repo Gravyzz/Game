@@ -257,15 +257,18 @@ export class JeffreySurferScene extends BaseMinigame {
     const hudBg = this.add.rectangle(WIDTH / 2, 56, WIDTH, 112, 0x000000, 0.55);
     hudBg.setDepth(DEPTH.ui);
 
-    this.stepsText = this.add.text(28, 38, '', {
+    // HUD-надписи и home-кнопка теперь все на y=80 (центр home-иконки) —
+    // одна горизонтальная линейка вместо рассинхрона y=38/80.
+    this.stepsText = this.add.text(120, 80, '', {
       fontFamily: pixel, fontSize: '22px', color: '#FAF7F0',
     });
+    this.stepsText.setOrigin(0, 0.5);
     this.stepsText.setDepth(DEPTH.ui + 1);
 
-    this.goalText = this.add.text(WIDTH - 28, 38, '', {
+    this.goalText = this.add.text(WIDTH - 28, 80, '', {
       fontFamily: pixel, fontSize: '18px', color: '#FFE600',
     });
-    this.goalText.setOrigin(1, 0);
+    this.goalText.setOrigin(1, 0.5);
     this.goalText.setDepth(DEPTH.ui + 1);
 
     this.bigText = this.add.text(WIDTH / 2, GAME.HEIGHT * 0.4, '', {
@@ -635,10 +638,12 @@ export class JeffreySurferScene extends BaseMinigame {
 
     // 2) Постоянный креп — даже когда игрок стоит, камера ползёт вверх.
     //    Это создаёт давление и в итоге убивает «кемперов».
-    if (this.maxWorldY > 0 || this.time.now > 1500) {
+    //    Не работает пока показан туториал (`!accepting`) — иначе долгое
+    //    чтение гайда = проигрыш по таймауту от догнавшей камеры.
+    if (this.accepting && (this.maxWorldY > 0 || this.time.now > 1500)) {
       this.cameraWorldY += this.cameraCreepPerSec * dt;
     }
-    if (this.infinite) {
+    if (this.accepting && this.infinite) {
       this.cameraCreepPerSec = Math.min(1.6, this.cameraCreepPerSec + dt * 0.012);
     }
 
