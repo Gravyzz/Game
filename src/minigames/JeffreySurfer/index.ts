@@ -3,7 +3,12 @@ import { BaseMinigame } from '@minigames/BaseMinigame';
 import { GAME, DEPTH } from '@config/game';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { paintPageBackdrop, attachHomeButton, attachIntro } from '@utils/SceneHelpers';
+import {
+  paintPageBackdrop,
+  attachHomeButton,
+  attachIntro,
+  createGlobalLivesDisplay,
+} from '@utils/SceneHelpers';
 import { RU } from '@i18n/ru';
 
 /**
@@ -34,6 +39,7 @@ const START_FLOOR = 'jeff-floor-snow';
 const ROW_DEPTH_RANGE = 8;
 const PLAYER_ROW_DEPTH_OFFSET = 0.05;
 const VEHICLE_SPAWN_GAP = TILE * 1.25;
+const BUILDING_BLOCK_RADIUS = 1;
 
 const STEP_GOALS_BY_LEVEL: Record<number, number> = {
   1: 25,
@@ -182,8 +188,6 @@ export class JeffreySurferScene extends BaseMinigame {
 
     paintPageBackdrop(this, 0xffffff);
 
-    this.bakeTextures();
-
     // Стартовые ряды — генерим вперёд на 30 рядов от старта игрока (worldY=0).
     // Дальше cullFarRows будет подгенерировать вперёд игрока по мере его движения.
     for (let y = -3; y <= 30; y++) {
@@ -206,31 +210,6 @@ export class JeffreySurferScene extends BaseMinigame {
       RU.minigame.guides.JeffreySurfer,
       () => { this.accepting = true; },
     );
-  }
-
-  // ============================================================
-  // Текстуры (печём один раз)
-  // ============================================================
-
-  /** Поезд процедурный — отдельной PNG-ки не приехало; машины/декор идут через
-   *  загруженные jeff-* текстуры из BootScene. */
-  private bakeTextures(): void {
-    if (this.textures.exists('cj-train')) return;
-    const w = TILE * 4;
-    const h = TILE * 0.8;
-    const g = this.make.graphics({ x: 0, y: 0 }, false);
-    g.fillStyle(0xc92e2e, 1);
-    g.fillRect(0, 0, w, h);
-    g.fillStyle(0xfff0a8, 1);
-    g.fillRect(0, h * 0.45, w, h * 0.12);
-    g.fillStyle(0x88c1ff, 1);
-    for (let i = 0; i < 6; i++) {
-      g.fillRect(20 + i * (w / 6), 10, w / 6 - 18, h * 0.3);
-    }
-    g.lineStyle(3, 0x111111, 1);
-    g.strokeRect(0, 0, w, h);
-    g.generateTexture('cj-train', w, h);
-    g.destroy();
   }
 
   // ============================================================
@@ -267,20 +246,28 @@ export class JeffreySurferScene extends BaseMinigame {
     const hudBg = this.add.rectangle(WIDTH / 2, 56, WIDTH, 112, 0x000000, 0.55);
     hudBg.setDepth(DEPTH.ui);
 
-    // Текст HUD центрирован по вертикали полупрозрачной зоны (y=56 = центр
-    // hudBg на y=56, высота 112). home-кнопка на y=80 выходит за нижнюю
-    // границу зоны, поэтому ровняем не на неё, а на саму подложку.
-    this.stepsText = this.add.text(120, 56, '', {
-      fontFamily: pixel, fontSize: '22px', color: '#FAF7F0',
+    createGlobalLivesDisplay(this, {
+      x: 146,
+      y: 80,
+      heartSize: 42,
+      heartGap: 54,
+      stackGap: 24,
+      fontSize: '26px',
+      color: '#FAF7F0',
+      depth: DEPTH.ui + 1,
     });
-    this.stepsText.setOrigin(0, 0.5);
-    this.stepsText.setDepth(DEPTH.ui + 1);
 
-    this.goalText = this.add.text(WIDTH - 28, 56, '', {
-      fontFamily: pixel, fontSize: '18px', color: '#FFE600',
+    this.goalText = this.add.text(WIDTH - 28, 30, '', {
+      fontFamily: pixel, fontSize: '16px', color: '#FFE600',
     });
     this.goalText.setOrigin(1, 0.5);
     this.goalText.setDepth(DEPTH.ui + 1);
+
+    this.stepsText = this.add.text(WIDTH - 28, 84, '', {
+      fontFamily: pixel, fontSize: '16px', color: '#FAF7F0',
+    });
+    this.stepsText.setOrigin(1, 0.5);
+    this.stepsText.setDepth(DEPTH.ui + 1);
 
     this.bigText = this.add.text(WIDTH / 2, GAME.HEIGHT * 0.4, '', {
       fontFamily: pixel, fontSize: '40px', color: '#FF2E2E', align: 'center',
@@ -292,11 +279,13 @@ export class JeffreySurferScene extends BaseMinigame {
   }
 
   private refreshHud(): void {
-    this.stepsText.setText(`шаги: ${this.maxWorldY}`);
+    this.stepsText.setText(this.infinite
+      ? `счет: ${this.maxWorldY}`
+      : `счет: ${this.maxWorldY} / ${this.goalSteps}`);
     if (this.infinite) {
       this.goalText.setText(`режим: бесконечный`);
     } else {
-      this.goalText.setText(`цель: ${this.maxWorldY} / ${this.goalSteps}`);
+      this.goalText.setText(`режим: доставка`);
     }
   }
 
@@ -569,6 +558,7 @@ export class JeffreySurferScene extends BaseMinigame {
       obj.setOrigin(0.5, 1);
       if (isBuilding) {
         this.rememberBuilding(row.worldY, col);
+        this.expandBlockedFootprint(row, col, BUILDING_BLOCK_RADIUS);
         this.fitImage(obj, TILE * 2.325, TILE * 2.475);
       }
       else if (tex.startsWith('jeff-column')) this.fitImage(obj, TILE * 0.9, TILE * 1.35);
@@ -576,6 +566,13 @@ export class JeffreySurferScene extends BaseMinigame {
       return obj;
     }
     return null;
+  }
+
+  private expandBlockedFootprint(row: Row, centerCol: number, radius: number): void {
+    if (!row.blocked) row.blocked = new Set<number>();
+    for (let col = centerCol - radius; col <= centerCol + radius; col++) {
+      if (col >= 0 && col < COLS) row.blocked.add(col);
+    }
   }
 
   private pickPavementObstacleTexture(worldY: number, col: number): string {
@@ -662,13 +659,15 @@ export class JeffreySurferScene extends BaseMinigame {
 
     const isTrain = row.kind === 'rail';
     const tex = isTrain
-      ? 'cj-train'
+      ? 'jeff-tram'
       : CAR_TEXTURES[Phaser.Math.Between(0, CAR_TEXTURES.length - 1)];
     const sprite = this.add.image(0, 0, tex);
     sprite.setOrigin(0.5);
 
-    // Размер: машина ~1.4 тайла шириной, поезд оставляем как есть (запечён 4×TILE)
-    if (!isTrain) {
+    // Размер: машины подгоняем по полосе, трамвай делаем длинным rail-транспортом.
+    if (isTrain) {
+      this.fitImage(sprite, TILE * 6.6, TILE * 1.5);
+    } else {
       const carScale = tex === 'jeff-car-7' ? 1.5 : 1;
       this.fitImage(sprite, TILE * 1.9 * carScale, TILE * 0.95 * carScale);
     }

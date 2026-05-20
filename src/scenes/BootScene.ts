@@ -172,6 +172,7 @@ export class BootScene extends Phaser.Scene {
 
     // ===== Crossy Jeffrey =====
     this.load.image('jeff-player-kurer', 'assets/jeffrey/player-kurer.png');
+    this.load.image('jeff-tram', 'assets/jeffrey/tram.png');
     for (let i = 1; i <= 11; i += 1) this.load.image(`jeff-car-${i}`, `assets/jeffrey/car-${i}.png`);
     for (let i = 1; i <= 8; i += 1) this.load.image(`jeff-tree-${i}`, `assets/jeffrey/tree-${i}.png`);
     for (let i = 1; i <= 1; i += 1) this.load.image(`jeff-barrier-${i}`, `assets/jeffrey/barrier-${i}.png`);
@@ -208,6 +209,7 @@ export class BootScene extends Phaser.Scene {
     // Все Jeffrey-ассеты — пиксельные, нужен NEAREST фильтр чтобы не блюрило
     [
       'jeff-player-kurer',
+      'jeff-tram',
       ...Array.from({ length: 11 }, (_, i) => `jeff-car-${i + 1}`),
       ...Array.from({ length: 8 }, (_, i) => `jeff-tree-${i + 1}`),
       ...Array.from({ length: 1 }, (_, i) => `jeff-barrier-${i + 1}`),
