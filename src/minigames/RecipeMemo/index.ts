@@ -190,17 +190,17 @@ export class RecipeMemoScene extends BaseMinigame {
     this.mistakesText.setDepth(DEPTH.ui);
 
     // Кнопка «ПОДСМОТРЕТЬ»
-    this.peekBtn = this.add.rectangle(WIDTH / 2, 1102, WIDTH - 154, 66, 0xd93b35);
+    this.peekBtn = this.add.rectangle(WIDTH / 2, 1046, WIDTH - 154, 66, 0xd93b35);
     this.peekBtn.setStrokeStyle(5, COLORS.black);
     this.peekBtn.setDepth(DEPTH.ui);
     this.peekBtn.setInteractive({ useHandCursor: true });
     this.peekBtn.on('pointerdown', () => this.onPeek());
 
-    this.peekIcon = this.add.image(WIDTH / 2 - 150, 1102, 'recipe-magnifer');
+    this.peekIcon = this.add.image(WIDTH / 2 - 150, 1046, 'recipe-magnifer');
     this.peekIcon.setDisplaySize(46, 46);
     this.peekIcon.setDepth(DEPTH.ui + 1);
 
-    this.peekLabel = this.add.text(WIDTH / 2 + 48, 1102, '', {
+    this.peekLabel = this.add.text(WIDTH / 2 + 48, 1046, '', {
       fontFamily: PIXEL_FONT,
       fontSize: '24px',
       color: '#FAF7F0',
@@ -209,10 +209,10 @@ export class RecipeMemoScene extends BaseMinigame {
     this.peekLabel.setOrigin(0.5);
     this.peekLabel.setDepth(DEPTH.ui + 1);
 
-    const helpPanel = this.add.rectangle(WIDTH / 2, 1202, WIDTH - 154, 112, 0xf6e3bd);
-    helpPanel.setStrokeStyle(5, 0x1d4e91);
+    const helpPanel = this.add.rectangle(WIDTH / 2, 1160, WIDTH - 154, 112, 0xf6e3bd);
+    helpPanel.setStrokeStyle(5, COLORS.black);
     helpPanel.setDepth(DEPTH.ui);
-    const helpText = this.add.text(WIDTH / 2, 1202, 'СОБЕРИ ВСЕ РЕЦЕПТЫ!\nОШИБКА: -10 СЕК.\nПОДСМОТР: -20 СЕК.', {
+    const helpText = this.add.text(WIDTH / 2, 1160, 'СОБЕРИ ВСЕ РЕЦЕПТЫ!\nОШИБКА: -10 СЕК.\nПОДСМОТР: -20 СЕК.', {
       fontFamily: PIXEL_FONT,
       fontSize: '17px',
       color: '#0A0A0A',

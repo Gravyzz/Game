@@ -56,6 +56,13 @@ const PIXEL_FONT = '"Press Start 2P", monospace';
 const BG_ZOOM = 1.8;
 const BG_OFFSET_Y = 200;
 const BUTTON_SIZE = 126;
+const PROMPT_PANEL = {
+  x: GAME.WIDTH / 2,
+  y: 790,
+  width: 262,
+  height: 70,
+  textWidth: 230,
+};
 
 const BUTTON_TEXTURES: Record<Dir, { normal: string; grey: string; pushed: string }> = {
   up: {
@@ -85,6 +92,7 @@ export class DanceBeatScene extends BaseMinigame {
 
   // HUD
   private statusText!: Phaser.GameObjects.Text;
+  private bigTextPanel!: Phaser.GameObjects.Rectangle;
   private bigText!: Phaser.GameObjects.Text;
   private timerBar!: Phaser.GameObjects.Rectangle;
   private timerBarBg!: Phaser.GameObjects.Rectangle;
@@ -144,15 +152,28 @@ export class DanceBeatScene extends BaseMinigame {
     this.statusText.setOrigin(1, 0);
     this.statusText.setDepth(DEPTH.ui);
 
-    // «Большой» статус по центру: «СМОТРИ» / «ПОВТОРИ» / «K.O.»
-    this.bigText = this.add.text(WIDTH / 2, HEIGHT / 2, '', {
+    this.bigTextPanel = this.add.rectangle(
+      PROMPT_PANEL.x,
+      PROMPT_PANEL.y,
+      PROMPT_PANEL.width,
+      PROMPT_PANEL.height,
+      0x050608,
+      0.92,
+    );
+    this.bigTextPanel.setStrokeStyle(5, 0x2b2329, 1);
+    this.bigTextPanel.setDepth(DEPTH.gameplay + 2);
+
+    // Статус автомата: «СМОТРИ» / «ПОВТОРИ» / «K.O.»
+    this.bigText = this.add.text(PROMPT_PANEL.x, PROMPT_PANEL.y, '', {
       fontFamily: PIXEL_FONT,
-      fontSize: '42px',
+      fontSize: '24px',
       color: '#FFE600',
       align: 'center',
+      lineSpacing: 6,
+      wordWrap: { width: PROMPT_PANEL.textWidth, useAdvancedWrap: true },
     });
     this.bigText.setOrigin(0.5);
-    this.bigText.setDepth(DEPTH.modal);
+    this.bigText.setDepth(DEPTH.gameplay + 3);
 
     // Полоса окна ввода
     this.timerBarMaxW = WIDTH - 150;
@@ -545,6 +566,8 @@ export class DanceBeatScene extends BaseMinigame {
   private setBig(text: string, color: string): void {
     this.tweens.killTweensOf(this.bigText);
     this.bigText.setAlpha(1);
+    this.bigText.setScale(1);
+    this.bigText.setFontSize(text.length > 8 ? '18px' : '24px');
     this.bigText.setText(text);
     this.bigText.setColor(color);
   }
