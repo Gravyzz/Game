@@ -273,6 +273,12 @@ export class RecipeMemoScene extends BaseMinigame {
       'recipe-balloon-g',
       'recipe-balloon-o',
       'recipe-balloon-r',
+      'recipe-win-balloon-purple',
+      'recipe-win-balloon-red',
+      'recipe-win-balloon-green',
+      'recipe-win-balloon-yellow',
+      'recipe-win-balloon-orange',
+      'recipe-win-balloon-heart',
     ].forEach((key) => this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST));
   }
 
@@ -605,11 +611,12 @@ export class RecipeMemoScene extends BaseMinigame {
   private playRoundWinCelebration(): void {
     const { WIDTH, HEIGHT } = GAME;
     const balloonKeys = [
-      'recipe-balloon-b',
-      'recipe-balloon-y',
-      'recipe-balloon-g',
-      'recipe-balloon-o',
-      'recipe-balloon-r',
+      'recipe-win-balloon-purple',
+      'recipe-win-balloon-red',
+      'recipe-win-balloon-green',
+      'recipe-win-balloon-yellow',
+      'recipe-win-balloon-orange',
+      'recipe-win-balloon-heart',
     ];
     const labels = ['СУПЕР!', 'ТАК ДЕРЖАТЬ!', '#МЕГАКРУТО'];
 
@@ -620,9 +627,10 @@ export class RecipeMemoScene extends BaseMinigame {
           HEIGHT + 80,
           Phaser.Utils.Array.GetRandom(balloonKeys),
         );
-        const size = Phaser.Math.Between(105, 180);
+        const height = Phaser.Math.Between(130, 230);
         balloon.setOrigin(0.5);
-        balloon.setDisplaySize(size, size);
+        const source = balloon.texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+        balloon.setDisplaySize(source.width * (height / source.height), height);
         balloon.setDepth(DEPTH.effects);
 
         this.tweens.add({

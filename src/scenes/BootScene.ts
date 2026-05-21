@@ -50,6 +50,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image('firestarter-result-coal', 'assets/firestarter/coal.png');
     this.load.image('firestarter-result-ice', 'assets/firestarter/ice.png');
     this.load.image('firestarter-result-ok', 'assets/firestarter/ok.png');
+    for (let i = 1; i <= 4; i += 1) this.load.image(`firestarter-result-rock-${i}`, `assets/firestarter/result-rock-${i}.png`);
+    for (let i = 1; i <= 5; i += 1) this.load.image(`firestarter-result-like-${i}`, `assets/firestarter/result-like-${i}.png`);
     this.load.image('firestarter-picture', 'assets/firestarter/picture.png');
     this.load.image('firestarter-plant', 'assets/firestarter/plant.png');
     this.load.image('firestarter-lamp', 'assets/firestarter/lamp.png');
@@ -71,6 +73,12 @@ export class BootScene extends Phaser.Scene {
     this.load.image('recipe-balloon-g', 'assets/recipememo/balloon-g.png');
     this.load.image('recipe-balloon-o', 'assets/recipememo/balloon-o.png');
     this.load.image('recipe-balloon-r', 'assets/recipememo/balloon-r.png');
+    this.load.image('recipe-win-balloon-purple', 'assets/recipememo/win-balloon-purple.png');
+    this.load.image('recipe-win-balloon-red', 'assets/recipememo/win-balloon-red.png');
+    this.load.image('recipe-win-balloon-green', 'assets/recipememo/win-balloon-green.png');
+    this.load.image('recipe-win-balloon-yellow', 'assets/recipememo/win-balloon-yellow.png');
+    this.load.image('recipe-win-balloon-orange', 'assets/recipememo/win-balloon-orange.png');
+    this.load.image('recipe-win-balloon-heart', 'assets/recipememo/win-balloon-heart.png');
     this.load.image('dontwork-bg', 'assets/dontwork/ninja-bg.png');
     this.load.image('dontwork-office-bg', 'assets/dontwork/stages/office-bg.png');
     this.load.image('dontwork-boss-bg', 'assets/dontwork/stages/boss-bg.png');

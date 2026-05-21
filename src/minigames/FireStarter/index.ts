@@ -44,6 +44,8 @@ const MOVING_ZONE_FROM_ROUND = 5;
 // Период полного цикла осцилляции зоны (мс)
 const ZONE_PERIOD_START = 2600;
 const ZONE_PERIOD_END = 1700;
+const RESULT_ROCK_ASSETS = Array.from({ length: 4 }, (_, i) => `firestarter-result-rock-${i + 1}`);
+const RESULT_LIKE_ASSETS = Array.from({ length: 5 }, (_, i) => `firestarter-result-like-${i + 1}`);
 
 type CookResult = 'raw' | 'ok' | 'coal';
 
@@ -251,6 +253,8 @@ export class FireStarterScene extends BaseMinigame {
       'firestarter-result-coal',
       'firestarter-result-ice',
       'firestarter-result-ok',
+      ...RESULT_ROCK_ASSETS,
+      ...RESULT_LIKE_ASSETS,
       'firestarter-picture',
       'firestarter-plant',
       'firestarter-lamp',
@@ -450,9 +454,9 @@ export class FireStarterScene extends BaseMinigame {
   private playResultRain(result: CookResult): void {
     const { WIDTH, HEIGHT } = GAME;
     const config = {
-      raw: { text: 'СЫРАЯ!', asset: 'firestarter-result-ice', color: '#2EC7F0' },
-      ok: { text: 'ИДЕАЛЬНО!', asset: 'firestarter-result-ok', color: '#FF2E2E' },
-      coal: { text: 'УГОЛЬКИ!', asset: 'firestarter-result-coal', color: '#0A0A0A' },
+      raw: { text: 'СЫРАЯ!', assets: RESULT_ROCK_ASSETS, color: '#2EC7F0' },
+      ok: { text: 'ИДЕАЛЬНО!', assets: RESULT_LIKE_ASSETS, color: '#FF2E2E' },
+      coal: { text: 'УГОЛЬКИ!', assets: RESULT_ROCK_ASSETS, color: '#0A0A0A' },
     }[result];
 
     const count = result === 'ok' ? 16 : 20;
@@ -461,11 +465,12 @@ export class FireStarterScene extends BaseMinigame {
         const item = this.add.image(
           Phaser.Math.Between(35, WIDTH - 35),
           -70,
-          config.asset,
+          Phaser.Utils.Array.GetRandom(config.assets),
         );
         item.setOrigin(0.5);
-        const itemSize = Phaser.Math.Between(58, 96);
-        item.setDisplaySize(itemSize, itemSize);
+        const itemHeight = Phaser.Math.Between(70, 120);
+        const source = item.texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+        item.setDisplaySize(source.width * (itemHeight / source.height), itemHeight);
         item.setDepth(DEPTH.effects);
         item.setRotation(Phaser.Math.FloatBetween(-0.5, 0.5));
 
