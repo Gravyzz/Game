@@ -2,14 +2,12 @@ import Phaser from 'phaser';
 import { COLORS } from '@config/colors';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
-import { Button } from '@ui/Button';
-import { PosterText } from '@ui/PosterText';
 import { SessionState } from '@core/SessionState';
 import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
+import { attachSoundButton } from '@utils/SceneHelpers';
 import { PRIZE_POOL, pickPrizeIndex, toWonPrize, type PrizeDef } from '@config/prizes';
 import type { SessionLevel } from '@core/SessionState';
 
@@ -36,18 +34,21 @@ import type { SessionLevel } from '@core/SessionState';
  *    укажет в системе колеса»)
  */
 
-const WHEEL_RADIUS = 280;
+const WHEEL_RADIUS = 330;
 const SECTOR_COUNT = PRIZE_POOL.length; // 8
 const SECTOR_RAD = (Math.PI * 2) / SECTOR_COUNT; // 45°
 const SPIN_DURATION_MS = 3500;
 const SPIN_REVOLUTIONS = 5;
+const PIXEL_FONT = '"Press Start 2P", monospace';
 
 export class WheelScene extends Phaser.Scene {
   private isJackpot = false;
   private wheelContainer!: Phaser.GameObjects.Container;
   private spinning = false;
   private lastTickedSector = -1;
-  private spinBtn!: Button;
+  private spinBtn!: Phaser.GameObjects.Container;
+  private spinButtonImage!: Phaser.GameObjects.Image;
+  private spinButtonText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'WheelScene' });
@@ -57,64 +58,45 @@ export class WheelScene extends Phaser.Scene {
     const { WIDTH, HEIGHT } = GAME;
     this.isJackpot = data.isJackpot ?? false;
 
-    // ===== Фон =====
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.purple);
-    this.drawNoise();
+    this.preparePixelAssets();
 
-    // ===== Заголовок =====
-    const titleText = this.isJackpot ? '🎰 ДЖЕКПОТ! 🎰' : RU.wheel.title;
-    const titlePoster = new PosterText(this, WIDTH / 2, 130, titleText, {
-      bgColor: COLORS.yellow,
-      textColor: '#0A0A0A',
-      fontSize: this.isJackpot ? '34px' : '38px',
-      rotation: -0.025,
-      paddingX: 24,
-      paddingY: 14,
-    });
-    titlePoster.setDepth(DEPTH.ui);
-    this.add.existing(titlePoster);
+    // ===== Фон по макету =====
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'fortune-bg');
+    bg.setOrigin(0.5);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
+    bg.setDepth(DEPTH.background);
 
     // ===== Колесо =====
-    const wheelCenter = { x: WIDTH / 2, y: HEIGHT / 2 - 40 };
+    const wheelCenter = { x: WIDTH / 2, y: 635 };
     this.wheelContainer = this.add.container(wheelCenter.x, wheelCenter.y);
     this.wheelContainer.setDepth(DEPTH.gameplay);
 
-    this.drawWheelSectors(this.wheelContainer);
-    this.drawWheelCenterCap(this.wheelContainer);
+    const wheelImage = this.add.image(0, 0, 'fortune-wheel');
+    wheelImage.setOrigin(0.5);
+    wheelImage.setDisplaySize(WHEEL_RADIUS * 2, WHEEL_RADIUS * 2);
+    this.wheelContainer.add(wheelImage);
+    this.drawWheelLabels(this.wheelContainer);
 
     // ===== Тикер (указатель сверху) =====
-    this.drawTicker(wheelCenter.x, wheelCenter.y - WHEEL_RADIUS - 10);
-
-    // ===== Декоративные стикеры =====
-    const sticker = new PosterText(this, 100, 250, 'КРУТИ!', {
-      bgColor: COLORS.red,
-      textColor: '#FAF7F0',
-      fontSize: '20px',
-      rotation: -0.18,
-      paddingX: 12,
-      paddingY: 6,
-    });
-    sticker.setDepth(DEPTH.midground);
-    sticker.setAlpha(0.85);
-    this.add.existing(sticker);
+    this.drawTicker(wheelCenter.x, wheelCenter.y - WHEEL_RADIUS + 10);
 
     // ===== Кнопка «КРУТИ!» =====
-    this.spinBtn = new Button(
-      this,
-      WIDTH / 2,
-      HEIGHT - 130,
-      RU.wheel.spinCta,
-      () => this.startSpin(),
-      {
-        width: 380,
-        height: 100,
-        bgColor: COLORS.yellow,
-        textColor: '#0A0A0A',
-        fontSize: '32px',
-      }
-    );
+    this.spinBtn = this.add.container(WIDTH / 2, 1136);
     this.spinBtn.setDepth(DEPTH.ui);
-    this.add.existing(this.spinBtn);
+    this.spinButtonImage = this.add.image(0, 0, 'spin-button');
+    this.spinButtonImage.setOrigin(0.5);
+    this.spinButtonImage.setDisplaySize(500, 160);
+    this.spinButtonText = this.add.text(0, 2, RU.wheel.spinCta.toUpperCase(), {
+      fontFamily: PIXEL_FONT,
+      fontSize: '42px',
+      color: '#0A0A0A',
+      align: 'center',
+    });
+    this.spinButtonText.setOrigin(0.5);
+    this.spinBtn.add([this.spinButtonImage, this.spinButtonText]);
+    this.spinBtn.setSize(500, 160);
+    this.spinBtn.setInteractive({ useHandCursor: true });
+    this.spinBtn.on('pointerdown', () => this.startSpin());
 
     // Лёгкая пульсация
     this.tweens.add({
@@ -131,85 +113,34 @@ export class WheelScene extends Phaser.Scene {
     this.cameras.main.fadeIn(300, 122, 92, 255);
   }
 
-  /**
-   * Рисует 8 секторов колеса как клиновидные графические фигуры
-   * + текст и иконку приза, повёрнутые радиально.
-   */
-  private drawWheelSectors(container: Phaser.GameObjects.Container): void {
-    // Внешний обод (черная окантовка)
-    const rim = this.add.circle(0, 0, WHEEL_RADIUS + 8, COLORS.black);
-    container.add(rim);
-
-    // Каждый сектор
+  private drawWheelLabels(container: Phaser.GameObjects.Container): void {
     for (let i = 0; i < SECTOR_COUNT; i++) {
       const prize = PRIZE_POOL[i];
-      // Сектор i занимает углы [i * 45° - 22.5°, i * 45° + 22.5°]
-      // относительно вертикали (0° = вверх).
-      // В Phaser нулевой угол смотрит вправо (3 часа), поэтому сдвигаем на -90°.
       const sectorCenterAngle = i * SECTOR_RAD - Math.PI / 2;
-      const startAngle = sectorCenterAngle - SECTOR_RAD / 2;
-      const endAngle = sectorCenterAngle + SECTOR_RAD / 2;
-
-      // Рисуем заливку сектора через Graphics
-      const g = this.add.graphics();
-      g.fillStyle(prize.color, 1);
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.arc(0, 0, WHEEL_RADIUS, startAngle, endAngle, false);
-      g.closePath();
-      g.fillPath();
-
-      // Чёрная разделительная линия между секторами
-      g.lineStyle(3, COLORS.black, 1);
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.lineTo(Math.cos(startAngle) * WHEEL_RADIUS, Math.sin(startAngle) * WHEEL_RADIUS);
-      g.strokePath();
-
-      container.add(g);
-
-      // Текст и иконка приза — размещаем по середине сектора, ~75% радиуса
-      const labelDist = WHEEL_RADIUS * 0.62;
+      const labelDist = WHEEL_RADIUS * 0.58;
       const labelX = Math.cos(sectorCenterAngle) * labelDist;
       const labelY = Math.sin(sectorCenterAngle) * labelDist;
 
-      // Поворачиваем текст так, чтобы он читался от центра наружу
-      // (т.е. перпендикулярно радиусу). Если сектор «кверху ногами» — переворачиваем.
-      let textRotation = sectorCenterAngle + Math.PI / 2;
-      if (textRotation > Math.PI / 2 && textRotation < Math.PI * 1.5) {
-        textRotation += Math.PI;
-      }
-
       const labelContainer = this.add.container(labelX, labelY);
-      labelContainer.setRotation(textRotation);
+      labelContainer.setRotation(sectorCenterAngle + Math.PI / 2);
 
-      const iconText = this.add.text(0, -22, prize.icon, { fontSize: '32px' });
+      const iconText = this.add.text(0, -30, prize.icon, { fontSize: '34px' });
       iconText.setOrigin(0.5);
 
-      const labelText = this.add.text(0, 14, RU.prizes[prize.i18nKey] ?? prize.id, {
-        fontFamily: 'Unbounded, sans-serif',
-        fontSize: '13px',
-        fontStyle: 'italic 800',
+      const labelText = this.add.text(0, 18, (RU.prizes[prize.i18nKey] ?? prize.id).toUpperCase(), {
+        fontFamily: PIXEL_FONT,
+        fontSize: '16px',
         color: prize.textColor,
         align: 'center',
-        wordWrap: { width: 130 },
+        stroke: prize.textColor === '#0A0A0A' ? undefined : '#0A0A0A',
+        strokeThickness: prize.textColor === '#0A0A0A' ? 0 : 4,
+        wordWrap: { width: 150 },
       });
       labelText.setOrigin(0.5);
 
       labelContainer.add([iconText, labelText]);
       container.add(labelContainer);
     }
-  }
-
-  /** Центральный «болт» колеса с эмодзи 🎸 */
-  private drawWheelCenterCap(container: Phaser.GameObjects.Container): void {
-    const cap = this.add.circle(0, 0, 36, COLORS.black);
-    cap.setStrokeStyle(4, COLORS.cream);
-    container.add(cap);
-
-    const capIcon = this.add.text(0, 0, '🎸', { fontSize: '32px' });
-    capIcon.setOrigin(0.5);
-    container.add(capIcon);
   }
 
   /** Стрелка-указатель сверху колеса */
@@ -219,11 +150,11 @@ export class WheelScene extends Phaser.Scene {
 
     const g = this.add.graphics();
     g.fillStyle(COLORS.yellow, 1);
-    g.lineStyle(3, COLORS.black, 1);
+    g.lineStyle(5, COLORS.black, 1);
     g.beginPath();
-    g.moveTo(0, 0);
-    g.lineTo(-22, -28);
-    g.lineTo(22, -28);
+    g.moveTo(0, 44);
+    g.lineTo(-34, -22);
+    g.lineTo(34, -22);
     g.closePath();
     g.fillPath();
     g.strokePath();
@@ -239,8 +170,9 @@ export class WheelScene extends Phaser.Scene {
     if (this.spinning) return;
     this.spinning = true;
 
-    this.spinBtn.setEnabled(false);
-    this.spinBtn.setText(RU.wheel.spinning.toUpperCase());
+    this.spinBtn.disableInteractive();
+    this.spinBtn.setAlpha(0.74);
+    this.spinButtonText.setText(RU.wheel.spinning.toUpperCase());
 
     SoundManager.playSfx('wheelSpin');
     Haptics.trigger('tap');
@@ -388,7 +320,11 @@ export class WheelScene extends Phaser.Scene {
     }
   }
 
-  private drawNoise(): void {
-    attachNoiseBackdrop(this, 'noise-wheel', 600);
+  private preparePixelAssets(): void {
+    ['fortune-bg', 'fortune-wheel', 'spin-button'].forEach((key) => {
+      if (this.textures.exists(key)) {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+      }
+    });
   }
 }

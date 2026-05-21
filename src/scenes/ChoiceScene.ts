@@ -1,14 +1,12 @@
 import Phaser from 'phaser';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
-import { PosterText } from '@ui/PosterText';
 import { SessionState } from '@core/SessionState';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
+import { attachSoundButton } from '@utils/SceneHelpers';
 
 /**
  * Экран выбора после победы в минке.
@@ -20,115 +18,125 @@ import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
  * На уровне 4 эта сцена не показывается — после победы сразу WheelScene с джекпотом.
  */
 export class ChoiceScene extends Phaser.Scene {
+  private readonly pixelFont = '"Press Start 2P", monospace';
+
   constructor() {
     super({ key: 'ChoiceScene' });
   }
 
   create(_data: { wonLevel?: number } = {}): void {
     const { WIDTH, HEIGHT } = GAME;
+    if (SessionState.getLivesLeft() <= 0) {
+      this.scene.start('ResultScene', { outcome: 'lose' });
+      return;
+    }
+
     const currentLevel = SessionState.getCurrentLevel();
 
-    // ===== Фон: победный жёлтый =====
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.yellow);
-    this.drawNoise();
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'play-interlevel-bg');
+    bg.setOrigin(0.5);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
+    bg.setDepth(DEPTH.background);
+    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x000000, 0.08)
+      .setDepth(DEPTH.background + 1);
 
-    // ===== Декоративные стикеры =====
-    this.drawDecoStickers();
+    this.coverReferenceUi();
 
-    // ===== Заголовок «РАСКОЛБАС! :3» =====
-    const titlePoster = new PosterText(this, WIDTH / 2, 200, RU.choice.titleAfterWin, {
-      bgColor: COLORS.red,
-      textColor: '#FAF7F0',
-      fontSize: '52px',
-      rotation: -0.03,
-      paddingX: 28,
-      paddingY: 14,
-    });
-    titlePoster.setDepth(DEPTH.ui);
-    this.add.existing(titlePoster);
-
-    // Появление с пружиной
-    titlePoster.setScale(0.5);
-    this.tweens.add({
-      targets: titlePoster,
-      scale: 1,
-      duration: 450,
-      ease: 'Back.easeOut',
-    });
-
-    // ===== Метка уровня =====
-    const levelLabel = this.add.text(WIDTH / 2, 290, `${RU.choice.levelLabel} ${currentLevel} / 4 ✓`, {
-      ...TEXT_STYLES.subtitle,
-      fontSize: '22px',
-      color: '#0A0A0A',
+    const levelLabel = this.add.text(WIDTH / 2, 470, `${RU.choice.levelLabel} ${currentLevel} / 4 ✓`, {
+      fontFamily: this.pixelFont,
+      fontSize: '25px',
+      color: '#FAF7F0',
+      stroke: '#0A0A0A',
+      strokeThickness: 7,
     });
     levelLabel.setOrigin(0.5);
     levelLabel.setDepth(DEPTH.ui);
 
-    // ===== Прогресс-бар уровней =====
     this.drawProgressBar(currentLevel);
 
-    // ===== Body =====
-    const body = this.add.text(WIDTH / 2, 460, RU.choice.body, {
-      ...TEXT_STYLES.body,
-      fontSize: '20px',
-      color: '#0A0A0A',
+    const body = this.add.text(WIDTH / 2, 675, RU.choice.body, {
+      fontFamily: this.pixelFont,
+      fontSize: '23px',
+      color: '#FAF7F0',
+      stroke: '#0A0A0A',
+      strokeThickness: 7,
+      align: 'center',
     });
     body.setOrigin(0.5);
     body.setDepth(DEPTH.ui);
 
-    // ===== Кнопка «КРУТИТЬ КОЛЕСО» =====
     const wheelBtn = new Button(
       this,
       WIDTH / 2,
-      HEIGHT - 380,
+      825,
       RU.choice.ctaWheel,
       () => this.chooseWheel(),
       {
-        width: 460,
-        height: 100,
+        width: 590,
+        height: 130,
         bgColor: COLORS.red,
         textColor: '#FAF7F0',
-        fontSize: '26px',
+        fontSize: '30px',
+        fontFamily: this.pixelFont,
+        pixel: true,
+        pixelStyle: { step: 6, border: 6, corner: 24 },
+        textStroke: '#0A0A0A',
+        textStrokeWidth: 8,
       }
     );
     wheelBtn.setDepth(DEPTH.ui);
     this.add.existing(wheelBtn);
 
-    const wheelHint = this.add.text(WIDTH / 2, HEIGHT - 320, RU.choice.hintWheel, {
-      ...TEXT_STYLES.label,
-      fontSize: '14px',
-      color: '#0A0A0A',
+    const wheelIcon = this.add.image(118, 825, 'star-pixel');
+    wheelIcon.setOrigin(0.5);
+    wheelIcon.setDisplaySize(58, 58);
+    wheelIcon.setDepth(DEPTH.ui + 1);
+
+    const wheelHint = this.add.text(WIDTH / 2, 920, RU.choice.hintWheel, {
+      fontFamily: this.pixelFont,
+      fontSize: '19px',
+      color: '#FAF7F0',
+      stroke: '#0A0A0A',
+      strokeThickness: 6,
     });
     wheelHint.setOrigin(0.5);
-    wheelHint.setAlpha(0.7);
     wheelHint.setDepth(DEPTH.ui);
 
-    // ===== Кнопка «ИДТИ ДАЛЬШЕ» =====
     const continueBtn = new Button(
       this,
       WIDTH / 2,
-      HEIGHT - 200,
+      1050,
       RU.choice.ctaContinue,
       () => this.chooseContinue(),
       {
-        width: 460,
-        height: 100,
-        bgColor: COLORS.black,
-        textColor: '#FFE600',
-        fontSize: '26px',
+        width: 590,
+        height: 130,
+        bgColor: COLORS.yellow,
+        textColor: '#FAF7F0',
+        fontSize: '30px',
+        fontFamily: this.pixelFont,
+        pixel: true,
+        pixelStyle: { step: 6, border: 6, corner: 24 },
+        textStroke: '#0A0A0A',
+        textStrokeWidth: 8,
       }
     );
     continueBtn.setDepth(DEPTH.ui);
     this.add.existing(continueBtn);
 
-    const continueHint = this.add.text(WIDTH / 2, HEIGHT - 140, RU.choice.hintContinue, {
-      ...TEXT_STYLES.label,
-      fontSize: '14px',
-      color: '#0A0A0A',
+    const continueIcon = this.add.image(122, 1050, 'gamepad-pixel');
+    continueIcon.setOrigin(0.5);
+    continueIcon.setDisplaySize(60, 60);
+    continueIcon.setDepth(DEPTH.ui + 1);
+
+    const continueHint = this.add.text(WIDTH / 2, 1145, RU.choice.hintContinue, {
+      fontFamily: this.pixelFont,
+      fontSize: '19px',
+      color: '#FAF7F0',
+      stroke: '#0A0A0A',
+      strokeThickness: 6,
     });
     continueHint.setOrigin(0.5);
-    continueHint.setAlpha(0.7);
     continueHint.setDepth(DEPTH.ui);
 
     // Звук победы на входе на ChoiceScene
@@ -144,58 +152,38 @@ export class ChoiceScene extends Phaser.Scene {
   private drawProgressBar(currentLevel: number): void {
     const { WIDTH } = GAME;
     const cx = WIDTH / 2;
-    const cy = 360;
-    const gap = 60;
+    const cy = 552;
+    const gap = 82;
     const totalW = gap * 3;
     const startX = cx - totalW / 2;
 
     for (let i = 1; i <= 4; i++) {
       const x = startX + (i - 1) * gap;
       const isCompleted = i <= currentLevel;
-      const color = isCompleted ? COLORS.red : COLORS.greyLight;
-      const radius = isCompleted ? 14 : 10;
+      const color = isCompleted ? COLORS.red : 0xb7b7b7;
+      const radius = 18;
 
-      this.add.circle(x, cy, radius, color).setDepth(DEPTH.ui);
+      this.add.circle(x, cy, radius + 6, 0x0a0a0a).setDepth(DEPTH.ui);
+      this.add.circle(x, cy, radius, color).setDepth(DEPTH.ui + 1);
 
-      // Соединительные линии
       if (i > 1) {
         const prevX = startX + (i - 2) * gap;
-        const lineColor = i <= currentLevel ? COLORS.red : COLORS.greyLight;
-        this.add.line(0, 0, prevX + 14, cy, x - 14, cy, lineColor).setLineWidth(3).setDepth(DEPTH.midground);
+        this.add.line(0, 0, prevX + 24, cy, x - 24, cy, 0x0a0a0a)
+          .setLineWidth(6)
+          .setDepth(DEPTH.ui - 1);
+        this.add.line(0, 0, prevX + 27, cy, x - 27, cy, 0xfaf7f0)
+          .setLineWidth(4)
+          .setDepth(DEPTH.ui);
       }
     }
   }
 
-  private drawDecoStickers(): void {
+  private coverReferenceUi(): void {
     const { WIDTH } = GAME;
-
-    const s1 = new PosterText(this, 100, 110, 'КАЙФ!', {
-      bgColor: COLORS.red,
-      textColor: '#FAF7F0',
-      fontSize: '18px',
-      rotation: -0.18,
-      paddingX: 12,
-      paddingY: 6,
-    });
-    s1.setDepth(DEPTH.midground);
-    s1.setAlpha(0.85);
-    this.add.existing(s1);
-
-    const s2 = new PosterText(this, WIDTH - 100, 130, 'ЙОУ!', {
-      bgColor: COLORS.purple,
-      textColor: '#FAF7F0',
-      fontSize: '18px',
-      rotation: 0.16,
-      paddingX: 12,
-      paddingY: 6,
-    });
-    s2.setDepth(DEPTH.midground);
-    s2.setAlpha(0.85);
-    this.add.existing(s2);
-  }
-
-  private drawNoise(): void {
-    attachNoiseBackdrop(this, 'noise-choice', 600, 0.05);
+    this.add.rectangle(WIDTH / 2, 502, WIDTH - 150, 150, 0x090604, 0.46)
+      .setDepth(DEPTH.background + 2);
+    this.add.rectangle(WIDTH / 2, 820, WIDTH - 74, 330, 0x090604, 0.28)
+      .setDepth(DEPTH.background + 2);
   }
 
   private chooseWheel(): void {
@@ -208,6 +196,11 @@ export class ChoiceScene extends Phaser.Scene {
   }
 
   private chooseContinue(): void {
+    if (SessionState.getLivesLeft() <= 0) {
+      this.scene.start('ResultScene', { outcome: 'lose' });
+      return;
+    }
+
     SoundManager.playSfx('choice');
     Haptics.trigger('tap');
     const next = SessionState.advanceLevel();

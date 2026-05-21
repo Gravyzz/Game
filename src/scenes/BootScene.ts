@@ -16,6 +16,13 @@ export class BootScene extends Phaser.Scene {
     this.load.image('make-love-pizza-logo-pixel', 'assets/branding/logo-make-love-pizza-pixel.png');
     this.load.image('main-menu-bg', 'assets/branding/main-menu-bg.png');
     this.load.image('play-interlevel-bg', 'assets/play/interlevel-bg.jpeg');
+    this.load.image('fortune-bg', 'assets/play/fortune-bg.png');
+    this.load.image('fortune-wheel', 'assets/play/fortune-wheel.png');
+    this.load.image('spin-button', 'assets/play/spin-button.png');
+    this.load.image('fortune-layout', 'assets/play/fortune-layout.png');
+    this.load.image('unluck-bg', 'assets/play/unluck-bg.png');
+    this.load.image('unluck-layout', 'assets/play/unluck-layout.png');
+    this.load.image('luck-layout', 'assets/play/luck-layout.png');
 
     // ===== UI =====
     this.load.image('heart-pixel',             'assets/ui/heart-pixel.png');

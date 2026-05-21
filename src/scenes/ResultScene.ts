@@ -1,14 +1,12 @@
 import Phaser from 'phaser';
 import { COLORS } from '@config/colors';
-import { TEXT_STYLES } from '@config/fonts';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
-import { PosterText } from '@ui/PosterText';
 import { SessionState } from '@core/SessionState';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
+import { attachSoundButton } from '@utils/SceneHelpers';
 
 /**
  * Финальный экран сессии.
@@ -24,6 +22,8 @@ import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
  *   - запись lastSessionAt в Storage
  */
 export class ResultScene extends Phaser.Scene {
+  private readonly pixelFont = '"Press Start 2P", monospace';
+
   constructor() {
     super({ key: 'ResultScene' });
   }
@@ -48,120 +48,123 @@ export class ResultScene extends Phaser.Scene {
     const { WIDTH, HEIGHT } = GAME;
     const prize = SessionState.getPrize();
 
-    // ===== Фон: победный жёлтый =====
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.yellow);
-    this.drawNoise();
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'unluck-bg');
+    bg.setOrigin(0.5);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
+    bg.setDepth(DEPTH.background);
 
-    // ===== «НЯМКА!» постером =====
-    const titlePoster = new PosterText(this, WIDTH / 2, 200, RU.result.winTitle, {
-      bgColor: COLORS.red,
-      textColor: '#FAF7F0',
-      fontSize: '64px',
-      rotation: -0.03,
-      paddingX: 30,
-      paddingY: 16,
+    const titleTape = this.add.rectangle(WIDTH / 2, 230, 510, 120, COLORS.red, 1);
+    titleTape.setStrokeStyle(6, 0x0a0a0a);
+    titleTape.setAngle(-4);
+    titleTape.setDepth(DEPTH.ui);
+
+    const title = this.add.text(WIDTH / 2, 230, RU.result.winTitle.toUpperCase(), {
+      fontFamily: this.pixelFont,
+      fontSize: '58px',
+      color: '#FAF7F0',
+      fontStyle: 'italic',
+      align: 'center',
     });
-    titlePoster.setDepth(DEPTH.ui);
-    this.add.existing(titlePoster);
+    title.setOrigin(0.5);
+    title.setAngle(-4);
+    title.setDepth(DEPTH.ui + 1);
 
-    // Лёгкая «рандомная встряска»
-    titlePoster.setScale(0.5);
-    this.tweens.add({
-      targets: titlePoster,
-      scale: 1,
-      duration: 500,
-      ease: 'Back.easeOut',
-    });
-
-    // ===== Sub: «Твой приз:» =====
-    const subText = this.add.text(WIDTH / 2, 320, RU.result.winSub, {
-      ...TEXT_STYLES.subtitle,
-      fontSize: '20px',
-      color: '#0A0A0A',
+    const subText = this.add.text(WIDTH / 2, 392, RU.result.winSub.toUpperCase(), {
+      fontFamily: this.pixelFont,
+      fontSize: '25px',
+      color: '#FFE600',
+      stroke: '#0A0A0A',
+      strokeThickness: 6,
     });
     subText.setOrigin(0.5);
     subText.setDepth(DEPTH.ui);
 
-    // ===== Карточка приза =====
-    if (prize) {
-      const cardBg = this.add.rectangle(WIDTH / 2, 480, WIDTH - 100, 220, COLORS.black);
-      cardBg.setStrokeStyle(4, COLORS.red);
-      cardBg.setDepth(DEPTH.ui);
+    const cardBg = this.add.rectangle(WIDTH / 2, 575, WIDTH - 116, 275, 0x050607, 0.94);
+    cardBg.setStrokeStyle(7, COLORS.red);
+    cardBg.setDepth(DEPTH.ui);
 
-      const prizeTier = this.add.text(WIDTH / 2, 400, prize.tier.toUpperCase(), {
-        ...TEXT_STYLES.label,
-        fontSize: '14px',
+    if (prize) {
+      const prizeTier = this.add.text(WIDTH / 2, 486, prize.tier.toUpperCase(), {
+        fontFamily: this.pixelFont,
+        fontSize: '20px',
         color: '#FFE600',
       });
       prizeTier.setOrigin(0.5);
-      prizeTier.setDepth(DEPTH.ui);
+      prizeTier.setDepth(DEPTH.ui + 1);
 
-      const prizeLabel = this.add.text(WIDTH / 2, 450, prize.label, {
-        ...TEXT_STYLES.title,
+      const prizeLabel = this.add.text(WIDTH / 2, 560, prize.label.toUpperCase(), {
+        fontFamily: this.pixelFont,
         fontSize: '32px',
         color: '#FAF7F0',
+        align: 'center',
+        wordWrap: { width: WIDTH - 170, useAdvancedWrap: true },
       });
       prizeLabel.setOrigin(0.5);
-      prizeLabel.setDepth(DEPTH.ui);
+      prizeLabel.setDepth(DEPTH.ui + 1);
 
       if (prize.promoCode) {
-        const codeBox = this.add.rectangle(WIDTH / 2, 525, 280, 50, COLORS.yellow);
-        codeBox.setDepth(DEPTH.ui);
+        const codeBox = this.add.rectangle(WIDTH / 2, 660, 340, 62, COLORS.yellow);
+        codeBox.setStrokeStyle(5, 0x0a0a0a);
+        codeBox.setDepth(DEPTH.ui + 1);
 
-        const codeText = this.add.text(WIDTH / 2, 525, prize.promoCode, {
-          fontFamily: 'Unbounded, sans-serif',
-          fontSize: '24px',
-          fontStyle: 'italic 800',
+        const codeText = this.add.text(WIDTH / 2, 660, prize.promoCode, {
+          fontFamily: this.pixelFont,
+          fontSize: '25px',
           color: '#0A0A0A',
         });
         codeText.setOrigin(0.5);
-        codeText.setDepth(DEPTH.ui);
-
-        // Кнопка «СКОПИРОВАТЬ ПРОМОКОД»
-        const copyBtn = new Button(
-          this,
-          WIDTH / 2,
-          720,
-          RU.result.copyCta,
-          () => this.copyPromoCode(prize.promoCode!, copyBtn),
-          {
-            width: 420,
-            height: 80,
-            bgColor: COLORS.red,
-            textColor: '#FAF7F0',
-            fontSize: '22px',
-          }
-        );
-        copyBtn.setDepth(DEPTH.ui);
-        this.add.existing(copyBtn);
+        codeText.setDepth(DEPTH.ui + 2);
       }
     }
 
-    // ===== Декор-стикер =====
-    const sticker = new PosterText(this, WIDTH / 2, 850, 'НЯМКА ЕСТЬ — КАЙФ ЕСТЬ!', {
-      bgColor: COLORS.purple,
-      textColor: '#FAF7F0',
-      fontSize: '18px',
-      rotation: 0.03,
-      paddingX: 16,
-      paddingY: 8,
-    });
-    sticker.setDepth(DEPTH.ui);
-    this.add.existing(sticker);
+    if (prize?.promoCode) {
+      const copyBtn = new Button(
+        this,
+        WIDTH / 2,
+        800,
+        RU.result.copyCta,
+        () => this.copyPromoCode(prize.promoCode!, copyBtn),
+        {
+          width: 500,
+          height: 88,
+          bgColor: COLORS.red,
+          textColor: '#FAF7F0',
+          fontSize: '21px',
+          fontFamily: this.pixelFont,
+          pixel: true,
+          pixelStyle: { step: 6, border: 6, corner: 18 },
+        }
+      );
+      copyBtn.setDepth(DEPTH.ui);
+      this.add.existing(copyBtn);
+    }
 
-    // ===== Кнопка возврата =====
+    const sticker = this.add.rectangle(WIDTH / 2, 920, 450, 62, COLORS.purple);
+    sticker.setStrokeStyle(5, 0x0a0a0a);
+    sticker.setDepth(DEPTH.ui);
+    const stickerText = this.add.text(WIDTH / 2, 920, 'НЯМКА ЕСТЬ — КАЙФ ЕСТЬ!', {
+      fontFamily: this.pixelFont,
+      fontSize: '19px',
+      color: '#FAF7F0',
+    });
+    stickerText.setOrigin(0.5);
+    stickerText.setDepth(DEPTH.ui + 1);
+
     const backBtn = new Button(
       this,
       WIDTH / 2,
-      HEIGHT - 100,
+      1090,
       RU.result.backCta,
       () => this.goHome(),
       {
-        width: 380,
-        height: 80,
+        width: 500,
+        height: 96,
         bgColor: COLORS.black,
         textColor: '#FFE600',
-        fontSize: '22px',
+        fontSize: '27px',
+        fontFamily: this.pixelFont,
+        pixel: true,
+        pixelStyle: { step: 6, border: 6, corner: 18, outline: COLORS.yellow },
       }
     );
     backBtn.setDepth(DEPTH.ui);
@@ -178,40 +181,45 @@ export class ResultScene extends Phaser.Scene {
   private renderLose(): void {
     const { WIDTH, HEIGHT } = GAME;
 
-    // ===== Фон: тёмный =====
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.greyDark);
-    this.drawNoise();
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'unluck-bg');
+    bg.setOrigin(0.5);
+    bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
+    bg.setDepth(DEPTH.background);
 
-    // ===== Заголовок =====
-    const titlePoster = new PosterText(this, WIDTH / 2, HEIGHT / 2 - 200, RU.result.loseTitle, {
-      bgColor: COLORS.lose,
-      textColor: '#FAF7F0',
-      fontSize: '44px',
-      rotation: -0.025,
-      paddingX: 26,
-      paddingY: 14,
+    const panel = this.add.rectangle(WIDTH / 2, 615, WIDTH - 118, 620, 0x050607, 0.94);
+    panel.setStrokeStyle(7, COLORS.red);
+    panel.setDepth(DEPTH.ui);
+
+    const titleTape = this.add.rectangle(WIDTH / 2, 394, 430, 88, COLORS.red, 1);
+    titleTape.setStrokeStyle(5, 0x0a0a0a);
+    titleTape.setDepth(DEPTH.ui + 1);
+
+    const title = this.add.text(WIDTH / 2, 394, RU.result.loseTitle.toUpperCase(), {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '32px',
+      color: '#FAF7F0',
+      align: 'center',
     });
-    titlePoster.setDepth(DEPTH.ui);
-    this.add.existing(titlePoster);
+    title.setOrigin(0.5);
+    title.setDepth(DEPTH.ui + 2);
 
-    // ===== Body =====
-    const body = this.add.text(WIDTH / 2, HEIGHT / 2 - 60, RU.result.loseSub, {
-      ...TEXT_STYLES.body,
+    const bodyText = 'ПРОГРЕСС СОХРАНЁН НА 2 НЕДЕЛИ.\nВОЗВРАЩАЙСЯ ПОСЛЕ\nСЛЕДУЮЩЕГО ЗАКАЗА, БРАТИШКА <3';
+    const body = this.add.text(WIDTH / 2, 535, bodyText, {
+      fontFamily: '"Press Start 2P", monospace',
       fontSize: '20px',
       color: '#FAF7F0',
-      wordWrap: { width: WIDTH - 100 },
-      lineSpacing: 6,
+      align: 'center',
+      lineSpacing: 16,
+      wordWrap: { width: WIDTH - 180 },
     });
     body.setOrigin(0.5);
-    body.setDepth(DEPTH.ui);
+    body.setDepth(DEPTH.ui + 1);
 
-    // ===== Большой эмодзи =====
     const emoji = this.add.text(WIDTH / 2, HEIGHT / 2 + 100, '🍕', {
-      fontSize: '140px',
+      fontSize: '118px',
     });
     emoji.setOrigin(0.5);
-    emoji.setAlpha(0.5);
-    emoji.setDepth(DEPTH.midground);
+    emoji.setDepth(DEPTH.ui + 1);
     this.tweens.add({
       targets: emoji,
       angle: { from: -5, to: 5 },
@@ -221,19 +229,21 @@ export class ResultScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    // ===== Кнопка возврата =====
     const backBtn = new Button(
       this,
       WIDTH / 2,
-      HEIGHT - 100,
+      1048,
       RU.result.backCta,
       () => this.goHome(),
       {
-        width: 380,
-        height: 80,
+        width: 430,
+        height: 92,
         bgColor: COLORS.red,
         textColor: '#FAF7F0',
         fontSize: '22px',
+        fontFamily: '"Press Start 2P", monospace',
+        pixel: true,
+        pixelStyle: { step: 6, border: 6, corner: 18 },
       }
     );
     backBtn.setDepth(DEPTH.ui);
@@ -280,9 +290,5 @@ export class ResultScene extends Phaser.Scene {
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('SplashScene');
     });
-  }
-
-  private drawNoise(): void {
-    attachNoiseBackdrop(this, 'noise-result', 600);
   }
 }
