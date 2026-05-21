@@ -390,22 +390,24 @@ export class DontWorkScene extends BaseMinigame {
       .setStrokeStyle(6, 0x0a0a0a, 1)
       .setDepth(DEPTH.ui);
 
+    // Иконки ужаты (32→26 круг, 54→44 эмодзи) и ряды плотнее (±40→±30),
+    // чтобы оба ряда чисто помещались внутри панели высотой 150 со страйком 6px.
     const cells = [
-      { x: panelX - 220, y: panelY - 40, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
-      { x: panelX + 40,  y: panelY - 40, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
-      { x: panelX - 220, y: panelY + 42, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
-      { x: panelX + 40,  y: panelY + 42, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
+      { x: panelX - 220, y: panelY - 30, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
+      { x: panelX + 40,  y: panelY - 30, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
+      { x: panelX - 220, y: panelY + 30, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
+      { x: panelX + 40,  y: panelY + 30, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
     ];
 
     for (const c of cells) {
-      this.add.circle(c.x, c.y, 32, c.ring, 0.22)
+      this.add.circle(c.x, c.y, 26, c.ring, 0.22)
         .setStrokeStyle(4, c.ring, 0.95)
         .setDepth(DEPTH.ui);
       this.add.image(c.x, c.y, c.icon)
-        .setDisplaySize(54, 54)
+        .setDisplaySize(44, 44)
         .setDepth(DEPTH.ui + 1);
 
-      this.add.text(c.x + 48, c.y, c.label, {
+      this.add.text(c.x + 40, c.y, c.label, {
         ...TEXT_STYLES.subtitle,
         fontFamily: PIXEL_FONT,
         fontSize: '16px',

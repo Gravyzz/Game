@@ -47,7 +47,6 @@ const ROUND_CONFIGS: RoundCfg[] = [
   { length: 4, showStepMs: 620, showGapMs: 200, inputWindowMs: 1400 },
   { length: 5, showStepMs: 540, showGapMs: 180, inputWindowMs: 1200 },
   { length: 6, showStepMs: 480, showGapMs: 160, inputWindowMs: 1050 },
-  { length: 7, showStepMs: 420, showGapMs: 140, inputWindowMs: 900 },
 ];
 
 const TOTAL_ROUNDS = ROUND_CONFIGS.length;
