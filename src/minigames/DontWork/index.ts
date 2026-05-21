@@ -383,7 +383,7 @@ export class DontWorkScene extends BaseMinigame {
 
   private buildLegend(): void {
     const panelW = W - 70;
-    const panelH = 150;
+    const panelH = 210;
     const panelX = CX;
     const panelY = H - 105;
     this.add.rectangle(panelX, panelY, panelW, panelH, 0xdddddd, 0.96)
