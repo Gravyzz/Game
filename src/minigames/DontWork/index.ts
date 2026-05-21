@@ -390,13 +390,12 @@ export class DontWorkScene extends BaseMinigame {
       .setStrokeStyle(6, 0x0a0a0a, 1)
       .setDepth(DEPTH.ui);
 
-    // Иконки ужаты (32→26 круг, 54→44 эмодзи) и ряды плотнее (±40→±30),
-    // чтобы оба ряда чисто помещались внутри панели высотой 150 со страйком 6px.
+    const legendShiftX = -20;
     const cells = [
-      { x: panelX - 220, y: panelY - 30, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
-      { x: panelX + 40,  y: panelY - 30, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
-      { x: panelX - 220, y: panelY + 30, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
-      { x: panelX + 40,  y: panelY + 30, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
+      { x: panelX - 165 + legendShiftX, y: panelY - 44, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
+      { x: panelX + 135 + legendShiftX, y: panelY - 44, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
+      { x: panelX - 165 + legendShiftX, y: panelY + 44, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
+      { x: panelX + 135 + legendShiftX, y: panelY + 44, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
     ];
 
     for (const c of cells) {
