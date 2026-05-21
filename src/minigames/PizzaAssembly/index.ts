@@ -214,6 +214,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     });
 
     this.input.on('pointerdown', this.onTap, this);
+    this.input.keyboard?.on('keydown-SPACE', this.onTap, this);
     this.cameras.main.fadeIn(300, 10, 10, 10);
 
     attachIntro(
@@ -268,6 +269,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
   shutdown(): void {
     this.input.off('pointerdown', this.onTap, this);
+    this.input.keyboard?.off('keydown-SPACE', this.onTap, this);
     this.flipEvt?.remove();
     this.tweens.killAll();
   }
@@ -808,6 +810,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
     this.flipEvt?.remove();
     this.input.off('pointerdown', this.onTap, this);
+    this.input.keyboard?.off('keydown-SPACE', this.onTap, this);
 
     if (win) { SoundManager.playSfx('win');  Haptics.trigger('win');  }
     else     { SoundManager.playSfx('lose'); Haptics.trigger('lose'); }

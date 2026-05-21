@@ -392,6 +392,7 @@ export class ChopChopScene extends BaseMinigame {
     this.input.on('pointerdown', this.onPointerDown, this);
     this.input.on('pointermove', this.onPointerMove, this);
     this.input.on('pointerup', this.onPointerUp, this);
+    this.input.keyboard?.on('keydown-SPACE', this.onSpacePress, this);
 
     this.cameras.main.fadeIn(250, 10, 10, 10);
     this.updateUi();
@@ -907,6 +908,23 @@ export class ChopChopScene extends BaseMinigame {
 
   // ========== ИНПУТ ==========
 
+  /**
+   * Клавиатурная замена тапу. В swipe-режиме симулирует мгновенный «свайп»
+   * по овощу (с тем же cooldown-ом, что и реальный свайп), в остальных —
+   * прокидывает обычный handleTap().
+   */
+  private onSpacePress(): void {
+    if (!this.accepting || this.finished) return;
+    if (this.currentMode === 'swipe') {
+      if (this.playerCanTap && this.time.now - this.lastSwipeChopAt > SWIPE_COOLDOWN_MS) {
+        this.lastSwipeChopAt = this.time.now;
+        this.handleSwipeChop();
+      }
+      return;
+    }
+    this.handleTap();
+  }
+
   private onPointerDown(p: Phaser.Input.Pointer): void {
     if (!this.accepting || this.finished) return;
     // Тап попал в UI-кнопку (home / sound) — это не игровой ввод. Без этой
@@ -1282,6 +1300,7 @@ export class ChopChopScene extends BaseMinigame {
     this.input.off('pointerdown', this.onPointerDown, this);
     this.input.off('pointermove', this.onPointerMove, this);
     this.input.off('pointerup', this.onPointerUp, this);
+    this.input.keyboard?.off('keydown-SPACE', this.onSpacePress, this);
     if (this.didiTimer) this.didiTimer.remove();
     if (this.headstartTimer) this.headstartTimer.remove();
     if (this.playerUnlockTimer) this.playerUnlockTimer.remove();

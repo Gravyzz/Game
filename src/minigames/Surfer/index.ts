@@ -306,6 +306,7 @@ export class SurferScene extends BaseMinigame {
 
     // Input
     this.input.on('pointerdown', this.onTap, this);
+    this.input.keyboard?.on('keydown-SPACE', this.onTap, this);
 
     this.refreshHud();
     this.cameras.main.fadeIn(300, 10, 10, 10);
@@ -435,6 +436,7 @@ export class SurferScene extends BaseMinigame {
 
   shutdown(): void {
     this.input.off('pointerdown', this.onTap, this);
+    this.input.keyboard?.off('keydown-SPACE', this.onTap, this);
     this.spawnTimer?.remove();
     this.powerUpTimer?.remove();
     this.lightningTimer?.remove();
