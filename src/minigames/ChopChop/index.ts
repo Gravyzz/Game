@@ -164,6 +164,10 @@ export class ChopChopScene extends BaseMinigame {
   private prevPointerX = 0;
   private prevPointerY = 0;
   private lastSwipeChopAt = 0;
+  /** Точки следа со штампом времени — старые исчезают, новые наращиваются.
+   *  Перерисовка идёт каждый кадр в update(), не на pointermove —
+   *  иначе при остановке пальца след «зависал» во весь свайп. */
+  private swipeTrailPoints: Array<{ x: number; y: number; t: number }> = [];
 
   // Бомба-режим
   private currentlyBomb = false;
@@ -935,7 +939,9 @@ export class ChopChopScene extends BaseMinigame {
       this.swipeActive = true;
       this.prevPointerX = p.x;
       this.prevPointerY = p.y;
+      this.swipeTrailPoints = [{ x: p.x, y: p.y, t: this.time.now }];
       this.trailGfx.clear();
+      this.trailGfx.setAlpha(1);
       // Прямое касание ровно по овощу тоже считается за разрез
       const dx = p.x - this.veggie.x;
       const dy = p.y - this.veggie.y;
@@ -966,17 +972,11 @@ export class ChopChopScene extends BaseMinigame {
       this.handleSwipeChop();
     }
 
-    // След от свайпа — толстый «нож»
-    this.trailGfx.lineStyle(8, COLORS.yellow, 0.85);
-    this.trailGfx.lineBetween(this.prevPointerX, this.prevPointerY, p.x, p.y);
-    this.trailGfx.lineStyle(3, COLORS.cream, 1);
-    this.trailGfx.lineBetween(this.prevPointerX, this.prevPointerY, p.x, p.y);
-    this.trailGfx.setAlpha(1);
-    this.tweens.killTweensOf(this.trailGfx);
-    this.tweens.add({
-      targets: this.trailGfx, alpha: 0, duration: 220, delay: 90,
-      onComplete: () => this.trailGfx.clear(),
-    });
+    // Просто пушим точку — фактическая отрисовка и сброс старых точек
+    // делается в update() ниже, поэтому след корректно тает даже при
+    // остановке пальца на месте.
+    this.swipeTrailPoints.push({ x: p.x, y: p.y, t: this.time.now });
+    if (this.swipeTrailPoints.length > 30) this.swipeTrailPoints.shift();
 
     this.prevPointerX = p.x;
     this.prevPointerY = p.y;
@@ -985,7 +985,43 @@ export class ChopChopScene extends BaseMinigame {
   private onPointerUp(): void {
     if (this.currentMode === 'swipe') {
       this.swipeActive = false;
+      this.swipeTrailPoints = [];
       this.trailGfx.clear();
+    }
+  }
+
+  /**
+   * Кадровая перерисовка следа: дропаем точки старше 200мс и рисуем
+   * остаток в 3 слоя (мягкий хвост + жёлтое тело + белый блик).
+   * Так след тает естественно — даже если палец остановился,
+   * старые точки уходят и след «съёживается» к курсору.
+   */
+  override update(): void {
+    if (this.gamePaused) return;
+    if (this.currentMode !== 'swipe') return;
+
+    const TRAIL_LIFE_MS = 200;
+    const now = this.time.now;
+    while (this.swipeTrailPoints.length > 0 && now - this.swipeTrailPoints[0].t > TRAIL_LIFE_MS) {
+      this.swipeTrailPoints.shift();
+    }
+
+    this.trailGfx.clear();
+    if (this.swipeTrailPoints.length < 2) return;
+
+    const layers: Array<{ width: number; color: number; alpha: number }> = [
+      { width: 18, color: 0xff7a40, alpha: 0.22 },
+      { width: 10, color: COLORS.yellow, alpha: 0.85 },
+      { width: 3,  color: COLORS.cream, alpha: 1.0 },
+    ];
+    for (const ly of layers) {
+      this.trailGfx.lineStyle(ly.width, ly.color, ly.alpha);
+      this.trailGfx.beginPath();
+      this.trailGfx.moveTo(this.swipeTrailPoints[0].x, this.swipeTrailPoints[0].y);
+      for (let i = 1; i < this.swipeTrailPoints.length; i++) {
+        this.trailGfx.lineTo(this.swipeTrailPoints[i].x, this.swipeTrailPoints[i].y);
+      }
+      this.trailGfx.strokePath();
     }
   }
 

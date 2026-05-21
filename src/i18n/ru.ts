@@ -40,12 +40,12 @@ export const RU = {
 
   // ===== Choice screen =====
   choice: {
-    titleAfterWin: 'РАСКОЛБАС! :3',
-    body:          'Что делаем дальше, братишка?',
-    ctaWheel:      '🎰 КРУТИТЬ КОЛЕСО',
-    ctaContinue:   '🎸 ИДТИ ДАЛЬШЕ',
+    titleAfterWin: 'УРОВЕНЬ ПРОЙДЕН',
+    body:          'Выберите дальнейший шаг',
+    ctaWheel:      'КРУТИТЬ КОЛЕСО',
+    ctaContinue:   'ИДТИ ДАЛЬШЕ',
     hintWheel:     'Забрать приз сейчас',
-    hintContinue:  'Призы будут жирнее',
+    hintContinue:  'Награды станут ценнее',
     levelLabel:    'УРОВЕНЬ',
   },
 
@@ -134,15 +134,24 @@ export const RU = {
   },
 
   // ===== Призы =====
+  // Лейблы для админ-панели: «приз N» вместо конкретных названий.
+  // Реальные названия призов и промокоды настраиваются на бекенде
+  // (или в `src/config/prizes.ts` → `PRIZE_CATALOG`).
   prizes: {
-    nyamki50:     '+50 нямок',
-    promo10:      'Промокод -10%',
-    sauceFree:    'Соус в подарок',
-    life:         '+1 жизнь',
-    nyamki100:    '+100 нямок',
-    promo20:      'Промокод -20%',
-    oldscoolFree: 'Олдскул в подарок',
-    jackpot:      'Я_не_робот комбо!',
+    prize1:  'Приз 1',
+    prize2:  'Приз 2',
+    prize3:  'Приз 3',
+    prize4:  'Приз 4',
+    prize5:  'Приз 5',
+    prize6:  'Приз 6',
+    prize7:  'Приз 7',
+    prize8:  'Приз 8',
+    prize9:  'Приз 9',
+    prize10: 'Приз 10',
+    prize11: 'Приз 11',
+    prize12: 'Приз 12',
+    prize13: 'Приз 13',
+    prize14: 'Приз 14',
   } as Record<string, string>,
 
   // ===== Общее =====

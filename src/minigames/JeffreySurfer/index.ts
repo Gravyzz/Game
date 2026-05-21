@@ -800,10 +800,14 @@ export class JeffreySurferScene extends BaseMinigame {
     const list = this.vehicles.get(this.playerWorldY);
     if (!list) return;
     const { x: px } = this.tileToScreen(this.playerCol, this.playerWorldY);
-    const playerHalf = TILE * 0.32;
+    // Хитбокс игрока ужат с 0.32 до 0.28 от тайла, бампер транспорта
+    // с 0.85 до 0.75 — было слишком чувствительно (~60px радиус
+    // столкновения на тайл 80px). Теперь игроку проще проскальзывать
+    // между плотным трафиком.
+    const playerHalf = TILE * 0.28;
     for (const v of list) {
       const halfW = v.width * 0.5;
-      if (Math.abs(v.x - px) < playerHalf + halfW * 0.85) {
+      if (Math.abs(v.x - px) < playerHalf + halfW * 0.75) {
         const row = this.rows.get(this.playerWorldY);
         const reason = row?.kind === 'rail' ? 'поезд!' : 'сбила машина!';
         this.die(reason);

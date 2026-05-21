@@ -63,75 +63,67 @@ export class DevMinigameMenuScene extends Phaser.Scene {
     sub.setAlpha(0.6);
     sub.setDepth(DEPTH.ui);
 
-    // Кнопки на каждую минку из пула — 2 колонки
-    const startY = 240;
-    const stepY = 92;
-    const colGap = 20;
-    const btnW = 320;
-    const btnH = 64;
+    // Кнопки в одну колонку во всю ширину — длинные названия (типа
+    // «ПЕРЕПУТАННЫЕ РЕЦЕПТЫ») спокойно помещаются без вылета за рамку.
+    // 8 минок + 1 «назад» равномерно делят свободную высоту между sub
+    // и нижним краем экрана.
+    const btnW = 640;
+    const btnH = 96;
+    const topY = 215;
+    const bottomMargin = 36;
+    const slots = MINIGAME_POOL.length + 1; // +1 на «← НА ГЛАВНУЮ»
+    const totalH = HEIGHT - bottomMargin - topY;
+    const rowH = totalH / slots;
+    const firstY = topY + rowH / 2;
 
-    const classColors: Record<string, number> = {
-      easy: COLORS.win,
-      medium: COLORS.yellow,
-      hard: COLORS.red,
-    };
-    // Все надписи кнопок — белые с чёрной пиксельной обводкой; единый стиль
-    // вместо разноцветного текста под цвет фона.
-    const classTextColors: Record<string, string> = {
-      easy: '#FAF7F0',
-      medium: '#FAF7F0',
-      hard: '#FAF7F0',
-    };
-
+    // Все кнопки минок — единого зелёного цвета (COLORS.win), независимо
+    // от сложности. Цвет-по-классу убран ради визуальной консистентности
+    // меню.
     MINIGAME_POOL.forEach((meta, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = WIDTH / 2 + (col === 0 ? -(btnW / 2 + colGap / 2) : (btnW / 2 + colGap / 2));
-      const y = startY + row * stepY;
-
+      const y = firstY + i * rowH;
       const label = RU.minigame.names[meta.i18nKey] ?? meta.key;
       const btn = new Button(
         this,
-        x,
+        WIDTH / 2,
         y,
         label,
         () => this.launchMinigame(meta.key, meta.durationMs),
         {
           width: btnW,
           height: btnH,
-          bgColor: classColors[meta.class] ?? COLORS.red,
-          textColor: classTextColors[meta.class] ?? '#FAF7F0',
-          fontSize: '15px',
+          bgColor: COLORS.win,
+          textColor: '#FAF7F0',
+          fontSize: '22px',
           fontFamily: this.pixelFont,
           pixel: true,
-          // Кнопка низкая (64px) — STEP/BORDER поменьше, чтобы чамфер не съел кнопку.
-          pixelStyle: { step: 4, border: 4, corner: 12 },
+          pixelStyle: { step: 6, border: 6, corner: 18 },
           textStroke: '#0A0A0A',
-          textStrokeWidth: 7,
+          textStrokeWidth: 6,
         }
       );
       btn.setDepth(DEPTH.ui);
       this.add.existing(btn);
     });
 
-    // Назад на сплеш
+    // Назад на сплеш — последний слот, с тёмно-индиго фоном (cream + белый
+    // текст давали нечитабельный контраст «белое на белом»).
     const backBtn = new Button(
       this,
       WIDTH / 2,
-      HEIGHT - 100,
+      firstY + MINIGAME_POOL.length * rowH,
       '← НА ГЛАВНУЮ',
       () => this.scene.start('SplashScene'),
       {
-        width: 320,
-        height: 70,
-        bgColor: COLORS.cream,
+        width: btnW,
+        height: btnH,
+        bgColor: 0x3c3a8c,
         textColor: '#FAF7F0',
-        fontSize: '20px',
+        fontSize: '22px',
         fontFamily: this.pixelFont,
         pixel: true,
-        pixelStyle: { step: 4, border: 4, corner: 12 },
+        pixelStyle: { step: 6, border: 6, corner: 18 },
         textStroke: '#0A0A0A',
-        textStrokeWidth: 4,
+        textStrokeWidth: 6,
       }
     );
     backBtn.setDepth(DEPTH.ui);

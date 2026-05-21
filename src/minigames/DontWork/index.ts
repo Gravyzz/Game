@@ -13,6 +13,7 @@ import {
   createGlobalLivesDisplay,
   type GlobalLivesDisplay,
 } from '@utils/SceneHelpers';
+import { drawPixelButton } from '@utils/PixelButton';
 
 /**
  * MG-02 ДОНТВОРК: РАСКОЛБАС
@@ -263,9 +264,14 @@ export class DontWorkScene extends BaseMinigame {
 
     // Весь HUD выровнен по y=80 (центр home-кнопки). Сердечки, центр панели
     // и сама home-кнопка теперь визуально на одной линии.
-    this.add.rectangle(W - 154, 80, 252, 116, 0xdddddd, 0.96)
-      .setStrokeStyle(5, 0x0a0a0a, 1)
-      .setDepth(DEPTH.ui);
+    // Панель счёта — в едином пиксельном стиле с легендой/кнопками меню.
+    const scorePanelW = 252;
+    const scorePanelH = 116;
+    const scorePanelG = this.add.graphics().setDepth(DEPTH.ui);
+    scorePanelG.setPosition(W - 154 - scorePanelW / 2, 80 - scorePanelH / 2);
+    drawPixelButton(scorePanelG, scorePanelW, scorePanelH, 0xeeeeee, {
+      step: 4, border: 4, corner: 12,
+    });
 
     this.stageLbl = this.add
       .text(W - 270, 36, '', {
@@ -382,36 +388,41 @@ export class DontWorkScene extends BaseMinigame {
   // ─── legend ────────────────────────────────────────────────────────────────
 
   private buildLegend(): void {
-    const panelW = W - 70;
-    const panelH = 210;
+    // Панель: ужата (600x170 vs 650x210), в едином пиксельном стиле с
+    // кнопками меню — чёрный ступенчатый аутлайн, светлая заливка.
+    // Иконки и текст подросли (круг 26→32, картинка 44→56, шрифт 16→18),
+    // чтобы внутри не оставалось пустого воздуха.
+    const panelW = 600;
+    const panelH = 170;
     const panelX = CX;
-    const panelY = H - 105;
-    this.add.rectangle(panelX, panelY, panelW, panelH, 0xdddddd, 0.96)
-      .setStrokeStyle(6, 0x0a0a0a, 1)
-      .setDepth(DEPTH.ui);
+    const panelY = H - 110;
+    const panelG = this.add.graphics().setDepth(DEPTH.ui);
+    panelG.setPosition(panelX - panelW / 2, panelY - panelH / 2);
+    drawPixelButton(panelG, panelW, panelH, 0xeeeeee, {
+      step: 6, border: 6, corner: 18,
+    });
 
-    const legendShiftX = -20;
     const cells = [
-      { x: panelX - 165 + legendShiftX, y: panelY - 44, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
-      { x: panelX + 135 + legendShiftX, y: panelY - 44, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
-      { x: panelX - 165 + legendShiftX, y: panelY + 44, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
-      { x: panelX + 135 + legendShiftX, y: panelY + 44, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
+      { x: panelX - 180, y: panelY - 38, icon: 'dontwork-basic-pizza', label: 'нельзя', ring: 0xff2e2e },
+      { x: panelX + 30,  y: panelY - 38, icon: 'dontwork-bomb',        label: 'смерть', ring: 0xff2e2e },
+      { x: panelX - 180, y: panelY + 38, icon: 'dontwork-papers',      label: 'можно',  ring: 0x72df67 },
+      { x: panelX + 30,  y: panelY + 38, icon: 'dontwork-coffee',      label: 'бонус',  ring: 0xffe55c },
     ];
 
     for (const c of cells) {
-      this.add.circle(c.x, c.y, 26, c.ring, 0.22)
+      this.add.circle(c.x, c.y, 32, c.ring, 0.22)
         .setStrokeStyle(4, c.ring, 0.95)
-        .setDepth(DEPTH.ui);
-      this.add.image(c.x, c.y, c.icon)
-        .setDisplaySize(44, 44)
         .setDepth(DEPTH.ui + 1);
+      this.add.image(c.x, c.y, c.icon)
+        .setDisplaySize(56, 56)
+        .setDepth(DEPTH.ui + 2);
 
-      this.add.text(c.x + 40, c.y, c.label, {
+      this.add.text(c.x + 52, c.y, c.label, {
         ...TEXT_STYLES.subtitle,
         fontFamily: PIXEL_FONT,
-        fontSize: '16px',
+        fontSize: '18px',
         color: '#C24A4A',
-      }).setOrigin(0, 0.5).setDepth(DEPTH.ui);
+      }).setOrigin(0, 0.5).setDepth(DEPTH.ui + 1);
     }
   }
 

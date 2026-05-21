@@ -124,10 +124,8 @@ export class ChoiceScene extends Phaser.Scene {
     continueBtn.setDepth(DEPTH.ui);
     this.add.existing(continueBtn);
 
-    const continueIcon = this.add.image(122, 1050, 'gamepad-pixel');
-    continueIcon.setOrigin(0.5);
-    continueIcon.setDisplaySize(60, 60);
-    continueIcon.setDepth(DEPTH.ui + 1);
+    // Иконка геймпада на «ИДТИ ДАЛЬШЕ» снята — UI стал чище, осталась только
+    // звезда-блик на верхней «КРУТИТЬ КОЛЕСО».
 
     const continueHint = this.add.text(WIDTH / 2, 1145, RU.choice.hintContinue, {
       fontFamily: this.pixelFont,
@@ -148,7 +146,12 @@ export class ChoiceScene extends Phaser.Scene {
     this.cameras.main.fadeIn(300, 255, 230, 0);
   }
 
-  /** Прогресс-бар: 4 кружка, заполненные = пройденные уровни */
+  /**
+   * Прогресс-бар: 4 кружка с литыми линиями между ними.
+   * Кружки и линии красные, если уровень пройден; иначе серые.
+   * Линия рисуется ОТ предыдущего кружка ДО текущего и красится только если
+   * её правая граница попадает в пройденный кружок.
+   */
   private drawProgressBar(currentLevel: number): void {
     const { WIDTH } = GAME;
     const cx = WIDTH / 2;
@@ -156,25 +159,38 @@ export class ChoiceScene extends Phaser.Scene {
     const gap = 82;
     const totalW = gap * 3;
     const startX = cx - totalW / 2;
+    const radius = 18;
+    const lineThickness = 10;
+    const lineBorderThickness = 16;
+    const inactiveColor = 0xb7b7b7;
 
+    // 1) Сначала линии — на слое ПОД кружками, чтобы кружки их перекрыли по краям.
+    for (let i = 2; i <= 4; i++) {
+      const prevX = startX + (i - 2) * gap;
+      const x = startX + (i - 1) * gap;
+      const completed = i <= currentLevel;
+      const lineColor = completed ? COLORS.red : inactiveColor;
+
+      // Чёрная обводка-«литник»
+      this.add.line(0, 0, prevX, cy, x, cy, 0x0a0a0a)
+        .setLineWidth(lineBorderThickness)
+        .setOrigin(0, 0)
+        .setDepth(DEPTH.ui - 1);
+      // Цветная заливка по центру
+      this.add.line(0, 0, prevX, cy, x, cy, lineColor)
+        .setLineWidth(lineThickness)
+        .setOrigin(0, 0)
+        .setDepth(DEPTH.ui);
+    }
+
+    // 2) Кружки поверх линий
     for (let i = 1; i <= 4; i++) {
       const x = startX + (i - 1) * gap;
       const isCompleted = i <= currentLevel;
-      const color = isCompleted ? COLORS.red : 0xb7b7b7;
-      const radius = 18;
+      const color = isCompleted ? COLORS.red : inactiveColor;
 
-      this.add.circle(x, cy, radius + 6, 0x0a0a0a).setDepth(DEPTH.ui);
-      this.add.circle(x, cy, radius, color).setDepth(DEPTH.ui + 1);
-
-      if (i > 1) {
-        const prevX = startX + (i - 2) * gap;
-        this.add.line(0, 0, prevX + 24, cy, x - 24, cy, 0x0a0a0a)
-          .setLineWidth(6)
-          .setDepth(DEPTH.ui - 1);
-        this.add.line(0, 0, prevX + 27, cy, x - 27, cy, 0xfaf7f0)
-          .setLineWidth(4)
-          .setDepth(DEPTH.ui);
-      }
+      this.add.circle(x, cy, radius + 6, 0x0a0a0a).setDepth(DEPTH.ui + 1);
+      this.add.circle(x, cy, radius, color).setDepth(DEPTH.ui + 2);
     }
   }
 

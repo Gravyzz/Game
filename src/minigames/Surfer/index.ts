@@ -40,7 +40,10 @@ const FLOOR_Y   = H - 120;
 // Мягкая физика — Flappy-feel без чугунной гравитации
 const GRAVITY  = 1500;
 const JUMP_VY  = -540;
-const SURFER_R = 32;
+// Радиус хитбокса серфера. Визуальный спрайт 120x120 (R=60), а хитбокс
+// 26 (≈43% от визуала) — даёт «forgiving» столкновения: касание края
+// препятствия спрайтом не убивает, нужно реально въехать.
+const SURFER_R = 26;
 
 const PILLAR_W = 100;
 const PIXEL_FONT = '"Press Start 2P", monospace';

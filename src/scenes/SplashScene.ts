@@ -51,11 +51,14 @@ export class SplashScene extends Phaser.Scene {
     this.drawHearts();
 
     // ===== Главная кнопка =====
+    // Кнопки выше (130px) и сдвинуты вниз от деревянной таблички ADVENTURES,
+    // чтобы был воздух между ними. MINI GAMES — двустрочный, поэтому шрифт
+    // меньше (34 vs 42) и сидит в центральной части без захода на градиент.
     const startBtn = this.createPixelButton(
       0,
-      735 - HEIGHT / 2,
+      775 - HEIGHT / 2,
       510,
-      120,
+      130,
       'PLAY',
       0x69bd45,
       'pizza-pixel',
@@ -65,9 +68,9 @@ export class SplashScene extends Phaser.Scene {
 
     const miniGamesBtn = this.createPixelButton(
       0,
-      870 - HEIGHT / 2,
+      925 - HEIGHT / 2,
       510,
-      120,
+      130,
       'MINI\nGAMES',
       COLORS.red,
       'gamepad-pixel',
@@ -321,12 +324,12 @@ export class SplashScene extends Phaser.Scene {
 
     const text = this.add.text(0, 4, label, {
       fontFamily: this.pixelFont,
-      fontSize: label.includes('\n') ? '37px' : '42px',
+      fontSize: label.includes('\n') ? '34px' : '42px',
       color: '#FAF7F0',
       stroke: '#0A0A0A',
       strokeThickness: 9,
       align: 'center',
-      lineSpacing: 10,
+      lineSpacing: 8,
     });
     text.setOrigin(0.5);
 

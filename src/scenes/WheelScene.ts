@@ -8,7 +8,13 @@ import { TicketProvider } from '@core/TicketProvider';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { attachSoundButton } from '@utils/SceneHelpers';
-import { PRIZE_POOL, pickPrizeIndex, toWonPrize, type PrizeDef } from '@config/prizes';
+import {
+  getWheelForLevel,
+  pickPrizeIndex,
+  pickJackpotIndex,
+  toWonPrize,
+  type WheelPrize,
+} from '@config/prizes';
 import type { SessionLevel } from '@core/SessionState';
 
 /**
@@ -35,8 +41,6 @@ import type { SessionLevel } from '@core/SessionState';
  */
 
 const WHEEL_RADIUS = 330;
-const SECTOR_COUNT = PRIZE_POOL.length; // 8
-const SECTOR_RAD = (Math.PI * 2) / SECTOR_COUNT; // 45°
 const SPIN_DURATION_MS = 3500;
 const SPIN_REVOLUTIONS = 5;
 const PIXEL_FONT = '"Press Start 2P", monospace';
@@ -49,6 +53,10 @@ export class WheelScene extends Phaser.Scene {
   private spinBtn!: Phaser.GameObjects.Container;
   private spinButtonImage!: Phaser.GameObjects.Image;
   private spinButtonText!: Phaser.GameObjects.Text;
+  /** Колесо для ТЕКУЩЕГО уровня сессии (массив 8 призов в порядке секторов). */
+  private wheel: WheelPrize[] = [];
+  private sectorCount = 0;
+  private sectorRad = 0;
 
   constructor() {
     super({ key: 'WheelScene' });
@@ -57,6 +65,13 @@ export class WheelScene extends Phaser.Scene {
   create(data: { isJackpot?: boolean } = {}): void {
     const { WIDTH, HEIGHT } = GAME;
     this.isJackpot = data.isJackpot ?? false;
+
+    // Колесо собираем по уровню сессии. Каждый уровень — свой пул призов
+    // и свои веса (см. WHEEL_BY_LEVEL в @config/prizes).
+    const level = SessionState.getCurrentLevel() as SessionLevel;
+    this.wheel = getWheelForLevel(level);
+    this.sectorCount = this.wheel.length;
+    this.sectorRad = (Math.PI * 2) / this.sectorCount;
 
     this.preparePixelAssets();
 
@@ -114,9 +129,9 @@ export class WheelScene extends Phaser.Scene {
   }
 
   private drawWheelLabels(container: Phaser.GameObjects.Container): void {
-    for (let i = 0; i < SECTOR_COUNT; i++) {
-      const prize = PRIZE_POOL[i];
-      const sectorCenterAngle = i * SECTOR_RAD - Math.PI / 2;
+    for (let i = 0; i < this.sectorCount; i++) {
+      const { def } = this.wheel[i];
+      const sectorCenterAngle = i * this.sectorRad - Math.PI / 2;
       const labelDist = WHEEL_RADIUS * 0.58;
       const labelX = Math.cos(sectorCenterAngle) * labelDist;
       const labelY = Math.sin(sectorCenterAngle) * labelDist;
@@ -124,17 +139,18 @@ export class WheelScene extends Phaser.Scene {
       const labelContainer = this.add.container(labelX, labelY);
       labelContainer.setRotation(sectorCenterAngle + Math.PI / 2);
 
-      const iconText = this.add.text(0, -30, prize.icon, { fontSize: '34px' });
+      const iconText = this.add.text(0, -30, def.icon, { fontSize: '34px' });
       iconText.setOrigin(0.5);
 
-      const labelText = this.add.text(0, 18, (RU.prizes[prize.i18nKey] ?? prize.id).toUpperCase(), {
+      // «ПРИЗ N» вместо длинных конкретных названий — гарантированно не
+      // вылазит за грань сектора даже на 14-м призе.
+      const labelText = this.add.text(0, 22, def.displayLabel, {
         fontFamily: PIXEL_FONT,
-        fontSize: '16px',
-        color: prize.textColor,
+        fontSize: '18px',
+        color: def.textColor,
         align: 'center',
-        stroke: prize.textColor === '#0A0A0A' ? undefined : '#0A0A0A',
-        strokeThickness: prize.textColor === '#0A0A0A' ? 0 : 4,
-        wordWrap: { width: 150 },
+        stroke: def.textColor === '#0A0A0A' ? undefined : '#0A0A0A',
+        strokeThickness: def.textColor === '#0A0A0A' ? 0 : 4,
       });
       labelText.setOrigin(0.5);
 
@@ -143,23 +159,50 @@ export class WheelScene extends Phaser.Scene {
     }
   }
 
-  /** Стрелка-указатель сверху колеса */
+  /**
+   * Указатель-треугольник сверху колеса — рисуется построчно прямоугольниками
+   * в чанковом 8-битном стиле, чтобы соответствовать пиксельной эстетике игры.
+   * Слой 1 — чёрный «контур» (большой), слой 2 — жёлтое тело (меньшее со
+   * сдвигом вверх, оставляя 4px чёрный кант снизу/слева/справа).
+   */
   private drawTicker(x: number, y: number): void {
     const tickerContainer = this.add.container(x, y);
     tickerContainer.setDepth(DEPTH.effects);
 
+    const STEP = 6;
+    const OUTLINE_W = 76;
+    const OUTLINE_H = 72;
+    const BODY_W = 60;
+    const BODY_H = 56;
+
     const g = this.add.graphics();
-    g.fillStyle(COLORS.yellow, 1);
-    g.lineStyle(5, COLORS.black, 1);
-    g.beginPath();
-    g.moveTo(0, 44);
-    g.lineTo(-34, -22);
-    g.lineTo(34, -22);
-    g.closePath();
-    g.fillPath();
-    g.strokePath();
+    // Чёрный контур: вершина внизу (y=44), основание сверху.
+    this.drawPixelTriDown(g, 0, 44 - OUTLINE_H, OUTLINE_W, OUTLINE_H, STEP, COLORS.black);
+    // Жёлтое тело, чуть меньше и сдвинуто на 4px вверх → 4px чёрного канта.
+    this.drawPixelTriDown(g, 0, 44 - OUTLINE_H - 4 + (OUTLINE_H - BODY_H) / 2, BODY_W, BODY_H, STEP, COLORS.yellow);
 
     tickerContainer.add(g);
+  }
+
+  /**
+   * Рисует пиксельный треугольник с основанием сверху и вершиной снизу.
+   * Каждая «ступенька» = step px высотой.
+   */
+  private drawPixelTriDown(
+    g: Phaser.GameObjects.Graphics,
+    cx: number, topY: number,
+    width: number, height: number,
+    step: number, color: number,
+  ): void {
+    g.fillStyle(color, 1);
+    const halfBase = width / 2;
+    const steps = Math.max(1, Math.ceil(height / step));
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const halfW = Math.max(step / 2, halfBase * (1 - t));
+      const y = topY + i * step;
+      g.fillRect(cx - halfW, y, halfW * 2, step);
+    }
   }
 
   // ============================================================
@@ -178,25 +221,13 @@ export class WheelScene extends Phaser.Scene {
     Haptics.trigger('tap');
 
     // Определяем целевой приз и сектор
-    const level = SessionState.getCurrentLevel();
+    const level = SessionState.getCurrentLevel() as SessionLevel;
     const prizeIndex = this.isJackpot
-      ? this.pickJackpotIndex()
-      : pickPrizeIndex(level as SessionLevel);
-    const targetPrize = PRIZE_POOL[prizeIndex];
+      ? pickJackpotIndex(level)
+      : pickPrizeIndex(level);
+    const targetPrize = this.wheel[prizeIndex].def;
 
-    // Считаем целевой угол вращения колеса.
-    // Текущий угол колеса считаем от 0 (стартовая позиция).
-    // Чтобы СЕКТОР prizeIndex оказался под стрелкой (направление = -90° / «вверх»),
-    // нужно повернуть колесо так, чтобы центр этого сектора был на 270° (= -90°).
-    //
-    // Центр сектора i при rotation=0 находится по углу: (i * SECTOR_RAD) - 90°.
-    // Стрелка указывает на угол: -90° (= 270°).
-    // Решая, какое rotation нужно: -prizeIndex * SECTOR_RAD (по модулю 2π).
-    //
-    // Плюс прибавляем SPIN_REVOLUTIONS полных оборотов для драматизма.
-
-    const targetSectorAngle = -prizeIndex * SECTOR_RAD;
-    // Нормализуем в [0, 2π) и прибавляем обороты (отрицательные = по часовой)
+    const targetSectorAngle = -prizeIndex * this.sectorRad;
     const finalRotation = -SPIN_REVOLUTIONS * Math.PI * 2 + targetSectorAngle;
 
     this.lastTickedSector = -1;
@@ -223,7 +254,7 @@ export class WheelScene extends Phaser.Scene {
     // Угол центра сектора 0 в системе экрана: -90° + rot.
     // Сектор под стрелкой = round((1.5π - rot) / SECTOR_RAD) mod 8.
     const angleAtTicker = (Math.PI * 1.5 - rot + Math.PI * 4) % (Math.PI * 2);
-    const sectorIndex = Math.floor(angleAtTicker / SECTOR_RAD) % SECTOR_COUNT;
+    const sectorIndex = Math.floor(angleAtTicker / this.sectorRad) % this.sectorCount;
 
     if (sectorIndex !== this.lastTickedSector) {
       this.lastTickedSector = sectorIndex;
@@ -232,27 +263,11 @@ export class WheelScene extends Phaser.Scene {
     }
   }
 
-  /** Гарантированно epic/legendary для джекпота на 4-м уровне */
-  private pickJackpotIndex(): number {
-    const epicAndLegendary = PRIZE_POOL
-      .map((p, i) => ({ p, i }))
-      .filter(({ p }) => p.tier === 'epic' || p.tier === 'legendary');
-
-    // 30% шанс легендарки, 70% — epic. На джекпоте можно щедрее, чем по таблице
-    if (Math.random() < 0.3) {
-      const legendaries = epicAndLegendary.filter(({ p }) => p.tier === 'legendary');
-      if (legendaries.length > 0) return legendaries[Math.floor(Math.random() * legendaries.length)].i;
-    }
-    const epics = epicAndLegendary.filter(({ p }) => p.tier === 'epic');
-    if (epics.length > 0) return epics[Math.floor(Math.random() * epics.length)].i;
-    return epicAndLegendary[0].i;
-  }
-
   // ============================================================
   // FINISH
   // ============================================================
 
-  private onSpinComplete(prize: PrizeDef, prizeIndex: number): void {
+  private onSpinComplete(prize: WheelPrize['def'], prizeIndex: number): void {
     // Подсветка победного сектора
     this.flashWinningSector(prizeIndex);
 
@@ -285,7 +300,7 @@ export class WheelScene extends Phaser.Scene {
   private flashWinningSector(prizeIndex: number): void {
     // Координаты центра сектора с учётом текущего угла колеса
     const rot = this.wheelContainer.rotation;
-    const sectorCenterAngle = prizeIndex * SECTOR_RAD - Math.PI / 2 + rot;
+    const sectorCenterAngle = prizeIndex * this.sectorRad - Math.PI / 2 + rot;
     const dist = WHEEL_RADIUS * 0.62;
     const x = this.wheelContainer.x + Math.cos(sectorCenterAngle) * dist;
     const y = this.wheelContainer.y + Math.sin(sectorCenterAngle) * dist;

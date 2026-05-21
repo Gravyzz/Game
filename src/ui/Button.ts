@@ -86,10 +86,14 @@ export class Button extends Phaser.GameObjects.Container {
     this.setSize(width, height);
     this.setInteractive({ useHandCursor: true });
 
-    // Pointer events
-    this.on('pointerdown', this.handleDown, this);
-    this.on('pointerup',   this.handleUp,   this);
-    this.on('pointerout',  this.handleOut,  this);
+    // Pointer events.
+    // `pointerupoutside` вместо `pointerout` — иначе на тач-устройствах
+    // микро-движение пальца внутри кнопки моментально отменяло нажатие
+    // (pointerout срабатывает на любое смещение, а pointerupoutside —
+    // только при реальном отпускании за пределами хитбокса).
+    this.on('pointerdown',      this.handleDown, this);
+    this.on('pointerup',        this.handleUp,   this);
+    this.on('pointerupoutside', this.handleOut,  this);
   }
 
   private handleDown(): void {
