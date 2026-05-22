@@ -299,15 +299,11 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
 /** Выполняет фактический выход — для Play закрывает сессию, для дев-меню возвращает в меню */
 function handleExit(scene: BaseMinigame): void {
   if (scene.isInfinite) {
-    // Дев-меню слушает minigame:complete с aborted — оно само ресторнит меню.
-    EventBus.emit('minigame:complete', {
-      outcome: 'lose' as const,
-      score: 0,
-      metadata: { aborted: true },
-      sceneKey: scene.scene.key,
-      level: scene.currentLevel,
-    });
-    scene.scene.stop();
+    // Дев-меню: чистый scene.start обратно в меню. Раньше эмитили событие
+    // и делали scene.stop, а дев-меню сидело в sleep — это давало пустой
+    // экран в Safari при возврате. Теперь scene.start полностью пересоздаёт
+    // меню, никаких параллельных сцен.
+    scene.scene.start('DevMinigameMenuScene');
     return;
   }
 
