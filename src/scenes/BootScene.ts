@@ -152,6 +152,13 @@ export class BootScene extends Phaser.Scene {
     this.load.image('pizzaassembly-knife-hit-bg', 'assets/pizzaassembly/knife-hit-bg.png');
     this.load.image('pizzaassembly-knife-hit-layout', 'assets/pizzaassembly/knife-hit-layout.png');
     this.load.image('surfer-knife-hit', 'assets/surfer/knife-hit.png');
+    this.load.image('surfer-jetpack-bg-day', 'assets/surfer/jetpack-afternoon-bg.png');
+    this.load.image('surfer-jetpack-bg-evening', 'assets/surfer/jetpack-evening-bg.png');
+    this.load.image('surfer-jetpack-bg-night', 'assets/surfer/jetpack-night-bg.png');
+    this.load.image('surfer-jetpack-player', 'assets/surfer/jetpack-player.png');
+    this.load.image('surfer-jetpack-column', 'assets/surfer/jetpack-column-texture.png');
+    this.load.image('surfer-jetpack-frame', 'assets/surfer/jetpack-horizontal-frame.png');
+    for (let i = 1; i <= 11; i += 1) this.load.image(`surfer-jetpack-product-${i}`, `assets/surfer/jetpack-product-${i}.png`);
     this.load.image('surfer-sand', 'assets/surfer/sand.png');
     this.load.image('surfer-bubble', 'assets/surfer/bubble.png');
     this.load.image('surfer-fish-2', 'assets/surfer/fish-2.png');
