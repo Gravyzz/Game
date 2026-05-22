@@ -60,11 +60,11 @@ export class ComicsScene extends Phaser.Scene {
     const rightX = GAME.WIDTH / 2 + panelW / 2 + gap / 2;
 
     this.panels = [
-      { x: leftX, y: 310, w: panelW, h: 374, closeKey: 'comics-1-close', openKey: 'comics-1-open' },
-      { x: rightX, y: 310, w: panelW, h: 374, closeKey: 'comics-2-close', openKey: 'comics-2-open' },
-      { x: leftX, y: 690, w: panelW, h: 350, closeKey: 'comics-3-close', openKey: 'comics-3-open' },
-      { x: rightX, y: 690, w: panelW, h: 350, closeKey: 'comics-4-close', openKey: 'comics-4-open' },
-      { x: GAME.WIDTH / 2, y: 1000, w: 680, h: 278, openKey: 'comics-5' },
+      { x: leftX, y: 303, w: panelW, h: 374, closeKey: 'comics-1-close', openKey: 'comics-1-open' },
+      { x: rightX, y: 303, w: panelW, h: 374, closeKey: 'comics-2-close', openKey: 'comics-2-open' },
+      { x: leftX, y: 674, w: panelW, h: 350, closeKey: 'comics-3-close', openKey: 'comics-3-open' },
+      { x: rightX, y: 674, w: panelW, h: 350, closeKey: 'comics-4-close', openKey: 'comics-4-open' },
+      { x: GAME.WIDTH / 2, y: 1022, w: 680, h: 278, openKey: 'comics-5' },
     ];
   }
 
@@ -107,14 +107,16 @@ export class ComicsScene extends Phaser.Scene {
       .setDisplaySize(panel.w, panel.h)
       .setDepth(DEPTH.ui + index)
       .setAlpha(0)
-      .setScale(0.78)
       .setRotation(Phaser.Math.FloatBetween(-0.035, 0.035));
+    const finalScaleX = image.scaleX;
+    const finalScaleY = image.scaleY;
+    image.setScale(finalScaleX * 0.78, finalScaleY * 0.78);
 
     this.tweens.add({
       targets: image,
       alpha: 1,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: finalScaleX,
+      scaleY: finalScaleY,
       rotation: 0,
       duration: 360,
       ease: 'Back.easeOut',

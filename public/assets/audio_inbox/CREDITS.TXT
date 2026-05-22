@@ -1,0 +1,1061 @@
+###############################################
+OpenGameArt.org automatically generated credits file notice:
+
+THIS FILE IS FOR INFORMATIONAL PURPOSES ONLY.  NO WARRANTY OF ANY KIND IS EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL OPENGAMEART.ORG BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE USE OF THIS FILE OR THE INFORMATION IN IT.
+
+In plain English:  This credits file is automatically generated to the best of our ability, but it remains YOUR RESPONSIBILITY as a game developer to ensure that the art you use is attributed properly.  That is, we can't be held liable even if all of the information in this file is completely wrong.   In addition, some of the art listed in this file may have SPECIAL ATTRIBUTION INSTRUCTIONS that ask that you credit the artist in a particular way, rather than a verbatim copyright notice.  In those cases, you will probably need to hand-edit this file to comply with their instructions.  In some older art, attribution instructions may be included in the art description itself.  Please check the art page to be sure.
+
+We recommend that you delete this notice when you're sure the information here is correct and the attribution instructions are properly followed.  If you aren't the game developer and you're seeing this notice here in the credits, it probably means that the developer hasn't properly verified the attribution information contained herein even though it said they were supposed to do it right on the page where they downloaded this file.  
+###############################################
+
+Title:
+    RPG Sound Pack
+
+Author:
+    artisticdude
+
+URL:
+    https://opengameart.org/content/rpg-sound-pack
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * rpg_sound_pack.zip
+
+----------------------------------------
+
+Title:
+    51 UI sound effects (buttons, switches and clicks)
+
+Author:
+    Kenney
+
+URL:
+    https://opengameart.org/content/51-ui-sound-effects-buttons-switches-and-clicks
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Credit "Kenney.nl" or "www.kenney.nl", this is not mandatory.
+
+File(s):
+    * UI_SFX_Set.zip
+
+----------------------------------------
+
+Title:
+    63 Digital sound effects (lasers, phasers, space etc.)
+
+Author:
+    Kenney
+
+URL:
+    https://opengameart.org/content/63-digital-sound-effects-lasers-phasers-space-etc
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Credit "Kenney.nl" or "www.kenney.nl", this is not mandatory.
+
+File(s):
+    * Digital_SFX_Set.zip
+
+----------------------------------------
+
+Title:
+    GUI Sound Effects
+
+Author:
+    Lokif
+
+URL:
+    https://opengameart.org/content/gui-sound-effects
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * GUI_Sound_Effects_by_Lokif.7z
+
+----------------------------------------
+
+Title:
+    UI Sound effects pack
+
+Author:
+    ViRiX
+
+URL:
+    https://opengameart.org/content/ui-sound-effects-pack
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Please place this in the credits of your project
+
+"Some of the sounds in this project were created by David McKee (ViRiX)
+soundcloud.com/virix"
+
+Thank you.
+
+File(s):
+    * UI pack 1.zip
+
+----------------------------------------
+
+Title:
+    UI Sounds
+
+Author:
+    StumpyStrust
+
+URL:
+    https://opengameart.org/content/ui-sounds
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Say my name if you want. 
+
+File(s):
+    * sounds.zip
+
+----------------------------------------
+
+Title:
+    Cute Cartoon Jump Sound Effect
+
+Author:
+    cfork and qubodup
+
+URL:
+    https://opengameart.org/content/cute-cartoon-jump-sound-effect
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Boing Raw Copyright 2005 cfork <http://freesound.org/people/cfork/>
+Boing Jump Copyright 2012 Iwan Gabovitch <http://qubodup.net>
+
+File(s):
+    * qubodup-cfork-ccby3-jump.ogg
+    * qubodup-cfork-ccby3-jump.flac
+
+----------------------------------------
+
+Title:
+    Interface Sounds Starter Pack
+
+Author:
+    p0ss
+
+URL:
+    https://opengameart.org/content/interface-sounds-starter-pack
+
+License(s):
+    * CC-BY-SA 3.0 ( http://creativecommons.org/licenses/by-sa/3.0/legalcode )
+    * GPL 3.0 ( http://www.gnu.org/licenses/gpl-3.0.html )
+    * GPL 2.0 ( http://www.gnu.org/licenses/old-licenses/gpl-2.0.html )
+
+File(s):
+    * interface.zip
+
+----------------------------------------
+
+Title:
+    8 wet squish, slurp impacts
+
+Author:
+    Independent.nu
+
+URL:
+    https://opengameart.org/content/8-wet-squish-slurp-impacts
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * independent_nu_ljudbank-wet_squish_slurp_impacts.7z
+
+----------------------------------------
+
+Title:
+    bomb_explosion_8bit
+
+Author:
+    Luke.RUSTLTD
+
+URL:
+    https://opengameart.org/content/bombexplosion8bit
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * 8bit_bomb_explosion.wav
+
+----------------------------------------
+
+Title:
+    4 projectile launches
+
+Author:
+    Michel Baradari
+
+URL:
+    https://opengameart.org/content/4-projectile-launches
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * launches.7z
+
+----------------------------------------
+
+Title:
+    Random SFX
+
+Author:
+    Écrivain
+
+URL:
+    https://opengameart.org/content/random-sfx
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * SFX.zip
+
+----------------------------------------
+
+Title:
+    Jump Landing Sound
+
+Author:
+    MentalSanityOff
+
+URL:
+    https://opengameart.org/content/jump-landing-sound
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * jumpland.wav
+    * jumpland44100.mp3
+    * jumpland48000.mp3
+
+----------------------------------------
+
+Title:
+    37 hits/punches
+
+Author:
+    Independent.nu
+
+URL:
+    https://opengameart.org/content/37-hitspunches
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * independent_nu_ljudbank-hits_and_punches.7z
+
+----------------------------------------
+
+Title:
+    Monster Sound Pack, Volume 1
+
+Author:
+    Ogrebane
+
+URL:
+    https://opengameart.org/content/monster-sound-pack-volume-1
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * monster-sounds-volume-2.zip
+
+----------------------------------------
+
+Title:
+    4 sci-fi menu sounds
+
+Author:
+    Tim Mortimer
+
+URL:
+    https://opengameart.org/content/4-sci-fi-menu-sounds
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * flashpoint1.7z
+
+----------------------------------------
+
+Title:
+    Different steps on wood, stone, leaves, gravel and mud
+
+Author:
+    TinyWorlds
+
+URL:
+    https://opengameart.org/content/different-steps-on-wood-stone-leaves-gravel-and-mud
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * [kdd]DifferentSteps.zip
+
+----------------------------------------
+
+Title:
+    Oldschool win and die jump and run sounds
+
+Author:
+    sauer2
+
+URL:
+    https://opengameart.org/content/oldschool-win-and-die-jump-and-run-sounds
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * vsgame_0.zip
+
+----------------------------------------
+
+Title:
+    Platformer Jumping Sounds
+
+Author:
+    dklon
+
+URL:
+    https://opengameart.org/content/platformer-jumping-sounds
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    If you do use this, all I ask is that you credit me as dklon somewhere.
+
+File(s):
+    * platformer_jumping.zip
+
+----------------------------------------
+
+Title:
+    Atmospheric Interaction Sound Pack
+
+Author:
+    legoluft
+
+URL:
+    https://opengameart.org/content/atmospheric-interaction-sound-pack
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * krank_sounds.7z
+
+----------------------------------------
+
+Title:
+    Laser Fire
+
+Author:
+    dklon
+
+URL:
+    https://opengameart.org/content/laser-fire
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    If you do use this, all I ask is that you credit me as dklon somewhere.
+
+File(s):
+    * laser1.wav
+    * laser2.wav
+    * laser3.wav
+    * laser4.wav
+    * laser5.wav
+    * laser6.wav
+    * laser7.wav
+    * laser8.wav
+    * laser9.wav
+    * laser10.wav
+    * laser11.wav
+    * laser12.wav
+    * laser13.wav
+
+----------------------------------------
+
+Title:
+    LevelUp Sound Atmospheric
+
+Author:
+    copyc4t
+
+URL:
+    https://opengameart.org/content/levelup-sound-atmospheric
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * 141695__copyc4t__levelup.wav
+
+----------------------------------------
+
+Title:
+    Swishes Sound Pack
+
+Author:
+    artisticdude
+
+URL:
+    https://opengameart.org/content/swishes-sound-pack
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * swishes.zip
+
+----------------------------------------
+
+Title:
+    Battle Sound Effects
+
+Author:
+    artisticdude
+
+URL:
+    https://opengameart.org/content/battle-sound-effects
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+    * CC-BY-SA 3.0 ( http://creativecommons.org/licenses/by-sa/3.0/legalcode )
+    * GPL 3.0 ( http://www.gnu.org/licenses/gpl-3.0.html )
+    * GPL 2.0 ( http://www.gnu.org/licenses/old-licenses/gpl-2.0.html )
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * battle_sound_effects_0.zip
+
+----------------------------------------
+
+Title:
+    2 High Quality Explosions
+
+Author:
+    Michel Baradari
+
+URL:
+    https://opengameart.org/content/2-high-quality-explosions
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * explosions.7z
+
+----------------------------------------
+
+Title:
+    Robotic mechanic step sounds
+
+Author:
+    Lee Barkovich
+
+URL:
+    https://opengameart.org/content/robotic-mechanic-step-sounds
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * robotic.7z
+
+----------------------------------------
+
+Title:
+    Boom Pack 1
+
+Author:
+    dklon
+
+URL:
+    https://opengameart.org/content/boom-pack-1
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    If you do use this, all I ask is that you credit me as dklon somewhere.
+
+File(s):
+    * boom_pack.zip
+
+----------------------------------------
+
+Title:
+    Foot walking step sounds on stone, water, snow, wood and dirt
+
+Author:
+    Jute
+
+URL:
+    https://opengameart.org/content/foot-walking-step-sounds-on-stone-water-snow-wood-and-dirt
+
+License(s):
+    * GPL 3.0 ( http://www.gnu.org/licenses/gpl-3.0.html )
+    * GPL 2.0 ( http://www.gnu.org/licenses/old-licenses/gpl-2.0.html )
+
+File(s):
+    * jute-dh-steps.7z
+
+----------------------------------------
+
+Title:
+    Platformer Sounds: Terminal, Interaction, Door, Shots, Bang and Footsteps
+
+Author:
+    yd
+
+URL:
+    https://opengameart.org/content/platformer-sounds-terminal-interaction-door-shots-bang-and-footsteps
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * yd-Sounds.zip
+
+----------------------------------------
+
+Title:
+    Items, door, fire, weapon hits
+
+Author:
+    Jute
+
+URL:
+    https://opengameart.org/content/items-door-fire-weapon-hits
+
+License(s):
+    * GPL 3.0 ( http://www.gnu.org/licenses/gpl-3.0.html )
+    * GPL 2.0 ( http://www.gnu.org/licenses/old-licenses/gpl-2.0.html )
+
+File(s):
+    * jute-dh-rpgsounds.7z
+
+----------------------------------------
+
+Title:
+    Random Sound effects
+
+Author:
+    Augmentality (Brandon Morris)
+
+URL:
+    https://opengameart.org/content/random-sound-effects
+
+License(s):
+    * OGA-BY 3.0 ( http://static.opengameart.org/OGA-BY-3.0.txt )
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * sounds effects.ogg
+
+----------------------------------------
+
+Title:
+    Generic Hero Effort Noises
+
+Author:
+    tinsin
+
+URL:
+    https://opengameart.org/content/generic-hero-effort-noises
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+    * CC-BY-SA 3.0 ( http://creativecommons.org/licenses/by-sa/3.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    You can credit Tinsin, but no credit is necessary, I guess. Just don&#039;t claim as yours, though why you&#039;d want to is beyond me.
+
+File(s):
+    * Valiant Genericus (Effort Noises).wav
+
+----------------------------------------
+
+Title:
+    41 Random Sound Effects
+
+Author:
+    HorrorPen
+
+URL:
+    https://opengameart.org/content/41-random-sound-effects
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * 41 Random Sound Effects.zip
+
+----------------------------------------
+
+Title:
+    Action Shooter Soundset (WWVi)
+
+Author:
+    Stephen M. Cameron
+
+URL:
+    https://opengameart.org/content/action-shooter-soundset-wwvi
+
+License(s):
+    * CC-BY-SA 3.0 ( http://creativecommons.org/licenses/by-sa/3.0/legalcode )
+
+File(s):
+    * smc-wwviRetroActionSounds.7z
+
+----------------------------------------
+
+Title:
+    16 button clicks
+
+Author:
+    Independent.nu
+
+URL:
+    https://opengameart.org/content/16-button-clicks
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * independent_nu_ljudbank-buttons_and_clicks.7z
+
+----------------------------------------
+
+Title:
+    Vintage SciFi SFX Vol 1
+
+Author:
+    Zander Noriega
+
+URL:
+    https://opengameart.org/content/vintage-scifi-sfx-vol-1
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * zander-noriega-scifi-vol-1.tar.gz
+
+----------------------------------------
+
+Title:
+    Monster Sound Effects Pack
+
+Author:
+    Ogrebane
+
+URL:
+    https://opengameart.org/content/monster-sound-effects-pack
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * monster_sfx_pack.zip
+
+----------------------------------------
+
+Title:
+    3 Melee sounds
+
+Author:
+    remaxim
+
+URL:
+    https://opengameart.org/content/3-melee-sounds
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * melee sounds.zip
+
+----------------------------------------
+
+Title:
+    35 wooden cracks/hits/destructions
+
+Author:
+    Independent.nu
+
+URL:
+    https://opengameart.org/content/35-wooden-crackshitsdestructions
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * independent_nu_ljudbank-wood_crack_hit_destruction.7z
+
+----------------------------------------
+
+Title:
+    15 monster grunt/pain/death sounds
+
+Author:
+    Michel Baradari
+
+URL:
+    https://opengameart.org/content/15-monster-gruntpaindeath-sounds
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * michelbaradari-monsters.7z
+
+----------------------------------------
+
+Title:
+    wind1
+
+Author:
+    Luke.RUSTLTD
+
+URL:
+    https://opengameart.org/content/wind1
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * wind1.wav
+    * wind2.wav
+    * wind3.wav
+    * wind4.wav
+    * wind5.wav
+
+----------------------------------------
+
+Title:
+    Button SFX Pack II - Granular Synthesis Styled
+
+Author:
+    Circlerun
+
+URL:
+    https://opengameart.org/content/button-sfx-pack-ii-granular-synthesis-styled
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Circlerun or Aaron Talbert 
+Either of these names suffice.
+
+File(s):
+    * Button SFX Pack II - Granular Synthesis Styled.zip
+
+----------------------------------------
+
+Title:
+    18 random video game sound effects
+
+Author:
+    bart
+
+URL:
+    https://opengameart.org/content/18-random-video-game-sound-effects
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * sound_effects.zip
+
+----------------------------------------
+
+Title:
+    space shooter sound effects
+
+Author:
+    dravenx
+
+URL:
+    https://opengameart.org/content/space-shooter-sound-effects
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * sounds.zip
+
+----------------------------------------
+
+Title:
+    9 sci-fi computer sounds and beeps
+
+Author:
+    Michel Baradari
+
+URL:
+    https://opengameart.org/content/9-sci-fi-computer-sounds-and-beeps
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * sci-fi_computer_beeps.7z
+
+----------------------------------------
+
+Title:
+    Button SFX Pack III - Assortment ot Hi - Tech
+
+Author:
+    Circlerun
+
+URL:
+    https://opengameart.org/content/button-sfx-pack-iii-assortment-ot-hi-tech
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Free to use  you don&#039;t have to credit me but it would be nice ^_^;
+
+File(s):
+    * Button SFX Pack III - Hi-Tech.zip
+
+----------------------------------------
+
+Title:
+    25 spooky sound effects
+
+Author:
+    bart
+
+URL:
+    https://opengameart.org/content/25-spooky-sound-effects
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+    * CC-BY-SA 3.0 ( http://creativecommons.org/licenses/by-sa/3.0/legalcode )
+    * GPL 3.0 ( http://www.gnu.org/licenses/gpl-3.0.html )
+    * GPL 2.0 ( http://www.gnu.org/licenses/old-licenses/gpl-2.0.html )
+
+File(s):
+    * spookysounds.zip
+
+----------------------------------------
+
+Title:
+    Space Laser
+
+Author:
+    bart
+
+URL:
+    https://opengameart.org/content/space-laser
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * space laser.wav
+
+----------------------------------------
+
+Title:
+    Retro Sounds
+
+Author:
+    artisticdude
+
+URL:
+    https://opengameart.org/content/retro-sounds-0
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * retro_sound_1_0.wav
+    * retro_sound_2.wav
+
+----------------------------------------
+
+Title:
+    Birdsong background loop
+
+Author:
+    koertes
+
+URL:
+    https://opengameart.org/content/birdsong-background-loop
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * koertes-ccby-birdsongloop16s.ogg
+    * koertes-ccby-birdsongloop16s.flac
+
+----------------------------------------
+
+Title:
+    grunts of male death and pain
+
+Author:
+    thebardofblasphemy
+
+URL:
+    https://opengameart.org/content/grunts-male-death-and-pain
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * death pain grunts.wav
+
+----------------------------------------
+
+Title:
+    Water Waves
+
+Author:
+    transitking
+
+URL:
+    https://opengameart.org/content/water-waves
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * wave_01_cc0-11505__transitking__wavesound.flac
+    * wave_02_cc0-11505__transitking__wavesound.flac
+    * wave_03_cc0-11505__transitking__wavesound.flac
+    * wave_04_cc0-11505__transitking__wavesound.flac
+
+----------------------------------------
+
+Title:
+    JBM Sound effects pack 1
+
+Author:
+    jobromedia
+
+URL:
+    https://opengameart.org/content/jbm-sound-effects-pack-1
+
+License(s):
+    * CC-BY-SA 3.0 ( http://creativecommons.org/licenses/by-sa/3.0/legalcode )
+
+SPECIAL ATTRIBUTION INSTRUCTIONS:
+    Johan Brodd
+
+File(s):
+    * JBM_Sfxr_pack_1.zip
+
+----------------------------------------
+
+Title:
+    13 Ambient Machine Sounds
+
+Author:
+    Michael Brigida and students
+
+URL:
+    https://opengameart.org/content/13-ambient-machine-sounds
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * ambient machinery 2.zip
+
+----------------------------------------
+
+Title:
+    Beep Tone Sound SFX
+
+Author:
+    qubodup
+
+URL:
+    https://opengameart.org/content/beep-tone-sound-sfx
+
+License(s):
+    * CC0 ( http://creativecommons.org/publicdomain/zero/1.0/legalcode )
+
+File(s):
+    * beep.wav
+
+----------------------------------------
+
+Title:
+    12 Ambient Machine Sounds
+
+Author:
+    Michael Brigida and students
+
+URL:
+    https://opengameart.org/content/12-ambient-machine-sounds
+
+License(s):
+    * CC-BY 3.0 ( http://creativecommons.org/licenses/by/3.0/legalcode )
+
+File(s):
+    * ambient machinery 1.zip
+
+----------------------------------------
+
+Title:
+    Thunder, rain and wind
+
+Author:
+    Jute
+
+URL:
+    https://opengameart.org/content/thunder-rain-and-wind
+
+License(s):
+    * GPL 3.0 ( http://www.gnu.org/licenses/gpl-3.0.html )
+    * GPL 2.0 ( http://www.gnu.org/licenses/old-licenses/gpl-2.0.html )
+
+File(s):
+    * jute-dh-weather.7z
+
+----------------------------------------
+
+

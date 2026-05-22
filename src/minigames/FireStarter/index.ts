@@ -352,7 +352,7 @@ export class FireStarterScene extends BaseMinigame {
     if (inZone) {
       this.hits += 1;
       this.currentRound += 1;
-      SoundManager.playSfx('perfect');
+      SoundManager.playSfx('impact');
       Haptics.trigger('perfect');
       this.statusText.setText('Идеально!');
     } else {

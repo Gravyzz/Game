@@ -210,19 +210,3 @@ export const JEFFREY_ASSETS: ImageAsset[] = [
   asset('jeff-floor-road-2', 'assets/jeffrey/floors/road-2.png'),
   ...numberedAssets(8, (i) => `jeff-floor-sidewalk-${i}`, (i) => `assets/jeffrey/floors/sidewalk-${i}.png`),
 ];
-
-// Полный список ассетов для предзагрузки в BootScene — чтобы переходы между
-// сценами были мгновенными и фиолетовый фон не «зависал» во время скачивания.
-export const ALL_ASSETS: ImageAsset[] = [
-  ...BOOT_ASSETS,
-  ...WHEEL_ASSETS,
-  ...RESULT_ASSETS,
-  ...FIRESTARTER_ASSETS,
-  ...RECIPE_MEMO_ASSETS,
-  ...DONT_WORK_ASSETS,
-  ...CHOP_CHOP_ASSETS,
-  ...PIZZA_ASSEMBLY_ASSETS,
-  ...SURFER_ASSETS,
-  ...DANCE_BEAT_ASSETS,
-  ...JEFFREY_ASSETS,
-];

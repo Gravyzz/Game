@@ -869,7 +869,7 @@ export class ChopChopScene extends BaseMinigame {
         duration: 90,
       });
 
-      SoundManager.playSfx('tap');
+      SoundManager.playSfx('wheelTick');
       Haptics.trigger('tap');
 
       step += 1;
@@ -897,7 +897,7 @@ export class ChopChopScene extends BaseMinigame {
         this.tweens.add({
           targets: desc, alpha: { from: 0, to: 1 }, duration: 380, delay: 200,
         });
-        SoundManager.playSfx(final.isCurse ? 'miss' : 'perfect');
+        SoundManager.playSfx(final.isCurse ? 'miss' : 'bubblePop');
         Haptics.trigger(final.isCurse ? 'miss' : 'perfect');
         this.cameras.main.shake(220, 0.008);
 
@@ -1109,7 +1109,7 @@ export class ChopChopScene extends BaseMinigame {
   }
 
   private feedbackTap(): void {
-    SoundManager.playSfx('tap');
+    SoundManager.playSfx('knifeSlice');
     Haptics.trigger('tap');
     this.tweens.add({
       targets: this.veggie, scale: { from: this.productScale(0.78), to: this.productScale(1) },
@@ -1241,7 +1241,7 @@ export class ChopChopScene extends BaseMinigame {
 
     if (winner === 'player') {
       this.playerWins += 1;
-      SoundManager.playSfx('perfect');
+      SoundManager.playSfx('heavyImpact');
       Haptics.trigger('win');
       this.setBig('ПОБЕДА!', '#FFFFFF');
     } else {

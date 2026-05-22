@@ -35,6 +35,7 @@ export class ResultScene extends Phaser.Scene {
 
   create(data: { outcome?: 'win' | 'lose' } = {}): void {
     const outcome = data.outcome ?? 'lose';
+    SoundManager.startMusic('results');
 
     if (outcome === 'win') {
       this.renderWin();
@@ -145,17 +146,6 @@ export class ResultScene extends Phaser.Scene {
       copyBtn.setDepth(DEPTH.ui);
       this.add.existing(copyBtn);
     }
-
-    const sticker = this.add.rectangle(WIDTH / 2, 920, 450, 62, COLORS.purple);
-    sticker.setStrokeStyle(5, 0x0a0a0a);
-    sticker.setDepth(DEPTH.ui);
-    const stickerText = this.add.text(WIDTH / 2, 920, 'НЯМКА ЕСТЬ — КАЙФ ЕСТЬ!', {
-      fontFamily: this.pixelFont,
-      fontSize: '19px',
-      color: '#FAF7F0',
-    });
-    stickerText.setOrigin(0.5);
-    stickerText.setDepth(DEPTH.ui + 1);
 
     const backBtn = new Button(
       this,

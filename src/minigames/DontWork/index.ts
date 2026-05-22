@@ -768,7 +768,7 @@ export class DontWorkScene extends BaseMinigame {
     this.totalScore += 10 * mult;
     if (mult >= 2) this.showCombo(x, y, mult);
 
-    SoundManager.playSfx('good');
+    SoundManager.playSfx('impact');
     Haptics.trigger('good');
     this.spawnSparks(x, y, 0xffe600);
     this.refreshHud();
@@ -798,7 +798,7 @@ export class DontWorkScene extends BaseMinigame {
     this.spawnSparks(x, y, 0xff2e2e);
     this.flashScreen(0xff2e2e, 0.55, 350);
     this.cameras.main.shake(260, 0.022);
-    SoundManager.playSfx('lose');
+    SoundManager.playSfx('heavyImpact');
     Haptics.trigger('lose');
     this.errors++;
     this.refreshHud();
@@ -817,7 +817,7 @@ export class DontWorkScene extends BaseMinigame {
   // ─── power-ups ─────────────────────────────────────────────────────────────
 
   private applyPowerUp(t: 'pwr-slowmo' | 'pwr-life' | 'pwr-rage'): void {
-    SoundManager.playSfx('perfect');
+    SoundManager.playSfx('bubblePop');
     Haptics.trigger('perfect');
 
     if (t === 'pwr-slowmo') {

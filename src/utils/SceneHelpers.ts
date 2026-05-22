@@ -298,12 +298,15 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
 
 /** Выполняет фактический выход — для Play закрывает сессию, для дев-меню возвращает в меню */
 function handleExit(scene: BaseMinigame): void {
+  const currentSceneKey = scene.scene.key;
+
   if (scene.isInfinite) {
     // Дев-меню: чистый scene.start обратно в меню. Раньше эмитили событие
     // и делали scene.stop, а дев-меню сидело в sleep — это давало пустой
     // экран в Safari при возврате. Теперь scene.start полностью пересоздаёт
     // меню, никаких параллельных сцен.
     scene.scene.start('DevMinigameMenuScene');
+    scene.scene.stop(currentSceneKey);
     return;
   }
 
@@ -312,6 +315,7 @@ function handleExit(scene: BaseMinigame): void {
   TicketProvider.reportSessionEnd('lose', { aborted: true });
   scene.scene.stop('MinigameRunnerScene');
   scene.scene.start('SplashScene');
+  scene.scene.stop(currentSceneKey);
 }
 
 /**

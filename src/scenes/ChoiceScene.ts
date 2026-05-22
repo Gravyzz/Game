@@ -26,6 +26,8 @@ export class ChoiceScene extends Phaser.Scene {
 
   create(_data: { wonLevel?: number } = {}): void {
     const { WIDTH, HEIGHT } = GAME;
+    SoundManager.startMusic('relaxed');
+
     if (SessionState.getLivesLeft() <= 0) {
       this.scene.start('ResultScene', { outcome: 'lose' });
       return;

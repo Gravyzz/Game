@@ -413,7 +413,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     if (!this.canThrow || this.flying || this.done || this.inTransition) return;
     this.flying   = true;
     this.canThrow = false;
-    SoundManager.playSfx('tap');
+    SoundManager.playSfx('knifeSlice');
   }
 
   private landKnife(): void {
@@ -458,7 +458,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.stuck.push({ localAngle, sprite: k });
     this.stageStuck++;
 
-    SoundManager.playSfx('perfect');
+    SoundManager.playSfx('impact');
     Haptics.trigger('perfect');
     this.spawnImpactRing();
     this.spawnHitChips(CX, CY + KNIFE_STUCK_RADIUS);
@@ -478,7 +478,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   }
 
   private onCollision(): void {
-    SoundManager.playSfx('miss');
+    SoundManager.playSfx('heavyImpact');
     Haptics.trigger('miss');
     this.cameras.main.shake(160, 0.012);
     this.inTransition = true;

@@ -31,7 +31,7 @@ export class SoundButton extends Phaser.GameObjects.Container {
     this.input!.cursor = 'pointer';
     this.on('pointerdown', () => {
       Haptics.trigger('tap');
-      SoundManager.playSfx('tap');
+      SoundManager.playSfx('muteToggle');
       SoundManager.toggleMute();
       this.refreshIcon();
       this.scene.tweens.add({

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { EventBus } from '@core/EventBus';
+import { SoundManager } from '@core/SoundManager';
 
 /**
  * Данные, которые раннер передаёт минке при запуске.
@@ -59,6 +60,7 @@ export abstract class BaseMinigame extends Phaser.Scene {
   init(data: MinigameInitData): void {
     this.initData = data;
     this.completed = false;
+    SoundManager.startMusic('gameplay');
     // Сбрасываем флаг паузы — Phaser переиспользует scene-instance, и если в прошлом
     // ране модалка осталась открытой при crash/abort, флаг застрял бы в true.
     this.gamePaused = false;
@@ -75,6 +77,13 @@ export abstract class BaseMinigame extends Phaser.Scene {
     }
     this.completed = true;
 
+    if (this.isInfinite) {
+      const currentSceneKey = this.scene.key;
+      this.scene.start('DevMinigameMenuScene');
+      this.scene.stop(currentSceneKey);
+      return;
+    }
+
     EventBus.emit('minigame:complete', {
       ...result,
       sceneKey: this.scene.key,
@@ -82,14 +91,8 @@ export abstract class BaseMinigame extends Phaser.Scene {
     });
 
     // Стопаем сцену через 1 кадр, чтобы текущий handler завершился.
-    // В дев-меню (isInfinite) возвращаемся обратно в меню через scene.start —
-    // иначе минка просто остановится и канвас останется пустым.
     this.time.delayedCall(0, () => {
-      if (this.isInfinite) {
-        this.scene.start('DevMinigameMenuScene');
-      } else {
-        this.scene.stop();
-      }
+      this.scene.stop();
     });
   }
 

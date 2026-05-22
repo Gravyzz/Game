@@ -10,6 +10,7 @@ import { ChoiceScene } from '@scenes/ChoiceScene';
 import { WheelScene } from '@scenes/WheelScene';
 import { ResultScene } from '@scenes/ResultScene';
 import { NoTicketScene } from '@scenes/NoTicketScene';
+// === DEV: minigame test menu — REMOVE BEFORE PROD ===
 import { DevMinigameMenuScene } from '@scenes/DevMinigameMenuScene';
 import { FireStarterScene } from '@minigames/FireStarter';
 import { DontWorkScene } from '@minigames/DontWork';
@@ -69,7 +70,7 @@ const config: Phaser.Types.Core.GameConfig = {
     ChoiceScene,
     WheelScene,
     ResultScene,
-    DevMinigameMenuScene,
+    ...(import.meta.env.DEV ? [DevMinigameMenuScene] : []),
     // Мини-игры — Phaser scene key совпадает с MINIGAME_ORDER в registry
     FireStarterScene,
     DontWorkScene,

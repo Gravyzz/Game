@@ -269,7 +269,7 @@ export class DanceBeatScene extends BaseMinigame {
       scaleY: { from: z.button.scaleY * 1.08, to: z.button.scaleY },
       duration: 180, ease: 'Back.easeOut',
     });
-    SoundManager.playSfx('tap');
+    SoundManager.playSfx('electricPop');
     this.time.delayedCall(durationMs, () => {
       if (!this.finished && !this.acceptingInput) this.setButtonsMode('grey');
     });
@@ -285,7 +285,7 @@ export class DanceBeatScene extends BaseMinigame {
       duration: 120,
       ease: 'Back.easeOut',
     });
-    SoundManager.playSfx('tap');
+    SoundManager.playSfx('good');
     this.time.delayedCall(durationMs, () => {
       if (!this.finished && this.acceptingInput) this.setButtonState(dir, 'normal');
     });
@@ -453,7 +453,7 @@ export class DanceBeatScene extends BaseMinigame {
   }
 
   private handleRoundCleared(): void {
-    SoundManager.playSfx('perfect');
+    SoundManager.playSfx('danceStinger');
     Haptics.trigger('win');
     this.setBig('K.O.', '#4ADE80');
     this.tweens.add({

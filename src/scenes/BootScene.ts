@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ALL_ASSETS, loadImageAssets } from '@core/AssetManifest';
+import { BOOT_ASSETS, loadImageAssets } from '@core/AssetManifest';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -7,9 +7,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // Грузим вообще всё разом — чтобы переходы между сценами и запуск минок
-    // были мгновенными, без фиолетового экрана ожидания на телефоне.
-    loadImageAssets(this, ALL_ASSETS);
+    loadImageAssets(this, BOOT_ASSETS);
   }
 
   async create(): Promise<void> {

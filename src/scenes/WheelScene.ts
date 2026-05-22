@@ -5,7 +5,7 @@ import { RU } from '@i18n/ru';
 import { SessionState } from '@core/SessionState';
 import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
-import { SoundManager } from '@core/SoundManager';
+import { SoundManager, type SfxName } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { WHEEL_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import { attachSoundButton, paintPageBackdrop } from '@utils/SceneHelpers';
@@ -54,6 +54,7 @@ export class WheelScene extends Phaser.Scene {
   private spinning = false;
   private lastTickedSector = -1;
   private spinBtn!: Phaser.GameObjects.Container;
+  private spinHit!: Phaser.GameObjects.Rectangle;
   private spinButtonImage!: Phaser.GameObjects.Image;
   private spinButtonText!: Phaser.GameObjects.Text;
   /** Колесо для ТЕКУЩЕГО уровня сессии (массив 8 призов в порядке секторов). */
@@ -72,6 +73,7 @@ export class WheelScene extends Phaser.Scene {
   create(data: { isJackpot?: boolean } = {}): void {
     const { WIDTH, HEIGHT } = GAME;
     this.isJackpot = data.isJackpot ?? false;
+    SoundManager.startMusic('relaxed');
 
     // Сброс state-полей: Phaser переиспользует scene-instance между запусками,
     // и class-field инициализация (`spinning = false`) срабатывает только при
@@ -123,19 +125,18 @@ export class WheelScene extends Phaser.Scene {
       align: 'center',
     });
     this.spinButtonText.setOrigin(0.5);
-    this.spinBtn.add([this.spinButtonImage, this.spinButtonText]);
-    // Явный hitArea + Rectangle.Contains — на Container'е без явной геометрии
-    // setInteractive отрабатывает нестабильно (особенно после scene-restart);
-    // explicit Rectangle гарантирует кликабельность во всех сценариях.
-    this.spinBtn.setSize(500, 160);
-    this.spinBtn.setInteractive(
-      new Phaser.Geom.Rectangle(-250, -80, 500, 160),
-      Phaser.Geom.Rectangle.Contains,
-    );
-    this.input.setDefaultCursor('default');
-    this.spinBtn.on('pointerover', () => this.input.setDefaultCursor('pointer'));
-    this.spinBtn.on('pointerout', () => this.input.setDefaultCursor('default'));
-    this.spinBtn.on('pointerdown', () => this.startSpin());
+    this.spinHit = this.add.rectangle(0, 0, 500, 160, 0xffffff, 0);
+    this.spinHit.setInteractive({ useHandCursor: true });
+    this.spinBtn.add([this.spinButtonImage, this.spinButtonText, this.spinHit]);
+    this.spinHit.on('pointerdown', (
+      _pointer: Phaser.Input.Pointer,
+      _localX: number,
+      _localY: number,
+      event: Phaser.Types.Input.EventData,
+    ) => {
+      event.stopPropagation();
+      this.startSpin();
+    });
 
     // Лёгкая пульсация
     this.tweens.add({
@@ -237,7 +238,7 @@ export class WheelScene extends Phaser.Scene {
     if (this.spinning) return;
     this.spinning = true;
 
-    this.spinBtn.disableInteractive();
+    this.spinHit.disableInteractive();
     this.spinBtn.setAlpha(0.74);
     this.spinButtonText.setText(RU.wheel.spinning.toUpperCase());
 
@@ -295,7 +296,7 @@ export class WheelScene extends Phaser.Scene {
     // Подсветка победного сектора
     this.flashWinningSector(prizeIndex);
 
-    SoundManager.playSfx('win');
+    SoundManager.playSfx(this.getPrizeSfx(prize.tier));
     Haptics.trigger('win');
 
     const wonPrize = toWonPrize(prize);
@@ -321,6 +322,13 @@ export class WheelScene extends Phaser.Scene {
   }
 
   /** Пульсирующий блик в центре победного сектора */
+  private getPrizeSfx(tier: WheelPrize['def']['tier']): SfxName {
+    if (tier === 'legendary') return 'legendaryPrize';
+    if (tier === 'epic') return 'epicPrize';
+    if (tier === 'rare') return 'rarePrize';
+    return 'commonPrize';
+  }
+
   private flashWinningSector(prizeIndex: number): void {
     // Координаты центра сектора с учётом текущего угла колеса
     const rot = this.wheelContainer.rotation;

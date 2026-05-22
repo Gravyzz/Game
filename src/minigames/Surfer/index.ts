@@ -626,7 +626,7 @@ export class SurferScene extends BaseMinigame {
 
   private onPassPillar(): void {
     this.stagePassed++;
-    SoundManager.playSfx('good');
+    SoundManager.playSfx('commonPrize');
     Haptics.trigger('good');
     this.refreshHud();
 
@@ -662,7 +662,7 @@ export class SurferScene extends BaseMinigame {
   }
 
   private applyPowerUp(type: PowerUpType, x: number, y: number): void {
-    SoundManager.playSfx('perfect');
+    SoundManager.playSfx('bubblePop');
     Haptics.trigger('perfect');
     this.spawnSparks(x, y, 0xffe600);
 
@@ -718,7 +718,7 @@ export class SurferScene extends BaseMinigame {
       this.shieldActive = false;
       this.detachShield();
       this.invincibleUntil = this.time.now + 1100;
-      SoundManager.playSfx('good');
+      SoundManager.playSfx('bubblePop');
       Haptics.trigger('good');
       this.showToast('🛟 БЛОК!', '#4ADE80');
       this.cameras.main.shake(80, 0.006);
@@ -752,7 +752,7 @@ export class SurferScene extends BaseMinigame {
     if (!this.canPlay || this.finished || this.inTransition) return;
     this.surferVY = JUMP_VY;
     this.spawnJetpackCubes();
-    SoundManager.playSfx('tap');
+    SoundManager.playSfx('jump');
     Haptics.trigger('tap');
   }
 

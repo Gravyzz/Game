@@ -29,6 +29,8 @@ export class MinigameRunnerScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearCompleteHandler());
+
     // Если сессия уже активна (после ChoiceScene → continue), просто продолжаем
     if (!SessionState.isActive()) {
       // Защита: сюда нельзя попасть без билета. Но если каким-то образом
@@ -265,6 +267,10 @@ export class MinigameRunnerScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    this.clearCompleteHandler();
+  }
+
+  private clearCompleteHandler(): void {
     if (this.completeHandler) {
       EventBus.off('minigame:complete', this.completeHandler);
       this.completeHandler = null;

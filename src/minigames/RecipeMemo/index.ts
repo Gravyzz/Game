@@ -461,7 +461,7 @@ export class RecipeMemoScene extends BaseMinigame {
     if (this.firstFlipped && this.secondFlipped) return;
 
     this.flipCard(card, true);
-    SoundManager.playSfx('tap');
+    SoundManager.playSfx('modalOpen');
     Haptics.trigger('tap');
 
     if (!this.firstFlipped) {
@@ -699,7 +699,7 @@ export class RecipeMemoScene extends BaseMinigame {
     }
     this.peeksUsed += 1;
     this.busy = true;
-    SoundManager.playSfx(willCharge ? 'miss' : 'tap');
+    SoundManager.playSfx(willCharge ? 'miss' : 'transition');
     Haptics.trigger(willCharge ? 'miss' : 'tap');
 
     // Если у игрока что-то открыто, гасим выбор без штрафа
