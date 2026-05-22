@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME } from '@config/game';
 import { TicketProvider } from '@core/TicketProvider';
 import { BootScene } from '@scenes/BootScene';
+import { ComicsScene } from '@scenes/ComicsScene';
 import { SplashScene } from '@scenes/SplashScene';
 import { OrientationLockScene } from '@scenes/OrientationLockScene';
 import { TutorialScene } from '@scenes/TutorialScene';
@@ -62,6 +63,7 @@ const config: Phaser.Types.Core.GameConfig = {
   // Регистрация сцен. Первая в массиве — стартует автоматически.
   scene: [
     BootScene,
+    ComicsScene,
     SplashScene,
     OrientationLockScene,
     TutorialScene,

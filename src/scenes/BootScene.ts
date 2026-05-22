@@ -23,6 +23,13 @@ export class BootScene extends Phaser.Scene {
     this.load.image('unluck-bg', 'assets/play/unluck-bg.png');
     this.load.image('unluck-layout', 'assets/play/unluck-layout.png');
     this.load.image('luck-layout', 'assets/play/luck-layout.png');
+    for (let i = 1; i <= 4; i += 1) {
+      this.load.image(`comics-${i}-close`, `assets/comics/comics-${i}-close.png`);
+      this.load.image(`comics-${i}-open`, `assets/comics/comics-${i}-open.png`);
+    }
+    this.load.image('comics-5', 'assets/comics/comics-5.png');
+    this.load.image('comics-button', 'assets/comics/comics-button.png');
+    this.load.image('comics-skip-button', 'assets/comics/skip-button.png');
 
     // ===== UI =====
     this.load.image('heart-pixel',             'assets/ui/heart-pixel.png');
@@ -258,11 +265,11 @@ export class BootScene extends Phaser.Scene {
     // поверх логотипа. К моменту CREATE камера сплеша = сплошной #5a54f9, что
     // совпадает с фоном лоадера → переход незаметен, без флеша.
     const htmlLoader = document.getElementById('boot-loader');
-    const splash = this.scene.get('SplashScene');
-    splash.events.once(Phaser.Scenes.Events.CREATE, () => {
+    const comics = this.scene.get('ComicsScene');
+    comics.events.once(Phaser.Scenes.Events.CREATE, () => {
       htmlLoader?.remove();
     });
 
-    this.scene.start('SplashScene');
+    this.scene.start('ComicsScene');
   }
 }
