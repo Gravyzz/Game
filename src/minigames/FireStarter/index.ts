@@ -243,7 +243,9 @@ export class FireStarterScene extends BaseMinigame {
     this.roundText = this.add.text(GAME.WIDTH - 36, 58, '', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '28px',
-      color: '#0A0A0A',
+      color: '#FFFFFF',
+      stroke: '#0A0A0A',
+      strokeThickness: 6,
       align: 'center',
       lineSpacing: 8,
     });
