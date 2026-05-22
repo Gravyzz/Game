@@ -203,7 +203,7 @@ export class SurferScene extends BaseMinigame {
     attachHomeButton(this);
 
     this.stageLbl = this.add
-      .text(W - 26, 84, '', {
+      .text(W - 26, 94, '', {
         fontFamily: PIXEL_FONT,
         fontSize: '18px',
         color: '#FFFFFF',
@@ -215,7 +215,7 @@ export class SurferScene extends BaseMinigame {
       .setOrigin(1, 0.5).setDepth(DEPTH.ui);
 
     this.progLbl = this.add
-      .text(W - 26, 38, '', {
+      .text(W - 26, 54, '', {
         fontFamily: PIXEL_FONT,
         fontSize: '18px',
         color: '#FFFFFF',
@@ -226,7 +226,7 @@ export class SurferScene extends BaseMinigame {
       })
       .setOrigin(1, 0.5).setDepth(DEPTH.ui);
 
-    this.add.text(W - 26, 18, 'пройдено', {
+    this.add.text(W - 26, 16, 'пройдено', {
       fontFamily: PIXEL_FONT,
       fontSize: '18px',
       color: '#FFFFFF',
