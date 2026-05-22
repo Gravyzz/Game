@@ -65,14 +65,22 @@ export class Button extends Phaser.GameObjects.Container {
       this.bg.setStrokeStyle(4, COLORS.black);
     }
 
-    // Текст
+    // Текст.
+    // padding — лечит обрезку последних букв: у Phaser.Text при курсиве и/или
+    // обводке (strokeThickness) реальные глифы вылазят за measured-bounds,
+    // и canvas-текстура клиппит хвост слова. Закладываем запас по ширине
+    // и высоте, исходя из толщины обводки.
+    const strokeThickness = options.textStroke ? options.textStrokeWidth ?? 4 : 0;
+    const padX = Math.max(8, strokeThickness + 4);
+    const padY = Math.max(4, Math.ceil(strokeThickness / 2) + 2);
     this.label = scene.add.text(0, 0, text, {
       ...TEXT_STYLES.button,
       fontFamily,
       fontSize,
       color: textColor,
+      padding: { x: padX, y: padY },
       ...(options.textStroke
-        ? { stroke: options.textStroke, strokeThickness: options.textStrokeWidth ?? 4 }
+        ? { stroke: options.textStroke, strokeThickness }
         : {}),
     });
     this.label.setOrigin(0.5);
