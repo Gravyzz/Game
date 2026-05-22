@@ -210,6 +210,14 @@ export class MinigameRunnerScene extends Phaser.Scene {
   private onMinigameComplete(result: MinigameResult & { sceneKey: string }): void {
     console.log('[Runner] minigame complete:', result);
 
+    // Принудительно гасим scene минки СРАЗУ, не дожидаясь её собственного
+    // delayedCall(0)→scene.stop(). Иначе на пути «win L4 → WheelScene jackpot»
+    // launched-сцена ещё активна во время старта WheelScene и её input-плагин
+    // перехватывает первый клик по кнопке КРУТИ.
+    if (result.sceneKey && this.scene.isActive(result.sceneKey)) {
+      this.scene.stop(result.sceneKey);
+    }
+
     if (result.outcome === 'win') {
       SessionState.markLevelWon();
 

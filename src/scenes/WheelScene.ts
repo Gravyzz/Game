@@ -66,6 +66,13 @@ export class WheelScene extends Phaser.Scene {
     const { WIDTH, HEIGHT } = GAME;
     this.isJackpot = data.isJackpot ?? false;
 
+    // Сброс state-полей: Phaser переиспользует scene-instance между запусками,
+    // и class-field инициализация (`spinning = false`) срабатывает только при
+    // первом конструировании. Без явного сброса второй заход на колесо после
+    // прошлой крутки оставлял spinning=true → кнопка не нажималась.
+    this.spinning = false;
+    this.lastTickedSector = -1;
+
     // Колесо собираем по уровню сессии. Каждый уровень — свой пул призов
     // и свои веса (см. WHEEL_BY_LEVEL в @config/prizes).
     const level = SessionState.getCurrentLevel() as SessionLevel;
@@ -109,8 +116,17 @@ export class WheelScene extends Phaser.Scene {
     });
     this.spinButtonText.setOrigin(0.5);
     this.spinBtn.add([this.spinButtonImage, this.spinButtonText]);
+    // Явный hitArea + Rectangle.Contains — на Container'е без явной геометрии
+    // setInteractive отрабатывает нестабильно (особенно после scene-restart);
+    // explicit Rectangle гарантирует кликабельность во всех сценариях.
     this.spinBtn.setSize(500, 160);
-    this.spinBtn.setInteractive({ useHandCursor: true });
+    this.spinBtn.setInteractive(
+      new Phaser.Geom.Rectangle(-250, -80, 500, 160),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    this.input.setDefaultCursor('default');
+    this.spinBtn.on('pointerover', () => this.input.setDefaultCursor('pointer'));
+    this.spinBtn.on('pointerout', () => this.input.setDefaultCursor('default'));
     this.spinBtn.on('pointerdown', () => this.startSpin());
 
     // Лёгкая пульсация

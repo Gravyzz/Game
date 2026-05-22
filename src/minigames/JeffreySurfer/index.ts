@@ -190,7 +190,10 @@ export class JeffreySurferScene extends BaseMinigame {
 
     // Стартовые ряды — генерим вперёд на 30 рядов от старта игрока (worldY=0).
     // Дальше cullFarRows будет подгенерировать вперёд игрока по мере его движения.
-    for (let y = -3; y <= 30; y++) {
+    // -8 снизу: канвас прозрачный, без этих рядов под игроком торчит белый
+    // фон <body> на ~3 ряда (screen ≈ 1080..1280). minKeep в cullFarRows тоже
+    // считается от cameraWorldY-3, поэтому держим тот же запас тут.
+    for (let y = -8; y <= 30; y++) {
       this.ensureRow(y);
     }
 
@@ -835,8 +838,10 @@ export class JeffreySurferScene extends BaseMinigame {
         this.buildingColsByRow.delete(y);
       }
     });
-    // Догоняем буфер по фронту — несколько рядов за кадр, без задержки.
-    for (let y = Math.ceil(this.cameraWorldY); y < maxKeep; y++) {
+    // Догоняем буфер по фронту И по тылу — несколько рядов за кадр, без задержки.
+    // Тыловые ряды (от minKeep до камеры) нужны чтобы под игроком не зиял
+    // прозрачный канвас (белый <body>-фон) когда камера медленно ползёт вперёд.
+    for (let y = minKeep; y < maxKeep; y++) {
       this.ensureRow(y);
     }
   }
