@@ -24,6 +24,8 @@ export function loadImageAssets(scene: Phaser.Scene, assets: readonly ImageAsset
 export const BOOT_ASSETS: ImageAsset[] = [
   asset('make-love-pizza-logo-pixel', 'assets/branding/logo-make-love-pizza-pixel.png'),
   asset('main-menu-bg', 'assets/branding/main-menu-bg.png'),
+  asset('main-screen-bg-new', 'assets/branding/main-screen-bg-new.png'),
+  asset('minigames-screen-bg-new', 'assets/branding/minigames-screen-bg-new.png'),
   asset('play-interlevel-bg', 'assets/play/interlevel-bg.jpeg'),
 
   ...Array.from({ length: 4 }, (_, i) => [
@@ -36,7 +38,9 @@ export const BOOT_ASSETS: ImageAsset[] = [
 
   asset('heart-pixel', 'assets/ui/heart-pixel.png'),
   asset('pizza-pixel', 'assets/ui/pizza-pixel.png'),
+  asset('pizza-slice-new', 'assets/ui/pizza-slice-new.png'),
   asset('gamepad-pixel', 'assets/ui/gamepad-pixel.png'),
+  asset('gamepad-new', 'assets/ui/gamepad-new.png'),
   asset('star-pixel', 'assets/ui/star-pixel.png'),
   asset('orientation-phone-pixel', 'assets/ui/orientation-phone-pixel.png'),
   asset('sound-on-pixel', 'assets/ui/sound-on-pixel.png'),

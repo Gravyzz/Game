@@ -31,9 +31,11 @@ export class SplashScene extends Phaser.Scene {
 
     this.setPixelTexture('heart-pixel');
     this.setPixelTexture('pizza-pixel');
+    this.setPixelTexture('pizza-slice-new');
     this.setPixelTexture('gamepad-pixel');
+    this.setPixelTexture('gamepad-new');
     this.setPixelTexture('make-love-pizza-logo-pixel');
-    this.setPixelTexture('main-menu-bg');
+    this.setPixelTexture('main-screen-bg-new');
     this.setPixelTexture('plus-pixel');
     this.setPixelTexture('minus-pixel');
     this.setPixelTexture('cancel-pixel');
@@ -42,41 +44,38 @@ export class SplashScene extends Phaser.Scene {
     screenContent.setSize(WIDTH, HEIGHT);
     screenContent.setDepth(DEPTH.ui);
 
-    this.add.image(WIDTH / 2, HEIGHT / 2, 'main-menu-bg')
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'main-screen-bg-new')
       .setOrigin(0.5)
-      .setDisplaySize(WIDTH, HEIGHT)
       .setDepth(DEPTH.background + 1);
+    this.fitCover(bg);
 
     // ===== Сердца: количество жизней/доступа к сессии =====
     this.drawHearts();
 
     // ===== Главная кнопка =====
-    // Кнопки выше (130px) и сдвинуты вниз от деревянной таблички ADVENTURES,
-    // чтобы был воздух между ними. MINI GAMES — двустрочный, поэтому шрифт
-    // меньше (34 vs 42) и сидит в центральной части без захода на градиент.
     const startBtn = this.createPixelButton(
       0,
-      775 - HEIGHT / 2,
-      510,
-      130,
+      965 - HEIGHT / 2,
+      560,
+      106,
       'PLAY',
-      0x69bd45,
-      'pizza-pixel',
+      0xffc21a,
+      'pizza-slice-new',
       () => this.startPlayScenario()
     );
     screenContent.add(startBtn);
 
     if (import.meta.env.DEV) {
       const miniGamesBtn = this.createPixelButton(
-        0,
-        925 - HEIGHT / 2,
-        510,
-        130,
-        'MINI\nGAMES',
-        COLORS.red,
-        'gamepad-pixel',
-        () => this.openMiniGames()
-      );
+      0,
+      1095 - HEIGHT / 2,
+      560,
+      106,
+      'MINI GAMES',
+      0xe53522,
+      'gamepad-new',
+      () => this.openMiniGames()
+    );
       screenContent.add(miniGamesBtn);
     }
 
@@ -321,15 +320,17 @@ export class SplashScene extends Phaser.Scene {
     g.setPosition(-width / 2, -height / 2);
     drawPixelButton(g, width, height, bgColor, { step: 8, border: 8, corner: 24 });
 
-    const icon = this.add.image(-width / 2 + 85, 0, iconKey);
-    icon.setDisplaySize(86, 86);
+    const icon = this.add.image(-width / 2 + 105, 0, iconKey);
+    const iconSize = iconKey === 'gamepad-new' ? 82 : 86;
+    icon.setDisplaySize(iconSize, iconSize);
 
-    const text = this.add.text(0, 4, label, {
+    const isTwoLine = label.includes('\n');
+    const text = this.add.text(78, isTwoLine ? 2 : 4, label, {
       fontFamily: this.pixelFont,
-      fontSize: label.includes('\n') ? '34px' : '42px',
+      fontSize: isTwoLine ? '30px' : '36px',
       color: '#FAF7F0',
       stroke: '#0A0A0A',
-      strokeThickness: 9,
+      strokeThickness: isTwoLine ? 6 : 8,
       align: 'center',
       lineSpacing: 8,
     });
@@ -355,6 +356,12 @@ export class SplashScene extends Phaser.Scene {
 
   private setPixelTexture(key: string): void {
     this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+  }
+
+  private fitCover(image: Phaser.GameObjects.Image): void {
+    const source = image.texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+    const scale = Math.max(GAME.WIDTH / source.width, GAME.HEIGHT / source.height);
+    image.setDisplaySize(source.width * scale, source.height * scale);
   }
 
   private startPlayScenario(): void {
