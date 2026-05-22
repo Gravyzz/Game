@@ -5,9 +5,9 @@ import { EventBus } from '@core/EventBus';
  * Данные, которые раннер передаёт минке при запуске.
  */
 export interface MinigameInitData {
-  /** На каком уровне сессии запускается минка (1..4). Влияет на сложность и призы */
+  /** Слот сессии (1..4). Нужен для UI, прогресса и призов; сложность от него не зависит */
   level: 1 | 2 | 3 | 4;
-  /** Нормализованная сложность 0..1 — каждая минка решает сама, как её применить */
+  /** Фиксированная нормализованная сложность 0..1 */
   difficulty: number;
   /** Рекомендованная длительность раунда в мс. Минка может игнорировать */
   durationMs: number;
@@ -28,7 +28,7 @@ export interface MinigameResult {
 }
 
 /**
- * Абстрактный базовый класс мини-игры. Все 4 минки наследуют его.
+ * Абстрактный базовый класс мини-игры. Все минки наследуют его.
  *
  * Контракт:
  * 1. Раннер запускает минку через `scene.launch(key, MinigameInitData)`.
@@ -108,7 +108,7 @@ export abstract class BaseMinigame extends Phaser.Scene {
     this.complete({
       outcome: 'lose',
       score: 0,
-      metadata: { aborted: true, lifeAlreadyLost: true },
+      metadata: { aborted: true },
     });
   }
 

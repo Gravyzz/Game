@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { CHOP_CHOP_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -184,6 +185,10 @@ export class ChopChopScene extends BaseMinigame {
 
   constructor() {
     super({ key: 'ChopChop' });
+  }
+
+  preload(): void {
+    loadImageAssets(this, CHOP_CHOP_ASSETS);
   }
 
   create(): void {

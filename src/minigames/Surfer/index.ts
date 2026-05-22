@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { SURFER_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -12,7 +13,6 @@ import {
   createGlobalLivesDisplay,
   type GlobalLivesDisplay,
 } from '@utils/SceneHelpers';
-import { SessionState } from '@core/SessionState';
 
 const W  = GAME.WIDTH;
 const H  = GAME.HEIGHT;
@@ -136,7 +136,6 @@ export class SurferScene extends BaseMinigame {
   private surferVY = 0;
 
   // Buffs
-  private globalLifeLostThisRun = false;
   private invincibleUntil = 0;
   private shieldActive    = false;
   private timeScale       = 1;
@@ -169,6 +168,10 @@ export class SurferScene extends BaseMinigame {
 
   constructor() { super({ key: 'Surfer' }); }
 
+  preload(): void {
+    loadImageAssets(this, SURFER_ASSETS);
+  }
+
   // ─── lifecycle ─────────────────────────────────────────────────────────────
 
   create(): void {
@@ -176,7 +179,6 @@ export class SurferScene extends BaseMinigame {
     this.stage           = STAGES[0];
     this.stagePassed     = 0;
     this.starCount       = 0;
-    this.globalLifeLostThisRun = false;
     this.invincibleUntil = 0;
     this.shieldActive    = false;
     this.timeScale       = 1;
@@ -723,8 +725,6 @@ export class SurferScene extends BaseMinigame {
       return;
     }
 
-    const livesLeft = SessionState.loseLife();
-    this.globalLifeLostThisRun = true;
     this.invincibleUntil = this.time.now + 1100;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
@@ -742,54 +742,8 @@ export class SurferScene extends BaseMinigame {
       onComplete: () => { this.surfer.setAlpha(1); this.board.setAlpha(1); },
     });
 
-    this.refreshHud();
-
-    if (livesLeft <= 0) {
-      this.finish(false);
-      return;
-    }
-
-    this.restartCurrentStageAfterHit();
-  }
-
-  private restartCurrentStageAfterHit(): void {
-    if (this.finished) return;
-
-    this.inTransition = true;
-    this.canPlay = false;
-    this.spawnTimer?.remove();
-    this.powerUpTimer?.remove();
-    this.lightningTimer?.remove();
-    this.spawnTimer = null;
-    this.powerUpTimer = null;
-    this.lightningTimer = null;
-
-    for (const p of this.pillars) {
-      p.alive = false;
-      this.destroyPillar(p);
-    }
-    for (const pu of this.powerUps) {
-      pu.alive = false;
-      this.destroyPowerUp(pu);
-    }
-    this.bubbles.forEach(b => b.image.destroy());
-    this.pillars = [];
-    this.powerUps = [];
-    this.bubbles = [];
-
-    this.surferY = (CEILING_Y + FLOOR_Y) / 2;
-    this.surferVY = 0;
-    this.surfer.setPosition(SURFER_X, this.surferY).setRotation(0).setAlpha(1);
-    this.board.setPosition(SURFER_X, this.surferY).setRotation(0).setAlpha(1);
-    if (this.shieldRing) this.shieldRing.setPosition(SURFER_X, this.surferY);
-
-    this.showToast('-1 ЖИЗНЬ', '#EF4444');
-    this.time.delayedCall(650, () => {
-      if (this.finished) return;
-      this.startStage(this.stageIdx);
-      this.canPlay = true;
-      this.inTransition = false;
-    });
+    this.showToast('ПРОМАХ!', '#EF4444');
+    this.time.delayedCall(450, () => this.finish(false));
   }
 
   // ─── input ─────────────────────────────────────────────────────────────────
@@ -906,9 +860,8 @@ export class SurferScene extends BaseMinigame {
     const totalDone = STAGES.slice(0, this.stageIdx).reduce((s, st) => s + st.goal, 0)
                     + this.stagePassed;
 
-    const livesLeft = SessionState.getLivesLeft();
     const score = win
-      ? Math.min(100, Math.round(70 + Math.min(livesLeft, 3) * 8 + this.starCount * 2))
+      ? Math.min(100, Math.round(80 + this.starCount * 2))
       : Math.round((totalDone / totalGoal) * 50);
 
     this.time.delayedCall(900, () => {
@@ -920,8 +873,6 @@ export class SurferScene extends BaseMinigame {
           totalStages:  TOTAL_STAGES,
           totalDone,
           stars:        this.starCount,
-          lives:        livesLeft,
-          lifeAlreadyLost: this.globalLifeLostThisRun,
         },
       });
     });

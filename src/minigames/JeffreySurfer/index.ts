@@ -3,6 +3,7 @@ import { BaseMinigame } from '@minigames/BaseMinigame';
 import { GAME, DEPTH } from '@config/game';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { JEFFREY_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -41,35 +42,14 @@ const PLAYER_ROW_DEPTH_OFFSET = 0.05;
 const VEHICLE_SPAWN_GAP = TILE * 1.25;
 const BUILDING_BLOCK_RADIUS = 1;
 
-const STEP_GOALS_BY_LEVEL: Record<number, number> = {
-  1: 25,
-  2: 50,
-  3: 80,
-  4: 80,
-};
+const CROSSY_GOAL_STEPS = 50;
 
 // Скорость наплыва камеры (шагов в секунду)
-const CAMERA_CREEP_PER_SEC_BY_LEVEL: Record<number, number> = {
-  1: 0.45,
-  2: 0.6,
-  3: 0.8,
-  4: 0.85,
-};
+const CROSSY_CAMERA_CREEP_PER_SEC = 0.6;
 
-const CAR_SPEED_BY_LEVEL: Record<number, [number, number]> = {
-  // [min, max] px/sec
-  1: [110, 170],
-  2: [150, 220],
-  3: [200, 290],
-  4: [220, 320],
-};
+const CROSSY_CAR_SPEED: [number, number] = [150, 220];
 
-const TRAIN_SPEED_BY_LEVEL: Record<number, [number, number]> = {
-  1: [380, 460],
-  2: [460, 560],
-  3: [550, 680],
-  4: [600, 720],
-};
+const CROSSY_TRAIN_SPEED: [number, number] = [460, 560];
 
 const COLORS_GRASS = [0x9cd66f, 0xa6da77, 0x88c75d];
 const COLOR_ROAD = 0x303035;
@@ -160,10 +140,14 @@ export class JeffreySurferScene extends BaseMinigame {
     super({ key: 'JeffreySurfer' });
   }
 
+  preload(): void {
+    loadImageAssets(this, JEFFREY_ASSETS);
+  }
+
   create(): void {
     this.infinite = this.initData.infinite === true;
-    this.goalSteps = STEP_GOALS_BY_LEVEL[this.initData.level] ?? 30;
-    this.cameraCreepPerSec = CAMERA_CREEP_PER_SEC_BY_LEVEL[this.initData.level] ?? 0.6;
+    this.goalSteps = CROSSY_GOAL_STEPS;
+    this.cameraCreepPerSec = CROSSY_CAMERA_CREEP_PER_SEC;
     if (this.infinite) {
       this.cameraCreepPerSec = 0.4;
     }
@@ -186,6 +170,7 @@ export class JeffreySurferScene extends BaseMinigame {
     this.touchStartX = 0;
     this.touchStartY = 0;
 
+    this.preparePixelAssets();
     paintPageBackdrop(this, 0xffffff);
 
     // Стартовые ряды — генерим вперёд на 30 рядов от старта игрока (worldY=0).
@@ -218,6 +203,14 @@ export class JeffreySurferScene extends BaseMinigame {
   // ============================================================
   // Игрок
   // ============================================================
+
+  private preparePixelAssets(): void {
+    JEFFREY_ASSETS.forEach(({ key }) => {
+      if (this.textures.exists(key)) {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+      }
+    });
+  }
 
   private spawnPlayer(): void {
     this.playerCol = Math.floor(COLS / 2);
@@ -475,13 +468,11 @@ export class JeffreySurferScene extends BaseMinigame {
   }
 
   private carSpeedRange(): [number, number] {
-    const lvl = this.infinite ? 3 : (this.initData.level || 1);
-    return CAR_SPEED_BY_LEVEL[lvl] ?? CAR_SPEED_BY_LEVEL[1];
+    return CROSSY_CAR_SPEED;
   }
 
   private trainSpeedRange(): [number, number] {
-    const lvl = this.infinite ? 3 : (this.initData.level || 1);
-    return TRAIN_SPEED_BY_LEVEL[lvl] ?? TRAIN_SPEED_BY_LEVEL[1];
+    return CROSSY_TRAIN_SPEED;
   }
 
   // ============================================================
@@ -919,7 +910,6 @@ export class JeffreySurferScene extends BaseMinigame {
       metadata: {
         steps: this.maxWorldY,
         infinite: this.infinite,
-        lifeAlreadyLost: false,
       },
     });
   }

@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { PIZZA_ASSEMBLY_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -57,17 +58,17 @@ interface Stage {
 const STAGES: Stage[] = [
   {
     name: 'EASY',  color: '#4ADE80',
-    rotSpeed: 1.4, goal: 11, minAngle: 0.14, knifeSpd: 3200,
+    rotSpeed: 1.4, goal: 10, minAngle: 0.14, knifeSpd: 3200,
     flipEnabled: false, flipMin: 0,    flipMax: 0,
   },
   {
     name: 'MEDIUM', color: '#FFE600',
-    rotSpeed: 2.1, goal: 13, minAngle: 0.12, knifeSpd: 3500,
+    rotSpeed: 2.1, goal: 12, minAngle: 0.12, knifeSpd: 3500,
     flipEnabled: false, flipMin: 0,    flipMax: 0,
   },
   {
     name: 'HARD',  color: '#FF2E2E',
-    rotSpeed: 2.7, goal: 15, minAngle: 0.10, knifeSpd: 3800,
+    rotSpeed: 2.7, goal: 14, minAngle: 0.10, knifeSpd: 3800,
     flipEnabled: true,  flipMin: 2400, flipMax: 3800,
   },
 ];
@@ -112,8 +113,6 @@ export class PizzaAssemblyScene extends BaseMinigame {
   private flying = false;
   private canThrow = true;
 
-  private lives    = 3;
-  private maxLives = 3;
   private done     = false;
   private inTransition = false;
 
@@ -125,6 +124,10 @@ export class PizzaAssemblyScene extends BaseMinigame {
 
   constructor() { super({ key: 'PizzaAssembly' }); }
 
+  preload(): void {
+    loadImageAssets(this, PIZZA_ASSEMBLY_ASSETS);
+  }
+
   // ─── lifecycle ─────────────────────────────────────────────────────────────
 
   create(): void {
@@ -132,8 +135,6 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.stage        = STAGES[0];
     this.circleRot    = 0;
     this.rotSpeed     = this.stage.rotSpeed;
-    this.maxLives     = 3;
-    this.lives        = this.maxLives;
     this.stuck        = [];
     this.stageStuck   = 0;
     this.done         = false;
@@ -477,10 +478,11 @@ export class PizzaAssemblyScene extends BaseMinigame {
   }
 
   private onCollision(): void {
-    this.lives--;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
     this.cameras.main.shake(160, 0.012);
+    this.inTransition = true;
+    this.canThrow = false;
 
     const flash = this.add.rectangle(CX, H / 2, W, H, 0xff0000, 0.28).setDepth(DEPTH.effects);
     this.tweens.add({
@@ -499,17 +501,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
         this.knife?.destroy();
         this.knife = null;
         this.updateHUD();
-
-        if (this.lives <= 0) {
-          this.playLoseAnimation(() => this.finish(false));
-        } else {
-          this.time.delayedCall(220, () => {
-            if (!this.done && !this.inTransition) {
-              this.spawnKnife();
-              this.canThrow = true;
-            }
-          });
-        }
+        this.playLoseAnimation(() => this.finish(false));
       },
     });
   }
@@ -562,10 +554,6 @@ export class PizzaAssemblyScene extends BaseMinigame {
         onComplete: () => k.sprite.destroy(),
       });
     }
-
-    // Бонус-жизнь, если есть куда
-    const bonusLife = this.lives < this.maxLives;
-    if (bonusLife) this.lives++;
 
     this.time.delayedCall(900, () => {
       if (this.done) return;
@@ -825,14 +813,12 @@ export class PizzaAssemblyScene extends BaseMinigame {
       .setOrigin(0.5)
       .setDepth(DEPTH.modal + 1);
 
-    // Score: насколько глубоко прошёл + сколько жизней осталось
+    // Score: насколько глубоко прошёл.
     const totalGoal = STAGES.reduce((s, st) => s + st.goal, 0);
     const totalDone = STAGES.slice(0, this.stageIdx).reduce((s, st) => s + st.goal, 0)
                     + this.stageStuck;
     const baseFrac  = totalDone / totalGoal;
-    const score = win
-      ? Math.round(60 + (this.lives / this.maxLives) * 40)
-      : Math.round(baseFrac * 50);
+    const score = win ? 100 : Math.round(baseFrac * 50);
 
     this.time.delayedCall(900, () => {
       this.complete({
@@ -843,7 +829,6 @@ export class PizzaAssemblyScene extends BaseMinigame {
           totalStages:  TOTAL_STAGES,
           totalDone,
           totalGoal,
-          lives:        this.lives,
         },
       });
     });

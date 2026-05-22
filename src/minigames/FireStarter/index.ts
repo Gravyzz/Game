@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { FIRESTARTER_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -24,8 +25,10 @@ import {
  *  - Любой промах — поражение, время вышло без 10 попаданий — поражение.
  */
 
-const ROUNDS_PER_GAME = 10;
-const WIN_THRESHOLD = 10; // нужно пройти все 10 попаданий
+const ROUNDS_PER_GAME = 8;
+const WIN_THRESHOLD = 8; // нужно пройти все 8 попаданий
+const BALANCE_ROUNDS_BEFORE_TRIM = 10;
+const TRIMMED_EASY_ROUNDS = 1;
 const TOTAL_TIME_MS = 50_000;
 
 const BAR_WIDTH = 640;
@@ -84,6 +87,10 @@ export class FireStarterScene extends BaseMinigame {
 
   constructor() {
     super({ key: 'FireStarter' });
+  }
+
+  preload(): void {
+    loadImageAssets(this, FIRESTARTER_ASSETS);
   }
 
   create(): void {
@@ -254,7 +261,7 @@ export class FireStarterScene extends BaseMinigame {
   }
 
   private getRoundProgress(): number {
-    return ROUNDS_PER_GAME <= 1 ? 0 : this.currentRound / (ROUNDS_PER_GAME - 1);
+    return (this.currentRound + TRIMMED_EASY_ROUNDS) / (BALANCE_ROUNDS_BEFORE_TRIM - 1);
   }
 
   private updateHud(): void {
@@ -287,9 +294,10 @@ export class FireStarterScene extends BaseMinigame {
     this.greenEnd = this.zoneAnchorX + zoneWidth / 2;
 
     // Движение зоны для поздних раундов
-    if (this.currentRound >= MOVING_ZONE_FROM_ROUND) {
-      const span = ROUNDS_PER_GAME - 1 - MOVING_ZONE_FROM_ROUND;
-      const movePhase = span <= 0 ? 1 : (this.currentRound - MOVING_ZONE_FROM_ROUND) / span;
+    const balanceRound = this.currentRound + TRIMMED_EASY_ROUNDS;
+    if (balanceRound >= MOVING_ZONE_FROM_ROUND) {
+      const span = BALANCE_ROUNDS_BEFORE_TRIM - 1 - MOVING_ZONE_FROM_ROUND;
+      const movePhase = span <= 0 ? 1 : (balanceRound - MOVING_ZONE_FROM_ROUND) / span;
       this.zoneMoving = true;
       this.zonePeriodMs = Phaser.Math.Linear(ZONE_PERIOD_START, ZONE_PERIOD_END, movePhase);
 
@@ -357,8 +365,8 @@ export class FireStarterScene extends BaseMinigame {
     this.updateHud();
     this.playResultRain(result);
 
-    // Внутри минки одна жизнь: любой промах — конец матча.
-    // Сессионную жизнь спишет раннер (lifeAlreadyLost: false в metadata).
+    // Внутри минки нет локальных жизней: любой промах — конец матча.
+    // Сессионную жизнь спишет раннер.
     if (this.misses > 0) {
       this.time.delayedCall(RESULT_RAIN_MS, () => this.finish());
       return;
@@ -467,7 +475,7 @@ export class FireStarterScene extends BaseMinigame {
       this.complete({
         outcome: win ? 'win' : 'lose',
         score,
-        metadata: { hits: this.hits, misses: this.misses, lifeAlreadyLost: false },
+        metadata: { hits: this.hits, misses: this.misses },
       });
     });
   }

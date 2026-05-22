@@ -7,7 +7,8 @@ import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton } from '@utils/SceneHelpers';
+import { WHEEL_ASSETS, loadImageAssets } from '@core/AssetManifest';
+import { attachSoundButton, paintPageBackdrop } from '@utils/SceneHelpers';
 import {
   getWheelForLevel,
   pickPrizeIndex,
@@ -40,7 +41,9 @@ import type { SessionLevel } from '@core/SessionState';
  *    укажет в системе колеса»)
  */
 
-const WHEEL_RADIUS = 330;
+const WHEEL_RADIUS = 292;
+const WHEEL_CENTER_Y = 670;
+const SPIN_BUTTON_Y = 1136;
 const SPIN_DURATION_MS = 3500;
 const SPIN_REVOLUTIONS = 5;
 const PIXEL_FONT = '"Press Start 2P", monospace';
@@ -62,6 +65,10 @@ export class WheelScene extends Phaser.Scene {
     super({ key: 'WheelScene' });
   }
 
+  preload(): void {
+    loadImageAssets(this, WHEEL_ASSETS);
+  }
+
   create(data: { isJackpot?: boolean } = {}): void {
     const { WIDTH, HEIGHT } = GAME;
     this.isJackpot = data.isJackpot ?? false;
@@ -81,6 +88,7 @@ export class WheelScene extends Phaser.Scene {
     this.sectorRad = (Math.PI * 2) / this.sectorCount;
 
     this.preparePixelAssets();
+    paintPageBackdrop(this, 0x0a0a0a);
 
     // ===== Фон по макету =====
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'fortune-bg');
@@ -89,7 +97,7 @@ export class WheelScene extends Phaser.Scene {
     bg.setDepth(DEPTH.background);
 
     // ===== Колесо =====
-    const wheelCenter = { x: WIDTH / 2, y: 635 };
+    const wheelCenter = { x: WIDTH / 2, y: WHEEL_CENTER_Y };
     this.wheelContainer = this.add.container(wheelCenter.x, wheelCenter.y);
     this.wheelContainer.setDepth(DEPTH.gameplay);
 
@@ -103,7 +111,7 @@ export class WheelScene extends Phaser.Scene {
     this.drawTicker(wheelCenter.x, wheelCenter.y - WHEEL_RADIUS + 10);
 
     // ===== Кнопка «КРУТИ!» =====
-    this.spinBtn = this.add.container(WIDTH / 2, 1136);
+    this.spinBtn = this.add.container(WIDTH / 2, SPIN_BUTTON_Y);
     this.spinBtn.setDepth(DEPTH.ui);
     this.spinButtonImage = this.add.image(0, 0, 'spin-button');
     this.spinButtonImage.setOrigin(0.5);
@@ -148,21 +156,21 @@ export class WheelScene extends Phaser.Scene {
     for (let i = 0; i < this.sectorCount; i++) {
       const { def } = this.wheel[i];
       const sectorCenterAngle = i * this.sectorRad - Math.PI / 2;
-      const labelDist = WHEEL_RADIUS * 0.58;
+      const labelDist = WHEEL_RADIUS * 0.56;
       const labelX = Math.cos(sectorCenterAngle) * labelDist;
       const labelY = Math.sin(sectorCenterAngle) * labelDist;
 
       const labelContainer = this.add.container(labelX, labelY);
       labelContainer.setRotation(sectorCenterAngle + Math.PI / 2);
 
-      const iconText = this.add.text(0, -30, def.icon, { fontSize: '34px' });
+      const iconText = this.add.text(0, -28, def.icon, { fontSize: '30px' });
       iconText.setOrigin(0.5);
 
       // «ПРИЗ N» вместо длинных конкретных названий — гарантированно не
       // вылазит за грань сектора даже на 14-м призе.
       const labelText = this.add.text(0, 22, def.displayLabel, {
         fontFamily: PIXEL_FONT,
-        fontSize: '18px',
+        fontSize: '16px',
         color: def.textColor,
         align: 'center',
         stroke: def.textColor === '#0A0A0A' ? undefined : '#0A0A0A',
@@ -321,11 +329,11 @@ export class WheelScene extends Phaser.Scene {
     const x = this.wheelContainer.x + Math.cos(sectorCenterAngle) * dist;
     const y = this.wheelContainer.y + Math.sin(sectorCenterAngle) * dist;
 
-    const flash = this.add.circle(x, y, 80, COLORS.yellow, 0.6);
+    const flash = this.add.circle(x, y, WHEEL_RADIUS * 0.22, COLORS.yellow, 0.6);
     flash.setDepth(DEPTH.effects);
     this.tweens.add({
       targets: flash,
-      radius: 180,
+      radius: WHEEL_RADIUS * 0.48,
       alpha: 0,
       duration: 800,
       ease: 'Cubic.easeOut',
@@ -340,8 +348,8 @@ export class WheelScene extends Phaser.Scene {
       star.setDepth(DEPTH.effects);
       this.tweens.add({
         targets: star,
-        x: x + Math.cos(angle) * 120,
-        y: y + Math.sin(angle) * 120,
+        x: x + Math.cos(angle) * WHEEL_RADIUS * 0.36,
+        y: y + Math.sin(angle) * WHEEL_RADIUS * 0.36,
         alpha: 0,
         scale: 0.4,
         duration: 700,

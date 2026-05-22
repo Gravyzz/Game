@@ -6,7 +6,7 @@ import { EventBus } from '@core/EventBus';
 import { SessionState } from '@core/SessionState';
 import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
-import { getDifficultyForLevel } from '@core/MinigameRegistry';
+import { MINIGAME_DIFFICULTY } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
 
 const PIXEL_FONT = '"Press Start 2P", monospace';
@@ -193,7 +193,7 @@ export class MinigameRunnerScene extends Phaser.Scene {
 
     const initData: MinigameInitData = {
       level,
-      difficulty: getDifficultyForLevel(level),
+      difficulty: MINIGAME_DIFFICULTY,
       durationMs: meta.durationMs,
     };
 
@@ -239,11 +239,10 @@ export class MinigameRunnerScene extends Phaser.Scene {
         return;
       }
 
-      const lifeAlreadyLost = result.metadata?.lifeAlreadyLost === true;
-      const livesLeft = lifeAlreadyLost ? SessionState.getLivesLeft() : SessionState.loseLife();
+      const livesLeft = SessionState.loseLife();
 
-      // Любую минку играем не более одного раза за сессию: на провале
-      // переходим к СЛЕДУЮЩЕМУ слоту, а не повторяем эту же.
+      // На провале сгорает одна общая жизнь. Если жизни остались,
+      // повторяем эту же минку: currentLevel не меняется до победы.
       if (livesLeft > 0) {
         this.transitionTo('MinigameRunnerScene');
         return;

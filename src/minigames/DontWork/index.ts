@@ -6,6 +6,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { DONT_WORK_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -21,7 +22,7 @@ import { drawPixelButton } from '@utils/PixelButton';
  * Fruit-Ninja-стайл, заточенный под бренд: 3 стейджа в серии.
  *  1. ОФИС     — обычные дедлайны и кайфы.
  *  2. ЧАТ БОССА — добавляются бомбы 💼 (мгновенный лосс).
- *  3. АВРАЛ    — добавляются бонусы (⏳ slow-mo, 🍺 +1 жизнь, ⚡ ×3 урон)
+ *  3. АВРАЛ    — добавляются бонусы (⏳ slow-mo, 🍺 бонус-очки, ⚡ ×3 урон)
  *                и босс KPI ОТЧЁТ с HP-баром.
  *
  * Визуальный код:
@@ -80,8 +81,8 @@ const STAGES: Stage[] = [
   {
     name: 'офис',  color: '#0A0A0A',
     hint: '✂️ режь дедлайны  •  ❌ не задень кайф',
-    goal: 6,  spawnInterval: 1050,
-    goodChance: 0.25, bombChance: 0,    pwrChance: 0,
+    goal: 7,  spawnInterval: 850,
+    goodChance: 0.28, bombChance: 0,    pwrChance: 0,
     hasBoss: false, bossHP: 0,
     badEmojis: BAD_BASE, goodEmojis: GOOD.slice(0, 3),
     bgTexture: 'dontwork-office-bg',
@@ -89,8 +90,8 @@ const STAGES: Stage[] = [
   {
     name: 'у босса', color: '#0A0A0A',
     hint: '⚠ появилась 💼 БОМБА — мгновенная смерть',
-    goal: 8,  spawnInterval: 800,
-    goodChance: 0.30, bombChance: 0.13, pwrChance: 0,
+    goal: 9,  spawnInterval: 650,
+    goodChance: 0.32, bombChance: 0.14, pwrChance: 0,
     hasBoss: false, bossHP: 0,
     badEmojis: [...BAD_BASE, BAD_EXTRA[0]], goodEmojis: GOOD.slice(0, 4),
     bgTexture: 'dontwork-boss-bg',
@@ -98,8 +99,8 @@ const STAGES: Stage[] = [
   {
     name: 'дедлайн', color: '#0A0A0A',
     hint: '🎁 хватай бонусы  •  завали босса KPI',
-    goal: 99, spawnInterval: 650,
-    goodChance: 0.28, bombChance: 0.18, pwrChance: 0.10,
+    goal: 99, spawnInterval: 520,
+    goodChance: 0.30, bombChance: 0.20, pwrChance: 0.10,
     hasBoss: true, bossHP: 10,
     badEmojis: [...BAD_BASE, ...BAD_EXTRA], goodEmojis: GOOD,
     bgTexture: 'dontwork-deadline-bg',
@@ -176,9 +177,7 @@ export class DontWorkScene extends BaseMinigame {
   private stageBadCut  = 0;
   private bossHP       = 0;
 
-  // Lives & score
-  private lives        = 3;
-  private maxLives     = 3;
+  // Score
   private streak       = 0;
   private comboInSwipe = 0;
   private totalScore   = 0;
@@ -217,14 +216,16 @@ export class DontWorkScene extends BaseMinigame {
 
   constructor() { super({ key: 'DontWork' }); }
 
+  preload(): void {
+    loadImageAssets(this, DONT_WORK_ASSETS);
+  }
+
   // ─── lifecycle ─────────────────────────────────────────────────────────────
 
   create(): void {
     this.stageIdx     = 0;
     this.stage        = STAGES[0];
     this.objects      = [];
-    this.lives        = 3;
-    this.maxLives     = 3;
     this.stageBadCut  = 0;
     this.bossHP       = 0;
     this.streak       = 0;
@@ -454,7 +455,6 @@ export class DontWorkScene extends BaseMinigame {
     this.spawnTimer?.remove();
     this.spawnTimer = null;
 
-    if (this.lives < this.maxLives) this.lives++;
     this.refreshHud();
 
     // Sweep alive objects off-screen
@@ -786,13 +786,12 @@ export class DontWorkScene extends BaseMinigame {
   private onCutGood(x: number, y: number): void {
     this.streak = 0;
     this.errors++;
-    this.lives--;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
     this.spawnSparks(x, y, 0xef4444);
     this.flashScreen(0xef4444, 0.32, 250);
     this.refreshHud();
-    if (this.lives <= 0) this.finish(false);
+    this.finish(false);
   }
 
   private onCutBomb(x: number, y: number): void {
@@ -801,8 +800,7 @@ export class DontWorkScene extends BaseMinigame {
     this.cameras.main.shake(260, 0.022);
     SoundManager.playSfx('lose');
     Haptics.trigger('lose');
-    this.errors = this.maxLives;
-    this.lives = 0;
+    this.errors++;
     this.refreshHud();
     this.finish(false);
   }
@@ -810,11 +808,10 @@ export class DontWorkScene extends BaseMinigame {
   private onMissBad(): void {
     this.streak = 0;
     this.errors++;
-    this.lives--;
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
     this.refreshHud();
-    if (this.lives <= 0) this.finish(false);
+    this.finish(false);
   }
 
   // ─── power-ups ─────────────────────────────────────────────────────────────
@@ -828,8 +825,8 @@ export class DontWorkScene extends BaseMinigame {
       this.showToast('SLOW-MO', '#7A5CFF');
       this.time.delayedCall(2500, () => { this.timeScale = 1; });
     } else if (t === 'pwr-life') {
-      if (this.lives < this.maxLives) this.lives++;
-      this.showToast('+1 ЖИЗНЬ', '#4ADE80');
+      this.totalScore += 50;
+      this.showToast('+50', '#4ADE80');
       this.refreshHud();
     } else {
       this.rageEndsAt = this.time.now + 7000;
@@ -988,7 +985,7 @@ export class DontWorkScene extends BaseMinigame {
     const stageScore = this.getStageDisplayScore();
     const stageScoreGoal = this.getStageDisplayScoreGoal();
     this.scoreLbl.setText(`очки ${stageScore}/${stageScoreGoal}`);
-    this.errorsLbl.setText(`ошибки ${Math.min(this.errors, this.maxLives)}/${this.maxLives}`);
+    this.errorsLbl.setText(`ошибки ${this.errors}`);
     this.stageLbl
       .setText(`${this.stage.name}  ${this.stageIdx + 1}/${TOTAL_STAGES}`)
       .setColor(this.stage.color);
@@ -1032,9 +1029,7 @@ export class DontWorkScene extends BaseMinigame {
       .setOrigin(0.5)
       .setDepth(DEPTH.modal + 1);
 
-    const score = win
-      ? Math.round(60 + (this.lives / this.maxLives) * 40)
-      : Math.round((this.stageIdx / TOTAL_STAGES) * 50);
+    const score = win ? 100 : Math.round((this.stageIdx / TOTAL_STAGES) * 50);
 
     this.time.delayedCall(900, () => {
       this.complete({
@@ -1044,7 +1039,6 @@ export class DontWorkScene extends BaseMinigame {
           stageReached: this.stageIdx + 1,
           totalStages:  TOTAL_STAGES,
           totalScore:   this.totalScore,
-          lives:        this.lives,
         },
       });
     });

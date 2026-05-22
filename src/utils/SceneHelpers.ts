@@ -303,7 +303,7 @@ function handleExit(scene: BaseMinigame): void {
     EventBus.emit('minigame:complete', {
       outcome: 'lose' as const,
       score: 0,
-      metadata: { aborted: true, lifeAlreadyLost: true },
+      metadata: { aborted: true },
       sceneKey: scene.scene.key,
       level: scene.currentLevel,
     });

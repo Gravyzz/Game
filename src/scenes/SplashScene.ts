@@ -16,7 +16,7 @@ import { drawPixelButton } from '@utils/PixelButton';
  * наклонные плашки, постерная типографика.
  *
  * В Phase 4.6 здесь добавится проверка билета: при отсутствии — переход в NoTicketScene.
- * Пока кнопка ведёт в TutorialScene → MinigameRunner.
+ * Кнопка PLAY ведёт сразу в MinigameRunner.
  */
 export class SplashScene extends Phaser.Scene {
   private readonly pixelFont = '"Press Start 2P", monospace';
@@ -66,17 +66,19 @@ export class SplashScene extends Phaser.Scene {
     );
     screenContent.add(startBtn);
 
-    const miniGamesBtn = this.createPixelButton(
-      0,
-      925 - HEIGHT / 2,
-      510,
-      130,
-      'MINI\nGAMES',
-      COLORS.red,
-      'gamepad-pixel',
-      () => this.openMiniGames()
-    );
-    screenContent.add(miniGamesBtn);
+    if (import.meta.env.DEV) {
+      const miniGamesBtn = this.createPixelButton(
+        0,
+        925 - HEIGHT / 2,
+        510,
+        130,
+        'MINI\nGAMES',
+        COLORS.red,
+        'gamepad-pixel',
+        () => this.openMiniGames()
+      );
+      screenContent.add(miniGamesBtn);
+    }
 
     // ===== Кнопка mute в углу =====
     attachSoundButton(this);
@@ -391,8 +393,6 @@ export class SplashScene extends Phaser.Scene {
     let nextScene: string;
     if (!GameState.hasTicket()) {
       nextScene = 'NoTicketScene';
-    } else if (!GameState.hasSeenTutorial()) {
-      nextScene = 'TutorialScene';
     } else {
       nextScene = 'MinigameRunnerScene';
     }

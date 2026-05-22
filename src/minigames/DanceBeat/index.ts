@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { DANCE_BEAT_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -115,6 +116,10 @@ export class DanceBeatScene extends BaseMinigame {
 
   constructor() {
     super({ key: 'DanceBeat' });
+  }
+
+  preload(): void {
+    loadImageAssets(this, DANCE_BEAT_ASSETS);
   }
 
   create(): void {

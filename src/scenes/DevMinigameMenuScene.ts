@@ -6,7 +6,7 @@ import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { EventBus } from '@core/EventBus';
 import { SessionState } from '@core/SessionState';
-import { MINIGAME_POOL, getDifficultyForLevel } from '@core/MinigameRegistry';
+import { MINIGAME_DIFFICULTY, MINIGAME_POOL } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
 
 /**
@@ -76,9 +76,7 @@ export class DevMinigameMenuScene extends Phaser.Scene {
     const rowH = totalH / slots;
     const firstY = topY + rowH / 2;
 
-    // Все кнопки минок — единого зелёного цвета (COLORS.win), независимо
-    // от сложности. Цвет-по-классу убран ради визуальной консистентности
-    // меню.
+    // Все кнопки минок — единого зелёного цвета (COLORS.win).
     MINIGAME_POOL.forEach((meta, i) => {
       const y = firstY + i * rowH;
       const label = RU.minigame.names[meta.i18nKey] ?? meta.key;
@@ -172,7 +170,7 @@ export class DevMinigameMenuScene extends Phaser.Scene {
     if (!this.currentSceneKey) return;
     const initData: MinigameInitData = {
       level: 1,
-      difficulty: getDifficultyForLevel(1),
+      difficulty: MINIGAME_DIFFICULTY,
       durationMs: this.currentDurationMs,
       infinite: true,
     };

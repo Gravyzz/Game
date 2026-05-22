@@ -10,6 +10,7 @@
     <meta name="format-detection" content="telephone=no" />
 
     <title>Make Love Adventures</title>
+    <link rel="icon" type="image/png" href="%BASE_URL%assets/ui/pizza-pixel.png" />
 
     <!-- Шрифты: локальный Press Start 2P — пиксельный UI, Unbounded/Onest — старые экраны -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,7 +23,7 @@
     <style>
       @font-face {
         font-family: 'Press Start 2P';
-        src: url('/fonts/PressStart2P-Regular.ttf') format('truetype');
+        src: url('%BASE_URL%fonts/PressStart2P-Regular.ttf') format('truetype');
         font-weight: 400;
         font-style: normal;
         font-display: swap;
@@ -90,7 +91,7 @@
         left: var(--x);
         width: var(--size);
         aspect-ratio: 1;
-        background: url('/assets/ui/star-pixel.png') center / contain no-repeat;
+        background: url('%BASE_URL%assets/ui/star-pixel.png') center / contain no-repeat;
         image-rendering: pixelated;
         opacity: var(--opacity);
         animation: page-star-fall var(--duration) linear var(--delay) infinite;
@@ -156,7 +157,7 @@
         left: var(--x);
         width: var(--size);
         aspect-ratio: 1;
-        background: url('/assets/ui/star-pixel.png') center / contain no-repeat;
+        background: url('%BASE_URL%assets/ui/star-pixel.png') center / contain no-repeat;
         image-rendering: pixelated;
         opacity: var(--opacity);
         animation: page-star-fall var(--duration) linear var(--delay) infinite;
@@ -329,7 +330,7 @@
 	        <span style="--x: 97%; --size: 30px; --duration: 11.7s; --delay: -6.9s; --drift: -68px; --rotation: -20deg; --spin: -60deg; --opacity: 0.72;"></span>
 	      </div>
 	      <div class="orientation-lock__content">
-	        <img class="orientation-lock__phone" src="/assets/ui/orientation-phone-pixel.png" alt="" draggable="false" />
+	        <img class="orientation-lock__phone" src="%BASE_URL%assets/ui/orientation-phone-pixel.png" alt="" draggable="false" />
 	        <div class="orientation-lock__copy">
 	          <div class="orientation-lock__title">Поверни<br />телефон!</div>
 	          <div class="orientation-lock__body">эта игра только<br />для вертикальных<br />устройств</div>

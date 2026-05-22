@@ -5,6 +5,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
+import { RECIPE_MEMO_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
   attachHomeButton,
@@ -119,6 +120,10 @@ export class RecipeMemoScene extends BaseMinigame {
 
   constructor() {
     super({ key: 'RecipeMemo' });
+  }
+
+  preload(): void {
+    loadImageAssets(this, RECIPE_MEMO_ASSETS);
   }
 
   create(): void {

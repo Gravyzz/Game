@@ -6,7 +6,8 @@ import { Button } from '@ui/Button';
 import { SessionState } from '@core/SessionState';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton } from '@utils/SceneHelpers';
+import { RESULT_ASSETS, loadImageAssets } from '@core/AssetManifest';
+import { attachSoundButton, paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * Финальный экран сессии.
@@ -28,6 +29,10 @@ export class ResultScene extends Phaser.Scene {
     super({ key: 'ResultScene' });
   }
 
+  preload(): void {
+    loadImageAssets(this, RESULT_ASSETS);
+  }
+
   create(data: { outcome?: 'win' | 'lose' } = {}): void {
     const outcome = data.outcome ?? 'lose';
 
@@ -47,6 +52,8 @@ export class ResultScene extends Phaser.Scene {
   private renderWin(): void {
     const { WIDTH, HEIGHT } = GAME;
     const prize = SessionState.getPrize();
+
+    paintPageBackdrop(this, 0x050607);
 
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'unluck-bg');
     bg.setOrigin(0.5);
@@ -180,6 +187,8 @@ export class ResultScene extends Phaser.Scene {
 
   private renderLose(): void {
     const { WIDTH, HEIGHT } = GAME;
+
+    paintPageBackdrop(this, 0x050607);
 
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'unluck-bg');
     bg.setOrigin(0.5);
