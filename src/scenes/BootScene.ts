@@ -39,6 +39,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image('splash-tree-grey',        'assets/ui/tree-grey.png');
     this.load.image('splash-tree-purple',      'assets/ui/tree-purple.png');
     this.load.image('splash-tree-blue',        'assets/ui/tree-blue.png');
+    this.load.image('firestarter-bg', 'assets/firestarter/firestart-bg.png');
+    this.load.image('firestarter-layout', 'assets/firestarter/firestarter-layout.png');
     this.load.image('firestarter-oven-1', 'assets/firestarter/oven-1.png');
     this.load.image('firestarter-oven-2', 'assets/firestarter/oven-2.png');
     this.load.image('firestarter-oven-3', 'assets/firestarter/oven-3.png');
@@ -52,6 +54,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('firestarter-result-ok', 'assets/firestarter/ok.png');
     for (let i = 1; i <= 4; i += 1) this.load.image(`firestarter-result-rock-${i}`, `assets/firestarter/result-rock-${i}.png`);
     for (let i = 1; i <= 5; i += 1) this.load.image(`firestarter-result-like-${i}`, `assets/firestarter/result-like-${i}.png`);
+    for (let i = 1; i <= 4; i += 1) this.load.image(`firestarter-result-cool-${i}`, `assets/firestarter/cool-${i}.png`);
+    for (let i = 1; i <= 3; i += 1) this.load.image(`firestarter-result-coal-${i}`, `assets/firestarter/coal-${i}.png`);
+    for (let i = 1; i <= 2; i += 1) this.load.image(`firestarter-result-ice-${i}`, `assets/firestarter/ice-${i}.png`);
     this.load.image('firestarter-picture', 'assets/firestarter/picture.png');
     this.load.image('firestarter-plant', 'assets/firestarter/plant.png');
     this.load.image('firestarter-lamp', 'assets/firestarter/lamp.png');

@@ -30,6 +30,7 @@ const TOTAL_TIME_MS = 50_000;
 
 const BAR_WIDTH = 640;
 const BAR_HEIGHT = 30;
+const BAR_Y = 760;
 const FIRESTARTER_BG = 0xf7c06f;
 
 // Прогрессия от 1-го к 10-му раунду
@@ -44,8 +45,9 @@ const MOVING_ZONE_FROM_ROUND = 5;
 // Период полного цикла осцилляции зоны (мс)
 const ZONE_PERIOD_START = 2600;
 const ZONE_PERIOD_END = 1700;
-const RESULT_ROCK_ASSETS = Array.from({ length: 4 }, (_, i) => `firestarter-result-rock-${i + 1}`);
-const RESULT_LIKE_ASSETS = Array.from({ length: 5 }, (_, i) => `firestarter-result-like-${i + 1}`);
+const RESULT_COOL_ASSETS = Array.from({ length: 4 }, (_, i) => `firestarter-result-cool-${i + 1}`);
+const RESULT_COAL_ASSETS = Array.from({ length: 3 }, (_, i) => `firestarter-result-coal-${i + 1}`);
+const RESULT_ICE_ASSETS = Array.from({ length: 2 }, (_, i) => `firestarter-result-ice-${i + 1}`);
 
 type CookResult = 'raw' | 'ok' | 'coal';
 
@@ -60,13 +62,8 @@ export class FireStarterScene extends BaseMinigame {
   private statusText!: Phaser.GameObjects.Text;
   private roundText!: Phaser.GameObjects.Text;
   private livesHud!: GlobalLivesDisplay;
-  private ovenImage!: Phaser.GameObjects.Image;
-  private smokeImage!: Phaser.GameObjects.Image;
-  private pizzaImage!: Phaser.GameObjects.Image;
 
   private markerTween: Phaser.Tweens.Tween | null = null;
-  private ovenFrameEvent: Phaser.Time.TimerEvent | null = null;
-  private smokeFrameEvent: Phaser.Time.TimerEvent | null = null;
   private greenStart = 0;
   private greenEnd = 0;
   private barLeft = 0;
@@ -96,32 +93,15 @@ export class FireStarterScene extends BaseMinigame {
     this.preparePixelTextures();
 
     paintPageBackdrop(this, FIRESTARTER_BG);
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, FIRESTARTER_BG)
-      .setStrokeStyle(4, COLORS.black)
+    const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'firestarter-bg')
+      .setOrigin(0.5)
       .setDepth(DEPTH.background);
+    this.fitBackgroundCover(bg);
 
     this.drawHud();
-    this.drawDecor();
-
-    this.smokeImage = this.add.image(WIDTH / 2, 300, 'firestarter-smoke-1');
-    this.smokeImage.setOrigin(0.5);
-    this.smokeImage.setDisplaySize(155, 155);
-    this.smokeImage.setDepth(DEPTH.midground + 1);
-
-    this.ovenImage = this.add.image(WIDTH / 2, 600, 'firestarter-oven-1');
-    this.ovenImage.setOrigin(0.5);
-    this.ovenImage.setDisplaySize(370, 370);
-    this.ovenImage.setDepth(DEPTH.midground);
-
-    this.pizzaImage = this.add.image(WIDTH / 2, 620, 'firestarter-pizza-raw');
-    this.pizzaImage.setOrigin(0.5);
-    this.pizzaImage.setDisplaySize(170, 32);
-    this.pizzaImage.setDepth(DEPTH.gameplay);
-
-    this.startSpriteAnimations();
 
     // ===== Полоса прожарки =====
-    const barY = 945;
+    const barY = BAR_Y;
     this.barLeft = WIDTH / 2 - BAR_WIDTH / 2;
     this.barRight = WIDTH / 2 + BAR_WIDTH / 2;
 
@@ -129,12 +109,16 @@ export class FireStarterScene extends BaseMinigame {
     this.add.text(this.barLeft, barY - 70, 'сырая', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '28px',
-      color: '#0A0A0A',
+      color: '#FFFFFF',
+      stroke: '#0A0A0A',
+      strokeThickness: 6,
     }).setOrigin(0, 0.5).setDepth(DEPTH.ui);
     this.add.text(this.barRight, barY - 70, 'угольки', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '28px',
-      color: '#0A0A0A',
+      color: '#FFFFFF',
+      stroke: '#0A0A0A',
+      strokeThickness: 6,
     }).setOrigin(1, 0.5).setDepth(DEPTH.ui);
 
     // Сама шкала
@@ -204,8 +188,6 @@ export class FireStarterScene extends BaseMinigame {
     this.hits = 0;
     this.misses = 0;
     this.markerTween = null;
-    this.ovenFrameEvent = null;
-    this.smokeFrameEvent = null;
     this.greenStart = 0;
     this.greenEnd = 0;
     this.barLeft = 0;
@@ -235,52 +217,23 @@ export class FireStarterScene extends BaseMinigame {
       this.greenEnd = newX + halfW;
     }
 
-    this.updatePizzaTexture();
+  }
+
+  private fitBackgroundCover(bg: Phaser.GameObjects.Image): void {
+    const source = bg.texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+    const scale = Math.max(GAME.WIDTH / source.width, GAME.HEIGHT / source.height);
+    bg.setDisplaySize(source.width * scale, source.height * scale);
   }
 
   private preparePixelTextures(): void {
     [
       'heart-pixel',
       'home-pixel',
-      'firestarter-oven-1',
-      'firestarter-oven-2',
-      'firestarter-oven-3',
-      'firestarter-smoke-1',
-      'firestarter-smoke-2',
-      'firestarter-pizza-raw',
-      'firestarter-pizza-ok',
-      'firestarter-pizza-coal',
-      'firestarter-result-coal',
-      'firestarter-result-ice',
-      'firestarter-result-ok',
-      ...RESULT_ROCK_ASSETS,
-      ...RESULT_LIKE_ASSETS,
-      'firestarter-picture',
-      'firestarter-plant',
-      'firestarter-lamp',
+      'firestarter-bg',
+      ...RESULT_COOL_ASSETS,
+      ...RESULT_COAL_ASSETS,
+      ...RESULT_ICE_ASSETS,
     ].forEach((key) => this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST));
-  }
-
-  private drawDecor(): void {
-    const leftLamp = this.add.image(112, 305, 'firestarter-lamp');
-    leftLamp.setOrigin(0.5);
-    leftLamp.setDisplaySize(120, 120);
-    leftLamp.setDepth(DEPTH.midground);
-
-    const rightLamp = this.add.image(GAME.WIDTH - 112, 305, 'firestarter-lamp');
-    rightLamp.setOrigin(0.5);
-    rightLamp.setDisplaySize(120, 120);
-    rightLamp.setDepth(DEPTH.midground);
-
-    const plant = this.add.image(92, 665, 'firestarter-plant');
-    plant.setOrigin(0.5);
-    plant.setDisplaySize(155, 155);
-    plant.setDepth(DEPTH.midground);
-
-    const picture = this.add.image(GAME.WIDTH - 110, 510, 'firestarter-picture');
-    picture.setOrigin(0.5);
-    picture.setDisplaySize(112, 112);
-    picture.setDepth(DEPTH.midground);
   }
 
   private drawHud(): void {
@@ -296,31 +249,6 @@ export class FireStarterScene extends BaseMinigame {
     });
     this.roundText.setOrigin(1, 0);
     this.roundText.setDepth(DEPTH.ui);
-  }
-
-  private startSpriteAnimations(): void {
-    const ovenFrames = ['firestarter-oven-1', 'firestarter-oven-2', 'firestarter-oven-3'];
-    const smokeFrames = ['firestarter-smoke-1', 'firestarter-smoke-2'];
-    let ovenFrame = 0;
-    let smokeFrame = 0;
-
-    this.ovenFrameEvent = this.time.addEvent({
-      delay: 1000,
-      loop: true,
-      callback: () => {
-        ovenFrame = (ovenFrame + 1) % ovenFrames.length;
-        this.ovenImage.setTexture(ovenFrames[ovenFrame]);
-      },
-    });
-
-    this.smokeFrameEvent = this.time.addEvent({
-      delay: 1000,
-      loop: true,
-      callback: () => {
-        smokeFrame = (smokeFrame + 1) % smokeFrames.length;
-        this.smokeImage.setTexture(smokeFrames[smokeFrame]);
-      },
-    });
   }
 
   private getRoundProgress(): number {
@@ -380,7 +308,6 @@ export class FireStarterScene extends BaseMinigame {
     const sweepDur = 1500 / speedMul;
 
     this.marker.x = this.barLeft;
-    this.updatePizzaTexture();
 
     if (this.markerTween) {
       this.markerTween.remove();
@@ -397,16 +324,6 @@ export class FireStarterScene extends BaseMinigame {
 
     this.statusText.setText('Попади в зеленую\nзону, чтобы\nидеально испечь\nпиццулю');
     this.accepting = true;
-  }
-
-  private updatePizzaTexture(): void {
-    if (this.marker.x < this.greenStart) {
-      this.pizzaImage.setTexture('firestarter-pizza-raw');
-    } else if (this.marker.x <= this.greenEnd) {
-      this.pizzaImage.setTexture('firestarter-pizza-ok');
-    } else {
-      this.pizzaImage.setTexture('firestarter-pizza-coal');
-    }
   }
 
   private handleTap(): void {
@@ -428,13 +345,11 @@ export class FireStarterScene extends BaseMinigame {
       SoundManager.playSfx('perfect');
       Haptics.trigger('perfect');
       this.statusText.setText('Идеально!');
-      this.bumpPizza();
     } else {
       this.misses += 1;
       SoundManager.playSfx('miss');
       Haptics.trigger('miss');
       this.statusText.setText(result === 'coal' ? 'Угольки!' : 'Сырая!');
-      this.bumpPizza();
     }
 
     this.updateHud();
@@ -454,9 +369,9 @@ export class FireStarterScene extends BaseMinigame {
   private playResultRain(result: CookResult): void {
     const { WIDTH, HEIGHT } = GAME;
     const config = {
-      raw: { text: 'СЫРАЯ!', assets: RESULT_ROCK_ASSETS, color: '#2EC7F0' },
-      ok: { text: 'ИДЕАЛЬНО!', assets: RESULT_LIKE_ASSETS, color: '#FF2E2E' },
-      coal: { text: 'УГОЛЬКИ!', assets: RESULT_ROCK_ASSETS, color: '#0A0A0A' },
+      raw: { text: 'СЫРАЯ!', assets: RESULT_ICE_ASSETS, color: '#2EC7F0' },
+      ok: { text: 'ИДЕАЛЬНО!', assets: RESULT_COOL_ASSETS, color: '#FF2E2E' },
+      coal: { text: 'УГОЛЬКИ!', assets: RESULT_COAL_ASSETS, color: '#0A0A0A' },
     }[result];
 
     const count = result === 'ok' ? 16 : 20;
@@ -516,15 +431,6 @@ export class FireStarterScene extends BaseMinigame {
     }
   }
 
-  private bumpPizza(): void {
-    this.tweens.add({
-      targets: this.pizzaImage,
-      scale: { from: 1.3, to: 1 },
-      duration: 350,
-      ease: 'Back.easeOut',
-    });
-  }
-
   private onTick(): void {
     this.timeLeftMs -= 100;
     if (this.timeLeftMs <= 0) {
@@ -572,7 +478,5 @@ export class FireStarterScene extends BaseMinigame {
     }
     if (this.markerTween) this.markerTween.remove();
     if (this.timerEvent) this.timerEvent.remove();
-    if (this.ovenFrameEvent) this.ovenFrameEvent.remove();
-    if (this.smokeFrameEvent) this.smokeFrameEvent.remove();
   }
 }
