@@ -87,13 +87,7 @@ export class ComicsScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.skipButton = button;
 
-    button.on('pointerdown', () => {
-      Haptics.trigger('tap');
-      SoundManager.playSfx('tap');
-      this.stopComicAnimation();
-      this.cameras.main.fadeOut(180, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('SplashScene'));
-    });
+    button.on('pointerdown', () => this.startPlay());
   }
 
   private schedulePanels(): void {

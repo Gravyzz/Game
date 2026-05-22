@@ -81,8 +81,16 @@ export abstract class BaseMinigame extends Phaser.Scene {
       level: this.initData.level,
     });
 
-    // Стопаем сцену через 1 кадр, чтобы текущий handler завершился
-    this.time.delayedCall(0, () => this.scene.stop());
+    // Стопаем сцену через 1 кадр, чтобы текущий handler завершился.
+    // В дев-меню (isInfinite) возвращаемся обратно в меню через scene.start —
+    // иначе минка просто остановится и канвас останется пустым.
+    this.time.delayedCall(0, () => {
+      if (this.isInfinite) {
+        this.scene.start('DevMinigameMenuScene');
+      } else {
+        this.scene.stop();
+      }
+    });
   }
 
   /** В каком режиме запущена минка: бесконечный (дев-меню) или сессионный (Play) */

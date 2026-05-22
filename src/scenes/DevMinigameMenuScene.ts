@@ -4,10 +4,9 @@ import { COLORS } from '@config/colors';
 import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
-import { EventBus } from '@core/EventBus';
 import { SessionState } from '@core/SessionState';
 import { MINIGAME_POOL, getDifficultyForLevel } from '@core/MinigameRegistry';
-import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
+import type { MinigameInitData } from '@minigames/BaseMinigame';
 
 /**
  * Дев-меню: запускает любую минку напрямую, в обход билета и сессии.
@@ -18,17 +17,11 @@ import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
  *  - регистрацию в main.ts
  *  - кнопку «🧪 ТЕСТ МИНОК» в SplashScene
  */
-/** Сколько локальных «попыток» даёт дев-меню на одну минку. Кончились — возвращаемся в меню. */
+/** Сколько жизней игрок получает на одну минку при заходе из дев-меню. */
 const DEV_LOCAL_LIVES = 3;
 
 export class DevMinigameMenuScene extends Phaser.Scene {
-  private completeHandler: ((result: MinigameResult & { sceneKey: string }) => void) | null = null;
   private readonly pixelFont = '"Press Start 2P", monospace';
-
-  // Состояние текущего «забега» в дев-меню.
-  private currentSceneKey: string | null = null;
-  private currentDurationMs = 0;
-  private localLives = DEV_LOCAL_LIVES;
 
   constructor() {
     super({ key: 'DevMinigameMenuScene' });
@@ -159,69 +152,17 @@ export class DevMinigameMenuScene extends Phaser.Scene {
   }
 
   private launchMinigame(sceneKey: string, durationMs: number): void {
-    // Сбрасываем локальный счётчик и сразу запускаем минку.
-    this.currentSceneKey = sceneKey;
-    this.currentDurationMs = durationMs;
-    this.localLives = DEV_LOCAL_LIVES;
+    // Полная замена сцены через scene.start (а не launch+sleep) — параллельные
+    // сцены в Safari иногда оставляли пустой экран при возврате. С scene.start
+    // сцена меню чисто останавливается, минка стартует одна. Возврат — тоже
+    // scene.start обратно на меню (см. BaseMinigame.complete / handleExit).
     SessionState.setLives(DEV_LOCAL_LIVES);
-    this.startCurrent();
-  }
-
-  /** Запуск текущей минки из dev-меню. Используется и при первом запуске, и при ретрае. */
-  private startCurrent(): void {
-    if (!this.currentSceneKey) return;
     const initData: MinigameInitData = {
       level: 1,
       difficulty: getDifficultyForLevel(1),
-      durationMs: this.currentDurationMs,
+      durationMs,
       infinite: true,
     };
-
-    this.completeHandler = (result) => this.onMinigameComplete(result);
-    EventBus.once('minigame:complete', this.completeHandler);
-
-    // Прячем меню И блокируем его input — иначе тапы по «невидимым» кнопкам
-    // меню будут пробрасываться сквозь активную минку.
-    this.scene.launch(this.currentSceneKey, initData);
-    this.scene.setVisible(false);
-    this.input.enabled = false;
-  }
-
-  private onMinigameComplete(result: MinigameResult & { sceneKey: string }): void {
-    console.log('[DevMenu] minigame complete:', result);
-    this.completeHandler = null;
-
-    // Игрок нажал «домой» — без штрафа возвращаемся в меню.
-    const aborted = result.metadata?.aborted === true;
-    if (aborted || result.outcome === 'win') {
-      this.returnToMenu();
-      return;
-    }
-
-    // Лоуз. Если есть локальные жизни — ретрай той же минки.
-    this.localLives -= 1;
-    SessionState.setLives(this.localLives);
-
-    if (this.localLives > 0) {
-      this.time.delayedCall(60, () => this.startCurrent());
-      return;
-    }
-
-    // Все 3 локальные жизни сожжены — возврат в меню. Игрок может сразу
-    // выбрать ту же минку и сыграть ещё раз с новой пачкой жизней.
-    this.returnToMenu();
-  }
-
-  private returnToMenu(): void {
-    this.currentSceneKey = null;
-    this.scene.setVisible(true);
-    this.input.enabled = true;
-  }
-
-  shutdown(): void {
-    if (this.completeHandler) {
-      EventBus.off('minigame:complete', this.completeHandler);
-      this.completeHandler = null;
-    }
+    this.scene.start(sceneKey, initData);
   }
 }
