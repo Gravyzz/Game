@@ -192,6 +192,19 @@ export const DANCE_BEAT_ASSETS: ImageAsset[] = [
   asset('dancebeat-right-pushed', 'assets/dancebeat/right-pushed.png'),
 ];
 
+const dedupeAssets = (groups: ImageAsset[][]): ImageAsset[] => {
+  const seen = new Set<string>();
+  const out: ImageAsset[] = [];
+  for (const group of groups) {
+    for (const asset of group) {
+      if (seen.has(asset.key)) continue;
+      seen.add(asset.key);
+      out.push(asset);
+    }
+  }
+  return out;
+};
+
 export const JEFFREY_ASSETS: ImageAsset[] = [
   asset('jeff-player-kurer', 'assets/jeffrey/player-kurer.png'),
   asset('jeff-tram', 'assets/jeffrey/tram.png'),
@@ -210,3 +223,17 @@ export const JEFFREY_ASSETS: ImageAsset[] = [
   asset('jeff-floor-road-2', 'assets/jeffrey/floors/road-2.png'),
   ...numberedAssets(8, (i) => `jeff-floor-sidewalk-${i}`, (i) => `assets/jeffrey/floors/sidewalk-${i}.png`),
 ];
+
+export const ALL_IMAGE_ASSETS: ImageAsset[] = dedupeAssets([
+  BOOT_ASSETS,
+  WHEEL_ASSETS,
+  RESULT_ASSETS,
+  FIRESTARTER_ASSETS,
+  RECIPE_MEMO_ASSETS,
+  DONT_WORK_ASSETS,
+  CHOP_CHOP_ASSETS,
+  PIZZA_ASSEMBLY_ASSETS,
+  SURFER_ASSETS,
+  DANCE_BEAT_ASSETS,
+  JEFFREY_ASSETS,
+]);

@@ -412,6 +412,17 @@ export const MUSIC_CATALOG = {
 export type SfxName = keyof typeof SFX_CATALOG;
 export type MusicTrackName = keyof typeof MUSIC_CATALOG;
 
+export const ALL_AUDIO_PATHS: string[] = (() => {
+  const set = new Set<string>();
+  for (const cfg of Object.values(SFX_CATALOG)) {
+    for (const v of cfg.variants) set.add(v.path);
+  }
+  for (const cfg of Object.values(MUSIC_CATALOG)) {
+    set.add(cfg.path);
+  }
+  return [...set];
+})();
+
 export const CORE_PRELOAD_SFX: SfxName[] = [
   'tap',
   'choice',

@@ -283,6 +283,31 @@
         position: relative;
         z-index: 1;
         max-width: 680px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+      }
+
+      #boot-loader-bar {
+        width: min(82vw, 480px);
+        height: 22px;
+        border: 4px solid #0a0a0a;
+        background: rgba(10, 10, 10, 0.35);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      #boot-loader-bar-fill {
+        height: 100%;
+        width: 0%;
+        background: #ffd228;
+        transition: width 120ms linear;
+      }
+
+      #boot-loader-progress {
+        font-size: 18px;
+        color: #faf7f0;
       }
 
     </style>
@@ -340,7 +365,11 @@
 
 	    <!-- Брендовый прелоадер до того, как загрузится Phaser-бандл -->
     <div id="boot-loader">
-      <div>Дружище, еще совсем немного и можно будет играть!</div>
+      <div>
+        <div>Дружище, еще совсем немного и можно будет играть!</div>
+        <div id="boot-loader-bar"><div id="boot-loader-bar-fill"></div></div>
+        <div id="boot-loader-progress">0%</div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>
