@@ -163,14 +163,77 @@ export class SplashScene extends Phaser.Scene {
     inputText.setOrigin(0, 0.5);
     inputText.setDepth(DEPTH.modal + 3);
 
+    const passwordInput = document.createElement('input');
+    passwordInput.type = 'text';
+    passwordInput.maxLength = 24;
+    passwordInput.autocomplete = 'off';
+    passwordInput.autocapitalize = 'words';
+    passwordInput.spellcheck = false;
+    passwordInput.setAttribute('aria-label', 'Пароль для изменения числа жизней');
+    passwordInput.style.position = 'fixed';
+    passwordInput.style.zIndex = '10000';
+    passwordInput.style.border = '0';
+    passwordInput.style.outline = '0';
+    passwordInput.style.padding = '0';
+    passwordInput.style.margin = '0';
+    passwordInput.style.background = 'transparent';
+    passwordInput.style.color = 'transparent';
+    passwordInput.style.caretColor = 'transparent';
+    passwordInput.style.opacity = '0.01';
+    passwordInput.style.pointerEvents = 'auto';
+    document.body.appendChild(passwordInput);
+
+    const syncInputPosition = () => {
+      const bounds = this.game.canvas.getBoundingClientRect();
+      const scaleX = bounds.width / WIDTH;
+      const scaleY = bounds.height / HEIGHT;
+      passwordInput.style.left = `${bounds.left + (WIDTH / 2 - 220) * scaleX}px`;
+      passwordInput.style.top = `${bounds.top + (545 - 32) * scaleY}px`;
+      passwordInput.style.width = `${440 * scaleX}px`;
+      passwordInput.style.height = `${64 * scaleY}px`;
+      passwordInput.style.fontSize = `${20 * scaleY}px`;
+    };
+
     const modalObjects = [overlay, panel, closeBtn, title, inputBg, inputText];
     const close = () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', syncInputPosition);
+      passwordInput.removeEventListener('input', onInput);
+      passwordInput.removeEventListener('keydown', onInputKeyDown);
+      passwordInput.remove();
       modalObjects.forEach((obj) => obj.destroy());
     };
     const showValue = (value: string, color = '#0A0A0A') => {
       inputText.setText(value || 'Пароль:');
       inputText.setColor(value ? color : '#8A8A8A');
+    };
+    const isPasswordCorrect = () => (
+      this.passwordBuffer.trim().toLocaleLowerCase('ru-RU') === 'денис змеев'
+    );
+    const trySubmitPassword = () => {
+      if (isPasswordCorrect()) {
+        close();
+        this.openLivesEditModal();
+      } else {
+        this.passwordBuffer = '';
+        passwordInput.value = '';
+        showValue('Неверный пароль!', '#B84646');
+      }
+    };
+    const onInput = () => {
+      this.passwordBuffer = passwordInput.value.slice(0, 24);
+      showValue(this.passwordBuffer);
+    };
+    const onInputKeyDown = (event: KeyboardEvent) => {
+      event.stopPropagation();
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        trySubmitPassword();
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close();
+      }
     };
     const onKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
@@ -180,30 +243,34 @@ export class SplashScene extends Phaser.Scene {
       }
       if (event.key === 'Backspace') {
         this.passwordBuffer = this.passwordBuffer.slice(0, -1);
+        passwordInput.value = this.passwordBuffer;
         showValue(this.passwordBuffer);
         return;
       }
       if (event.key === 'Enter') {
-        if (this.passwordBuffer.trim() === 'Денис Змеев') {
-          close();
-          this.openLivesEditModal();
-        } else {
-          this.passwordBuffer = '';
-          showValue('Неверный пароль!', '#B84646');
-        }
+        trySubmitPassword();
         return;
       }
       if (event.key.length === 1 && this.passwordBuffer.length < 24) {
         this.passwordBuffer += event.key;
+        passwordInput.value = this.passwordBuffer;
         showValue(this.passwordBuffer);
       }
     };
 
+    syncInputPosition();
+    window.addEventListener('resize', syncInputPosition);
+    passwordInput.addEventListener('input', onInput);
+    passwordInput.addEventListener('keydown', onInputKeyDown);
     closeBtn.on('pointerdown', close);
     window.addEventListener('keydown', onKeyDown);
+    passwordInput.focus({ preventScroll: true });
+    passwordInput.click();
     // Если сцена шатдаунится с открытой модалкой — снимаем глобальный listener.
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', syncInputPosition);
+      passwordInput.remove();
     });
   }
 
