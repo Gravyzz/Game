@@ -65,8 +65,7 @@ export class SplashScene extends Phaser.Scene {
     );
     screenContent.add(startBtn);
 
-    if (import.meta.env.DEV) {
-      const miniGamesBtn = this.createPixelButton(
+    const miniGamesBtn = this.createPixelButton(
       0,
       1095 - HEIGHT / 2,
       560,
@@ -76,8 +75,7 @@ export class SplashScene extends Phaser.Scene {
       'gamepad-new',
       () => this.openMiniGames()
     );
-      screenContent.add(miniGamesBtn);
-    }
+    screenContent.add(miniGamesBtn);
 
     // ===== Кнопка mute в углу =====
     attachSoundButton(this);

@@ -70,7 +70,7 @@ const config: Phaser.Types.Core.GameConfig = {
     ChoiceScene,
     WheelScene,
     ResultScene,
-    ...(import.meta.env.DEV ? [DevMinigameMenuScene] : []),
+    DevMinigameMenuScene,
     // Мини-игры — Phaser scene key совпадает с MINIGAME_ORDER в registry
     FireStarterScene,
     DontWorkScene,
