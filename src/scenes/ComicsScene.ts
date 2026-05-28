@@ -221,7 +221,7 @@ export class ComicsScene extends Phaser.Scene {
       GameState.grantTicket();
     }
 
-    SoundManager.startMusic();
+    SoundManager.playMusic();
     SoundManager.playSfx('sessionStart');
     Haptics.trigger('tap');
 

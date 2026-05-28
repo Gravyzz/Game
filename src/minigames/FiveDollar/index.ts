@@ -87,7 +87,7 @@ export class FiveDollarScene extends BaseMinigame {
     this.blendDone = false;
 
     // Фон — бар
-    paintPageBackdrop(this, 0x2a1f3d);
+    paintPageBackdrop(this, 0x1d1712);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x2a1f3d);
     attachHomeButton(this);
     this.drawNoise();

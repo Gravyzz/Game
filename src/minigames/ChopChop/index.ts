@@ -106,9 +106,9 @@ const PERKS: Record<PerkId, { emoji: string; texture: string; name: string; desc
 };
 const PERK_IDS: PerkId[] = ['sharpKnife', 'doubleTap', 'slowDidi', 'dullKnife', 'didiHeadstart'];
 
-const SWIPE_MIN_LEN = 5;
-const SWIPE_COOLDOWN_MS = 120;
-const VEGGIE_RADIUS = 88;
+const SWIPE_MIN_LEN = 4;
+const SWIPE_COOLDOWN_MS = 105;
+const VEGGIE_RADIUS = 96;
 
 // Пиксельный шрифт — как на главном меню
 const PIXEL_FONT = '"Press Start 2P", monospace';
@@ -1109,7 +1109,7 @@ export class ChopChopScene extends BaseMinigame {
   }
 
   private feedbackTap(): void {
-    SoundManager.playSfx('knifeSlice');
+    SoundManager.playSfx('airHit');
     Haptics.trigger('tap');
     this.tweens.add({
       targets: this.veggie, scale: { from: this.productScale(0.78), to: this.productScale(1) },
@@ -1235,6 +1235,7 @@ export class ChopChopScene extends BaseMinigame {
     if (this.headstartTimer) { this.headstartTimer.remove(); this.headstartTimer = null; }
     if (this.playerUnlockTimer) { this.playerUnlockTimer.remove(); this.playerUnlockTimer = null; }
     if (this.bombCycleTimer) { this.bombCycleTimer.remove(); this.bombCycleTimer = null; }
+    SoundManager.stopSfx('airHit', 80);
     this.currentlyBomb = false;
     this.swipeActive = false;
     this.trailGfx.clear();
@@ -1286,6 +1287,7 @@ export class ChopChopScene extends BaseMinigame {
     if (this.headstartTimer) this.headstartTimer.remove();
     if (this.playerUnlockTimer) this.playerUnlockTimer.remove();
     if (this.bombCycleTimer) this.bombCycleTimer.remove();
+    SoundManager.stopSfx('airHit', 80);
 
     const win = this.playerWins > this.didiWins;
     if (win) { SoundManager.playSfx('win'); Haptics.trigger('win'); }
@@ -1346,5 +1348,6 @@ export class ChopChopScene extends BaseMinigame {
     if (this.headstartTimer) this.headstartTimer.remove();
     if (this.playerUnlockTimer) this.playerUnlockTimer.remove();
     if (this.bombCycleTimer) this.bombCycleTimer.remove();
+    SoundManager.stopSfx('airHit', 80);
   }
 }

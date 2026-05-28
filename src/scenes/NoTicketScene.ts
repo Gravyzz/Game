@@ -9,7 +9,7 @@ import { TicketProvider } from '@core/TicketProvider';
 import { GameState } from '@core/GameState';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton, attachNoiseBackdrop } from '@utils/SceneHelpers';
+import { attachSoundButton, attachNoiseBackdrop, paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * Экран «Нет билета».
@@ -34,6 +34,7 @@ export class NoTicketScene extends Phaser.Scene {
 
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
+    paintPageBackdrop(this, COLORS.greyDark);
 
     // ===== Фон: тёмный =====
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.greyDark);

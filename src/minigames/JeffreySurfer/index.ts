@@ -171,7 +171,7 @@ export class JeffreySurferScene extends BaseMinigame {
     this.touchStartY = 0;
 
     this.preparePixelAssets();
-    paintPageBackdrop(this, 0xffffff);
+    paintPageBackdrop(this, 0x130709);
 
     // Стартовые ряды — генерим вперёд на 30 рядов от старта игрока (worldY=0).
     // Дальше cullFarRows будет подгенерировать вперёд игрока по мере его движения.

@@ -4,8 +4,10 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { SessionState } from '@core/SessionState';
+import { SoundManager } from '@core/SoundManager';
 import { MINIGAME_DIFFICULTY, MINIGAME_POOL } from '@core/MinigameRegistry';
 import type { MinigameInitData } from '@minigames/BaseMinigame';
+import { attachSceneBackButton } from '@utils/SceneHelpers';
 
 /**
  * Дев-меню: запускает любую минку напрямую, в обход билета и сессии.
@@ -28,9 +30,11 @@ export class DevMinigameMenuScene extends Phaser.Scene {
 
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
+    SoundManager.playMusic('menu');
 
     this.setPixelTexture('minigames-screen-bg-new');
     this.drawTreeBackdrop();
+    attachSceneBackButton(this, () => this.scene.start('SplashScene'));
 
     const title = this.add.text(WIDTH / 2, 125, 'МИНИ ИГРЫ', {
       fontFamily: this.pixelFont,
@@ -101,12 +105,12 @@ export class DevMinigameMenuScene extends Phaser.Scene {
       this,
       WIDTH / 2,
       firstY + MINIGAME_POOL.length * rowH,
-      '← НА ГЛАВНУЮ',
+      'НАЗАД',
       () => this.scene.start('SplashScene'),
       {
         width: btnW,
         height: btnH,
-        bgColor: 0x7d2b7d,
+        bgColor: 0x1d1712,
         textColor: '#FFF4C7',
         fontSize: '22px',
         fontFamily: this.pixelFont,

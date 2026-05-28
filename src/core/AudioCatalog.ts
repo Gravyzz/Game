@@ -17,6 +17,8 @@ export interface SfxConfig {
   variants: readonly SfxVariant[];
   volume: number;
   cooldownMs?: number;
+  maxDurationMs?: number;
+  fadeOutMs?: number;
   randomPitch?: number;
   randomVolume?: number;
   duckMusic?: number;
@@ -40,7 +42,7 @@ const variant = (path: string, volume = 1, pitch = 1): SfxVariant => ({
 export const SFX_CATALOG = {
   tap: {
     category: 'ui',
-    volume: 0.5,
+    volume: 0.42,
     cooldownMs: 28,
     randomPitch: 0.018,
     randomVolume: 0.06,
@@ -54,7 +56,7 @@ export const SFX_CATALOG = {
   },
   select: {
     category: 'ui',
-    volume: 0.58,
+    volume: 0.48,
     cooldownMs: 45,
     randomPitch: 0.015,
     randomVolume: 0.05,
@@ -68,7 +70,7 @@ export const SFX_CATALOG = {
   },
   choice: {
     category: 'ui',
-    volume: 0.58,
+    volume: 0.5,
     cooldownMs: 60,
     randomPitch: 0.015,
     randomVolume: 0.05,
@@ -168,8 +170,8 @@ export const SFX_CATALOG = {
   },
   miss: {
     category: 'gameplay',
-    volume: 0.72,
-    cooldownMs: 90,
+    volume: 0.58,
+    cooldownMs: 120,
     randomPitch: 0.018,
     randomVolume: 0.07,
     variants: [
@@ -179,7 +181,7 @@ export const SFX_CATALOG = {
   },
   win: {
     category: 'gameplay',
-    volume: 0.82,
+    volume: 0.66,
     cooldownMs: 220,
     randomPitch: 0.006,
     randomVolume: 0.04,
@@ -192,7 +194,7 @@ export const SFX_CATALOG = {
   },
   lose: {
     category: 'gameplay',
-    volume: 0.78,
+    volume: 0.62,
     cooldownMs: 250,
     randomPitch: 0.006,
     randomVolume: 0.04,
@@ -204,8 +206,10 @@ export const SFX_CATALOG = {
   },
   wheelSpin: {
     category: 'wheel',
-    volume: 0.62,
-    cooldownMs: 600,
+    volume: 0.52,
+    cooldownMs: 700,
+    maxDurationMs: 1050,
+    fadeOutMs: 120,
     randomPitch: 0.012,
     randomVolume: 0.04,
     variants: [
@@ -214,10 +218,12 @@ export const SFX_CATALOG = {
   },
   wheelTick: {
     category: 'wheel',
-    volume: 0.5,
-    cooldownMs: 22,
-    randomPitch: 0.045,
-    randomVolume: 0.1,
+    volume: 0.34,
+    cooldownMs: 42,
+    maxDurationMs: 48,
+    fadeOutMs: 14,
+    randomPitch: 0.032,
+    randomVolume: 0.06,
     variants: [
       variant('wheel/freesound_community-wheel-spin-click-slow-down-101152.mp3', 1),
     ],
@@ -259,18 +265,22 @@ export const SFX_CATALOG = {
   },
   impact: {
     category: 'gameplay',
-    volume: 0.78,
-    cooldownMs: 35,
-    randomPitch: 0.025,
-    randomVolume: 0.1,
+    volume: 0.44,
+    cooldownMs: 105,
+    maxDurationMs: 170,
+    fadeOutMs: 34,
+    randomPitch: 0.015,
+    randomVolume: 0.06,
     variants: [variant('gameplay/mixkit-body-cutting-impact-2199.wav', 1)],
   },
   knifeSlice: {
     category: 'gameplay',
-    volume: 0.72,
-    cooldownMs: 30,
-    randomPitch: 0.03,
-    randomVolume: 0.1,
+    volume: 0.36,
+    cooldownMs: 105,
+    maxDurationMs: 145,
+    fadeOutMs: 26,
+    randomPitch: 0.018,
+    randomVolume: 0.06,
     variants: [
       variant('gameplay/mixkit-quick-knife-slice-cutting-2152.mp3', 1),
       variant('gameplay/mixkit-quick-knife-slice-cutting-2152(1).mp3', 0.96),
@@ -279,10 +289,12 @@ export const SFX_CATALOG = {
   },
   saberCut: {
     category: 'gameplay',
-    volume: 0.74,
-    cooldownMs: 32,
-    randomPitch: 0.035,
-    randomVolume: 0.1,
+    volume: 0.36,
+    cooldownMs: 115,
+    maxDurationMs: 165,
+    fadeOutMs: 30,
+    randomPitch: 0.02,
+    randomVolume: 0.06,
     variants: [
       variant('gameplay/mixkit-quick-saber-cut-2158.mp3', 1),
       variant('gameplay/mixkit-fast-sword-whoosh-2792.wav', 0.78),
@@ -290,10 +302,12 @@ export const SFX_CATALOG = {
   },
   heavyImpact: {
     category: 'gameplay',
-    volume: 0.86,
-    cooldownMs: 80,
-    randomPitch: 0.02,
-    randomVolume: 0.08,
+    volume: 0.5,
+    cooldownMs: 160,
+    maxDurationMs: 260,
+    fadeOutMs: 45,
+    randomPitch: 0.015,
+    randomVolume: 0.05,
     variants: [
       variant('gameplay/mixkit-strong-punches-to-the-body-2198.wav', 1),
       variant('gameplay/mixkit-metal-hit-woosh-1485.wav', 0.88),
@@ -308,6 +322,19 @@ export const SFX_CATALOG = {
     variants: [
       variant('transitions/mixkit-air-woosh-1489.wav', 1),
       variant('transitions/mixkit-explainer-video-pops-whoosh-light-pop-3005.wav', 0.72),
+    ],
+  },
+  airHit: {
+    category: 'gameplay',
+    volume: 0.34,
+    cooldownMs: 78,
+    maxDurationMs: 125,
+    fadeOutMs: 24,
+    randomPitch: 0.02,
+    randomVolume: 0.06,
+    variants: [
+      variant('transitions/mixkit-air-woosh-1489.wav', 0.9),
+      variant('gameplay/mixkit-metal-hit-woosh-1485.wav', 0.42, 0.92),
     ],
   },
   bigTransition: {
@@ -337,8 +364,8 @@ export const SFX_CATALOG = {
   },
   jump: {
     category: 'gameplay',
-    volume: 0.66,
-    cooldownMs: 70,
+    volume: 0.52,
+    cooldownMs: 85,
     randomPitch: 0.025,
     randomVolume: 0.08,
     variants: [
@@ -436,6 +463,7 @@ export const CORE_PRELOAD_SFX: SfxName[] = [
   'miss',
   'win',
   'lose',
+  'airHit',
   'wheelTick',
   'wheelSpin',
 ];

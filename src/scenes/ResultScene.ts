@@ -4,6 +4,7 @@ import { GAME, DEPTH } from '@config/game';
 import { RU } from '@i18n/ru';
 import { Button } from '@ui/Button';
 import { SessionState } from '@core/SessionState';
+import { GameState } from '@core/GameState';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { RESULT_ASSETS, loadImageAssets } from '@core/AssetManifest';
@@ -35,7 +36,7 @@ export class ResultScene extends Phaser.Scene {
 
   create(data: { outcome?: 'win' | 'lose' } = {}): void {
     const outcome = data.outcome ?? 'lose';
-    SoundManager.startMusic('results');
+    SoundManager.playMusic('results');
 
     if (outcome === 'win') {
       this.renderWin();
@@ -179,46 +180,55 @@ export class ResultScene extends Phaser.Scene {
     const { WIDTH, HEIGHT } = GAME;
 
     paintPageBackdrop(this, 0x050607);
+    this.textures.get('pizza-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'unluck-bg');
     bg.setOrigin(0.5);
     bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));
     bg.setDepth(DEPTH.background);
 
-    const panel = this.add.rectangle(WIDTH / 2, 615, WIDTH - 118, 620, 0x050607, 0.94);
-    panel.setStrokeStyle(7, COLORS.red);
-    panel.setDepth(DEPTH.ui);
+    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.58)
+      .setDepth(DEPTH.background + 2);
 
-    const titleTape = this.add.rectangle(WIDTH / 2, 394, 430, 88, COLORS.red, 1);
-    titleTape.setStrokeStyle(5, 0x0a0a0a);
-    titleTape.setDepth(DEPTH.ui + 1);
+    const shadow = this.add.rectangle(WIDTH / 2 + 10, 626, WIDTH - 96, 672, 0x000000, 0.9);
+    shadow.setDepth(DEPTH.ui);
 
-    const title = this.add.text(WIDTH / 2, 394, RU.result.loseTitle.toUpperCase(), {
+    const panel = this.add.rectangle(WIDTH / 2, 612, WIDTH - 112, 672, 0x140907, 0.98);
+    panel.setStrokeStyle(10, COLORS.red);
+    panel.setDepth(DEPTH.ui + 1);
+
+    const inner = this.add.rectangle(WIDTH / 2, 612, WIDTH - 154, 622, 0x050607, 0);
+    inner.setStrokeStyle(4, COLORS.yellow, 0.75);
+    inner.setDepth(DEPTH.ui + 2);
+
+    const titleTape = this.add.rectangle(WIDTH / 2, 350, 470, 94, COLORS.red, 1);
+    titleTape.setStrokeStyle(6, 0x0a0a0a);
+    titleTape.setDepth(DEPTH.ui + 3);
+
+    const title = this.add.text(WIDTH / 2, 350, RU.result.loseTitle.toUpperCase(), {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '32px',
       color: '#FAF7F0',
       align: 'center',
     });
     title.setOrigin(0.5);
-    title.setDepth(DEPTH.ui + 2);
+    title.setDepth(DEPTH.ui + 4);
 
-    const bodyText = 'ПРОГРЕСС СОХРАНЁН НА 2 НЕДЕЛИ.\nВОЗВРАЩАЙСЯ ПОСЛЕ\nСЛЕДУЮЩЕГО ЗАКАЗА, БРАТИШКА <3';
-    const body = this.add.text(WIDTH / 2, 535, bodyText, {
+    const body = this.add.text(WIDTH / 2, 500, RU.result.loseSub.toUpperCase(), {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '20px',
+      fontSize: '18px',
       color: '#FAF7F0',
       align: 'center',
-      lineSpacing: 16,
+      lineSpacing: 14,
       wordWrap: { width: WIDTH - 180 },
     });
     body.setOrigin(0.5);
-    body.setDepth(DEPTH.ui + 1);
+    body.setDepth(DEPTH.ui + 3);
 
-    const emoji = this.add.text(WIDTH / 2, HEIGHT / 2 + 100, '🍕', {
-      fontSize: '118px',
-    });
+    const emoji = this.add.image(WIDTH / 2, 666, 'pizza-pixel');
     emoji.setOrigin(0.5);
-    emoji.setDepth(DEPTH.ui + 1);
+    emoji.setDisplaySize(118, 118);
+    emoji.setDepth(DEPTH.ui + 3);
     this.tweens.add({
       targets: emoji,
       angle: { from: -5, to: 5 },
@@ -228,25 +238,45 @@ export class ResultScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    const backBtn = new Button(
+    const restartBtn = new Button(
       this,
       WIDTH / 2,
-      1048,
-      RU.result.backCta,
-      () => this.goHome(),
+      890,
+      'ЗАНОВО',
+      () => this.restartSession(),
       {
-        width: 430,
+        width: 440,
         height: 92,
-        bgColor: COLORS.red,
-        textColor: '#FAF7F0',
-        fontSize: '22px',
+        bgColor: COLORS.yellow,
+        textColor: '#0A0A0A',
+        fontSize: '24px',
         fontFamily: '"Press Start 2P", monospace',
         pixel: true,
         pixelStyle: { step: 6, border: 6, corner: 18 },
       }
     );
-    backBtn.setDepth(DEPTH.ui);
-    this.add.existing(backBtn);
+    restartBtn.setDepth(DEPTH.ui + 3);
+    this.add.existing(restartBtn);
+
+    const menuBtn = new Button(
+      this,
+      WIDTH / 2,
+      1010,
+      'В МЕНЮ',
+      () => this.goHome(),
+      {
+        width: 440,
+        height: 92,
+        bgColor: COLORS.red,
+        textColor: '#FAF7F0',
+        fontSize: '24px',
+        fontFamily: '"Press Start 2P", monospace',
+        pixel: true,
+        pixelStyle: { step: 6, border: 6, corner: 18 },
+      }
+    );
+    menuBtn.setDepth(DEPTH.ui + 3);
+    this.add.existing(menuBtn);
 
     SoundManager.playSfx('lose');
     Haptics.trigger('lose');
@@ -288,6 +318,17 @@ export class ResultScene extends Phaser.Scene {
     this.cameras.main.fadeOut(300, 10, 10, 10);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('SplashScene');
+    });
+  }
+
+  private restartSession(): void {
+    SoundManager.playSfx('select');
+    Haptics.trigger('tap');
+    SessionState.reset();
+    GameState.grantTicket();
+    this.cameras.main.fadeOut(300, 10, 10, 10);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('MinigameRunnerScene');
     });
   }
 }

@@ -17,14 +17,24 @@ interface AnalysedBuffer {
 }
 
 const CATEGORY_GAIN: Record<Exclude<AudioCategory, 'music'>, number> = {
-  ui: 0.62,
-  gameplay: 0.86,
-  wheel: 0.82,
-  rhythm: 0.78,
-  ambience: 0.5,
+  ui: 0.56,
+  gameplay: 0.68,
+  wheel: 0.68,
+  rhythm: 0.64,
+  ambience: 0.42,
 };
 
 const EPSILON_GAIN = 0.0001;
+const DEFAULT_MASTER_VOLUME = 0.82;
+
+interface ActiveSfxNode {
+  source: AudioBufferSourceNode | OscillatorNode;
+  gain: GainNode;
+}
+
+interface PlayMusicOptions {
+  fadeMs?: number;
+}
 
 class SoundManagerImpl {
   private ctx: AudioContext | null = null;
@@ -35,15 +45,21 @@ class SoundManagerImpl {
   private muted = false;
   private musicStarted = false;
   private currentMusic: MusicTrackName | null = null;
+  private requestedMusic: MusicTrackName = 'menu';
   private musicSources: Array<AudioBufferSourceNode | OscillatorNode> = [];
   private musicTimers: number[] = [];
   private musicToken = 0;
   private musicBaseGain = 0.24;
+  private masterVolume = DEFAULT_MASTER_VOLUME;
+  private musicVolume = 1;
+  private sfxVolume = 1;
 
   private readonly bufferCache = new Map<string, Promise<AudioBuffer>>();
   private readonly analysedSfxCache = new Map<string, Promise<AnalysedBuffer>>();
   private readonly lastPlayedAt = new Map<SfxName, number>();
   private readonly lastVariantByName = new Map<SfxName, string>();
+  private readonly activeSfx = new Map<SfxName, Set<ActiveSfxNode>>();
+  private readonly stopTimers = new Set<number>();
   private readonly STORAGE_KEY = 'mla:muted';
 
   constructor() {
@@ -55,8 +71,8 @@ class SoundManagerImpl {
     }
   }
 
-  playSfx(name: SfxName): void {
-    void this.playSfxAsync(name);
+  playSfx(name: SfxName, volume = 1): void {
+    void this.playSfxAsync(name, volume);
   }
 
   preloadCore(): void {
@@ -71,19 +87,24 @@ class SoundManagerImpl {
     void this.getBuffer(MUSIC_CATALOG.gameplay.path);
   }
 
-  startMusic(track: MusicTrackName = 'menu'): void {
+  playMusic(track: MusicTrackName = 'menu', options: PlayMusicOptions = {}): void {
+    this.startMusic(track, options);
+  }
+
+  startMusic(track: MusicTrackName = 'menu', options: PlayMusicOptions = {}): void {
+    this.requestedMusic = track;
     if (this.muted) return;
     if (!this.ensureContext() || !this.ctx || !this.musicGain) return;
     if (this.musicStarted && this.currentMusic === track) return;
 
-    this.stopMusic();
+    this.stopMusic(options.fadeMs ?? 180);
     this.musicStarted = true;
     this.currentMusic = track;
 
     const token = ++this.musicToken;
     const config = MUSIC_CATALOG[track];
     this.musicBaseGain = config.volume;
-    this.rampGain(this.musicGain, config.volume, 0.35);
+    this.rampGain(this.musicGain, config.volume * this.musicVolume, 0.35);
 
     void this.getBuffer(config.path)
       .then((buffer) => {
@@ -96,35 +117,81 @@ class SoundManagerImpl {
       });
   }
 
-  stopMusic(): void {
-    this.musicToken++;
+  stopMusic(fadeMs = 0): void {
+    const sources = [...this.musicSources];
+    this.musicSources = [];
+    const token = ++this.musicToken;
     for (const timer of this.musicTimers) {
       window.clearTimeout(timer);
     }
     this.musicTimers = [];
 
-    for (const source of this.musicSources) {
-      try {
-        source.stop();
-      } catch {
-        // Already stopped.
+    const stopSources = () => {
+      for (const source of sources) {
+        try {
+          source.stop();
+        } catch {
+          // Already stopped.
+        }
+        try {
+          source.disconnect();
+        } catch {
+          // Already disconnected.
+        }
       }
-      source.disconnect();
+      if (this.musicToken === token && this.musicGain) {
+        this.musicGain.gain.value = 0;
+      }
+    };
+
+    if (fadeMs > 0 && this.ctx && this.musicGain && sources.length > 0) {
+      this.rampGain(this.musicGain, 0, fadeMs / 1000);
+      const timer = window.setTimeout(() => {
+        this.stopTimers.delete(timer);
+        stopSources();
+      }, fadeMs + 30);
+      this.stopTimers.add(timer);
+    } else {
+      stopSources();
     }
-    this.musicSources = [];
+
     this.musicStarted = false;
     this.currentMusic = null;
   }
 
-  toggleMute(): boolean {
-    this.muted = !this.muted;
+  resumeMusic(): void {
+    if (!this.muted) {
+      this.startMusic(this.requestedMusic);
+    }
+  }
+
+  stopSfx(name?: SfxName, fadeMs = 0): void {
+    const names = name ? [name] : [...this.activeSfx.keys()];
+    for (const sfxName of names) {
+      const nodes = this.activeSfx.get(sfxName);
+      if (!nodes) continue;
+
+      for (const node of [...nodes]) {
+        this.stopActiveSfx(sfxName, node, fadeMs);
+      }
+    }
+  }
+
+  stopAll(fadeMs = 120): void {
+    this.stopSfx(undefined, Math.min(fadeMs, 100));
+    this.stopMusic(fadeMs);
+  }
+
+  setMuted(value: boolean): void {
+    if (this.muted === value) return;
+    this.muted = value;
     if (this.masterGain) {
-      this.rampGain(this.masterGain, this.muted ? 0 : 0.8, 0.08);
+      this.rampGain(this.masterGain, this.muted ? 0 : this.masterVolume, 0.08);
     }
     if (this.muted) {
-      this.stopMusic();
+      this.stopAll(100);
     } else {
-      this.startMusic(this.currentMusic ?? 'menu');
+      this.resumeMusic();
     }
 
     try {
@@ -132,7 +199,25 @@ class SoundManagerImpl {
     } catch {
       // Ignore storage failures.
     }
+  }
 
+  setMusicVolume(value: number): void {
+    this.musicVolume = this.clamp(value, 0, 1);
+    if (this.musicGain && this.musicStarted) {
+      this.rampGain(this.musicGain, this.musicBaseGain * this.musicVolume, 0.08);
+    }
+  }
+
+  setSfxVolume(value: number): void {
+    this.sfxVolume = this.clamp(value, 0, 1);
+    for (const category of Object.keys(CATEGORY_GAIN) as Exclude<AudioCategory, 'music'>[]) {
+      const gain = this.categoryGains[category];
+      if (gain) gain.gain.value = CATEGORY_GAIN[category] * this.sfxVolume;
+    }
+  }
+
+  toggleMute(): boolean {
+    this.setMuted(!this.muted);
     return this.muted;
   }
 
@@ -140,17 +225,69 @@ class SoundManagerImpl {
     return this.muted;
   }
 
+  private stopActiveSfx(name: SfxName, node: ActiveSfxNode, fadeMs: number): void {
+    const finish = () => {
+      try {
+        node.source.stop();
+      } catch {
+        // Already stopped.
+      }
+      this.unregisterSfxNode(name, node);
+    };
+
+    if (fadeMs > 0 && this.ctx) {
+      this.rampGain(node.gain, 0, fadeMs / 1000);
+      const timer = window.setTimeout(() => {
+        this.stopTimers.delete(timer);
+        finish();
+      }, fadeMs + 20);
+      this.stopTimers.add(timer);
+      return;
+    }
+
+    finish();
+  }
+
+  private registerSfxNode(name: SfxName, node: ActiveSfxNode): void {
+    let nodes = this.activeSfx.get(name);
+    if (!nodes) {
+      nodes = new Set();
+      this.activeSfx.set(name, nodes);
+    }
+    nodes.add(node);
+  }
+
+  private unregisterSfxNode(name: SfxName, node: ActiveSfxNode): void {
+    const nodes = this.activeSfx.get(name);
+    if (!nodes) return;
+    nodes.delete(node);
+    if (nodes.size === 0) {
+      this.activeSfx.delete(name);
+    }
+    try {
+      node.source.disconnect();
+    } catch {
+      // Already disconnected.
+    }
+    try {
+      node.gain.disconnect();
+    } catch {
+      // Already disconnected.
+    }
+  }
+
   duckMusic(amount = 0.2, durationMs = 650): void {
     if (!this.ctx || !this.musicGain || !this.musicStarted || this.muted) return;
     const now = this.ctx.currentTime;
-    const ducked = Math.max(0.05, this.musicBaseGain * (1 - amount));
+    const base = this.musicBaseGain * this.musicVolume;
+    const ducked = Math.max(0.05, base * (1 - amount));
     this.musicGain.gain.cancelScheduledValues(now);
     this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, now);
     this.musicGain.gain.linearRampToValueAtTime(ducked, now + 0.05);
-    this.musicGain.gain.linearRampToValueAtTime(this.musicBaseGain, now + durationMs / 1000);
+    this.musicGain.gain.linearRampToValueAtTime(base, now + durationMs / 1000);
   }
 
-  private async playSfxAsync(name: SfxName): Promise<void> {
+  private async playSfxAsync(name: SfxName, volumeScalar: number): Promise<void> {
     if (this.muted) return;
     if (!this.ensureContext() || !this.ctx) return;
 
@@ -166,7 +303,7 @@ class SoundManagerImpl {
     try {
       const analysed = await this.getAnalysedSfx(variant.path);
       if (this.muted || !this.ctx) return;
-      this.playBuffer(name, config, variant, analysed);
+      this.playBuffer(name, config, variant, analysed, volumeScalar);
       if (config.duckMusic) this.duckMusic(config.duckMusic);
     } catch (err) {
       console.warn(`[SoundManager] SFX failed: ${name}`, err);
@@ -189,7 +326,7 @@ class SoundManagerImpl {
 
       this.ctx = new Ctor();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = this.muted ? 0 : 0.8;
+      this.masterGain.gain.value = this.muted ? 0 : this.masterVolume;
       this.masterGain.connect(this.ctx.destination);
 
       this.musicGain = this.ctx.createGain();
@@ -198,7 +335,7 @@ class SoundManagerImpl {
 
       for (const category of Object.keys(CATEGORY_GAIN) as Exclude<AudioCategory, 'music'>[]) {
         const gain = this.ctx.createGain();
-        gain.gain.value = CATEGORY_GAIN[category];
+        gain.gain.value = CATEGORY_GAIN[category] * this.sfxVolume;
         gain.connect(this.masterGain);
         this.categoryGains[category] = gain;
       }
@@ -222,10 +359,11 @@ class SoundManagerImpl {
   }
 
   private playBuffer(
-    _name: SfxName,
+    name: SfxName,
     config: SfxConfig,
     variant: SfxVariant,
     analysed: AnalysedBuffer,
+    volumeScalar: number,
   ): void {
     if (!this.ctx) return;
     const output = this.categoryGains[config.category];
@@ -238,10 +376,26 @@ class SoundManagerImpl {
 
     const gain = this.ctx.createGain();
     const volumeJitter = 1 + this.randomRange(config.randomVolume ?? 0);
-    gain.gain.value = Math.max(0, config.volume * (variant.volume ?? 1) * volumeJitter * analysed.normalGain);
+    gain.gain.value = Math.max(
+      0,
+      config.volume * volumeScalar * (variant.volume ?? 1) * volumeJitter * analysed.normalGain,
+    );
 
     source.connect(gain);
     gain.connect(output);
+    const node: ActiveSfxNode = { source, gain };
+    this.registerSfxNode(name, node);
+    source.onended = () => this.unregisterSfxNode(name, node);
+
+    if (config.maxDurationMs && config.maxDurationMs > 0) {
+      const stopAt = this.ctx.currentTime + config.maxDurationMs / 1000;
+      const fadeOut = Math.min((config.fadeOutMs ?? 20) / 1000, config.maxDurationMs / 1000);
+      const fadeAt = Math.max(this.ctx.currentTime, stopAt - fadeOut);
+      gain.gain.setValueAtTime(gain.gain.value, fadeAt);
+      gain.gain.linearRampToValueAtTime(EPSILON_GAIN, stopAt);
+      source.stop(stopAt + 0.01);
+    }
+
     source.start();
   }
 
@@ -412,7 +566,7 @@ class SoundManagerImpl {
 
   private startFallbackPad(): void {
     if (!this.ctx || !this.musicGain) return;
-    this.rampGain(this.musicGain, 0.18, 0.25);
+    this.rampGain(this.musicGain, 0.18 * this.musicVolume, 0.25);
     for (const freq of [110, 165, 220]) {
       const osc = this.ctx.createOscillator();
       osc.type = 'sawtooth';

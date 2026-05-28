@@ -73,7 +73,7 @@ export class WheelScene extends Phaser.Scene {
   create(data: { isJackpot?: boolean } = {}): void {
     const { WIDTH, HEIGHT } = GAME;
     this.isJackpot = data.isJackpot ?? false;
-    SoundManager.startMusic('relaxed');
+    SoundManager.playMusic('relaxed');
 
     // Сброс state-полей: Phaser переиспользует scene-instance между запусками,
     // и class-field инициализация (`spinning = false`) срабатывает только при
@@ -151,6 +151,10 @@ export class WheelScene extends Phaser.Scene {
     attachSoundButton(this);
 
     this.cameras.main.fadeIn(300, 122, 92, 255);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      SoundManager.stopSfx('wheelSpin', 120);
+      SoundManager.stopSfx('wheelTick', 40);
+    });
   }
 
   private drawWheelLabels(container: Phaser.GameObjects.Container): void {
@@ -293,6 +297,7 @@ export class WheelScene extends Phaser.Scene {
   // ============================================================
 
   private onSpinComplete(prize: WheelPrize['def'], prizeIndex: number): void {
+    SoundManager.stopSfx('wheelSpin', 120);
     // Подсветка победного сектора
     this.flashWinningSector(prizeIndex);
 

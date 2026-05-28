@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME } from '@config/game';
 import { TicketProvider } from '@core/TicketProvider';
+import { SoundManager } from '@core/SoundManager';
 import { BootScene } from '@scenes/BootScene';
 import { ComicsScene } from '@scenes/ComicsScene';
 import { SplashScene } from '@scenes/SplashScene';
@@ -110,6 +111,7 @@ const isLandscape = (): boolean => window.innerWidth > window.innerHeight;
 const syncOrientationLock = (): void => {
   if (isLandscape()) {
     document.body.classList.add('orientation-locked');
+    SoundManager.stopAll(180);
 
     const activeScenes = game.scene
       .getScenes(true)
@@ -126,6 +128,7 @@ const syncOrientationLock = (): void => {
   }
 
   document.body.classList.remove('orientation-locked');
+  SoundManager.resumeMusic();
 
   if (game.scene.isActive(ORIENTATION_LOCK_SCENE)) {
     game.scene.stop(ORIENTATION_LOCK_SCENE);

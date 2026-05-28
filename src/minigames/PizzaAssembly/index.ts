@@ -272,6 +272,8 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.input.off('pointerdown', this.onTap, this);
     this.input.keyboard?.off('keydown-SPACE', this.onTap, this);
     this.flipEvt?.remove();
+    SoundManager.stopSfx('saberCut', 80);
+    SoundManager.stopSfx('impact', 80);
     this.tweens.killAll();
   }
 
@@ -413,7 +415,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     if (!this.canThrow || this.flying || this.done || this.inTransition) return;
     this.flying   = true;
     this.canThrow = false;
-    SoundManager.playSfx('knifeSlice');
+    SoundManager.playSfx('saberCut', 0.72);
   }
 
   private landKnife(): void {
@@ -458,7 +460,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.stuck.push({ localAngle, sprite: k });
     this.stageStuck++;
 
-    SoundManager.playSfx('impact');
+    SoundManager.playSfx('impact', 0.82);
     Haptics.trigger('perfect');
     this.spawnImpactRing();
     this.spawnHitChips(CX, CY + KNIFE_STUCK_RADIUS);
@@ -478,7 +480,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   }
 
   private onCollision(): void {
-    SoundManager.playSfx('heavyImpact');
+    SoundManager.playSfx('heavyImpact', 0.78);
     Haptics.trigger('miss');
     this.cameras.main.shake(160, 0.012);
     this.inTransition = true;
@@ -799,6 +801,8 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.flipEvt?.remove();
     this.input.off('pointerdown', this.onTap, this);
     this.input.keyboard?.off('keydown-SPACE', this.onTap, this);
+    SoundManager.stopSfx('saberCut', 80);
+    SoundManager.stopSfx('impact', 80);
 
     if (win) { SoundManager.playSfx('win');  Haptics.trigger('win');  }
     else     { SoundManager.playSfx('lose'); Haptics.trigger('lose'); }

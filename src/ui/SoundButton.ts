@@ -29,10 +29,19 @@ export class SoundButton extends Phaser.GameObjects.Container {
       Phaser.Geom.Rectangle.Contains
     );
     this.input!.cursor = 'pointer';
-    this.on('pointerdown', () => {
+    this.on('pointerdown', (
+      _pointer: Phaser.Input.Pointer,
+      _localX: number,
+      _localY: number,
+      event: Phaser.Types.Input.EventData,
+    ) => {
+      event.stopPropagation();
       Haptics.trigger('tap');
-      SoundManager.playSfx('muteToggle');
-      SoundManager.toggleMute();
+      const willMute = !SoundManager.isMuted();
+      SoundManager.setMuted(willMute);
+      if (!SoundManager.isMuted()) {
+        SoundManager.playSfx('muteToggle');
+      }
       this.refreshIcon();
       this.scene.tweens.add({
         targets: this,
@@ -41,12 +50,6 @@ export class SoundButton extends Phaser.GameObjects.Container {
         yoyo: true,
         ease: 'Sine.easeOut',
       });
-      // Если включили — стартуем фоновую музыку
-      if (!SoundManager.isMuted()) {
-        SoundManager.startMusic();
-      } else {
-        SoundManager.stopMusic();
-      }
     });
 
     this.on('pointerover', () => this.setScale(1.08));

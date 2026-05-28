@@ -8,6 +8,8 @@ import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
 import { MINIGAME_DIFFICULTY } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
+import { Button } from '@ui/Button';
+import { SoundManager } from '@core/SoundManager';
 
 const PIXEL_FONT = '"Press Start 2P", monospace';
 
@@ -23,12 +25,14 @@ const PIXEL_FONT = '"Press Start 2P", monospace';
  */
 export class MinigameRunnerScene extends Phaser.Scene {
   private completeHandler: ((result: MinigameResult & { sceneKey: string }) => void) | null = null;
+  private launchStarted = false;
 
   constructor() {
     super({ key: 'MinigameRunnerScene' });
   }
 
   create(): void {
+    this.launchStarted = false;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearCompleteHandler());
 
     // Если сессия уже активна (после ChoiceScene → continue), просто продолжаем
@@ -144,8 +148,30 @@ export class MinigameRunnerScene extends Phaser.Scene {
     this.tweens.add({ targets: hintPanel, alpha: 1, scale: { from: 0.7, to: 1 }, duration: 350, delay: 500, ease: 'Back.easeOut' });
     this.tweens.add({ targets: goPanel, alpha: 1, duration: 250, delay: 800 });
 
-    // Через 1.6 сек запускаем минку
-    this.time.delayedCall(1600, () => this.launchMinigame());
+    const startBtn = new Button(
+      this,
+      WIDTH / 2,
+      HEIGHT * 0.92,
+      'СТАРТ',
+      () => {
+        SoundManager.playSfx('select');
+        this.launchMinigame();
+      },
+      {
+        width: 430,
+        height: 92,
+        bgColor: COLORS.yellow,
+        textColor: '#0A0A0A',
+        fontSize: '28px',
+        fontFamily: PIXEL_FONT,
+        pixel: true,
+        pixelStyle: { step: 6, border: 6, corner: 18 },
+      },
+    );
+    startBtn.setDepth(DEPTH.ui);
+    startBtn.setAlpha(0);
+    this.add.existing(startBtn);
+    this.tweens.add({ targets: startBtn, alpha: 1, duration: 220, delay: 950 });
   }
 
   private createPixelPanel(
@@ -185,6 +211,9 @@ export class MinigameRunnerScene extends Phaser.Scene {
 
   /** Запуск scene минки + подписка на результат */
   private launchMinigame(): void {
+    if (this.launchStarted) return;
+    this.launchStarted = true;
+
     if (SessionState.getLivesLeft() <= 0) {
       this.transitionTo('ResultScene', { outcome: 'lose' });
       return;
@@ -200,6 +229,7 @@ export class MinigameRunnerScene extends Phaser.Scene {
     };
 
     // Подписываемся на результат
+    this.clearCompleteHandler();
     this.completeHandler = (result) => this.onMinigameComplete(result);
     EventBus.once('minigame:complete', this.completeHandler);
 

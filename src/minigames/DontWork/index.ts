@@ -256,7 +256,7 @@ export class DontWorkScene extends BaseMinigame {
     this.bakeNoise();
 
     // Background
-    paintPageBackdrop(this, COLORS.purple);
+    paintPageBackdrop(this, 0x17110d);
     this.bgImage = this.add.image(CX, H / 2, this.stage.bgTexture)
       .setOrigin(0.5)
       .setDepth(DEPTH.background);

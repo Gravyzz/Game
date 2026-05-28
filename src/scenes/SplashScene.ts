@@ -28,6 +28,7 @@ export class SplashScene extends Phaser.Scene {
 
   create(): void {
     const { WIDTH, HEIGHT } = GAME;
+    SoundManager.playMusic('menu');
 
     this.setPixelTexture('heart-pixel');
     this.setPixelTexture('pizza-pixel');
@@ -58,9 +59,8 @@ export class SplashScene extends Phaser.Scene {
       965 - HEIGHT / 2,
       560,
       106,
-      'PLAY',
+      'ИГРАТЬ\nСЛУЧАЙНО',
       0xffc21a,
-      'pizza-slice-new',
       () => this.startPlayScenario()
     );
     screenContent.add(startBtn);
@@ -70,9 +70,8 @@ export class SplashScene extends Phaser.Scene {
       1095 - HEIGHT / 2,
       560,
       106,
-      'MINI GAMES',
+      'МИНИ-ИГРЫ',
       0xe53522,
-      'gamepad-new',
       () => this.openMiniGames()
     );
     screenContent.add(miniGamesBtn);
@@ -372,7 +371,6 @@ export class SplashScene extends Phaser.Scene {
     height: number,
     label: string,
     bgColor: number,
-    iconKey: string,
     onClick: () => void
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
@@ -385,12 +383,8 @@ export class SplashScene extends Phaser.Scene {
     g.setPosition(-width / 2, -height / 2);
     drawPixelButton(g, width, height, bgColor, { step: 8, border: 8, corner: 24 });
 
-    const icon = this.add.image(-width / 2 + 105, 0, iconKey);
-    const iconSize = iconKey === 'gamepad-new' ? 82 : 86;
-    icon.setDisplaySize(iconSize, iconSize);
-
     const isTwoLine = label.includes('\n');
-    const text = this.add.text(78, isTwoLine ? 2 : 4, label, {
+    const text = this.add.text(0, isTwoLine ? 2 : 4, label, {
       fontFamily: this.pixelFont,
       fontSize: isTwoLine ? '30px' : '36px',
       color: '#FAF7F0',
@@ -406,7 +400,7 @@ export class SplashScene extends Phaser.Scene {
     const hit = this.add.rectangle(0, 0, width, height, 0xffffff, 0);
     hit.setInteractive({ useHandCursor: true });
 
-    button.add([g, icon, text, hit]);
+    button.add([g, text, hit]);
 
     hit.on('pointerdown', () => {
       Haptics.trigger('tap');
@@ -454,7 +448,7 @@ export class SplashScene extends Phaser.Scene {
     }
 
     // Первый пользовательский жест — самое время поднять AudioContext и запустить музыку.
-    SoundManager.startMusic();
+    SoundManager.playMusic('menu');
     SoundManager.playSfx('sessionStart');
     Haptics.trigger('tap');
 

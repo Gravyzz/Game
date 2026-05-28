@@ -83,10 +83,10 @@ const STAGES: Stage[] = [
   {
     name: 'ночь', color: '#FFFFFF', bgTexture: 'surfer-jetpack-bg-night',
     bgSky: 0x315d8b, bgSea: 0x4b6dff, waveColor: 0x475569,
-    speed: 380, gap: 270, spawnInterval: 1250, goal: 10,
+    speed: 360, gap: 310, spawnInterval: 1450, goal: 10,
     hasPowerUps: true, hasLightning: true,
     pillarColor: 0x334155, pillarStroke: 0x0a0a0a, capEmoji: '⚡',
-    hint: 'узкие проходы  •  10 очков',
+    hint: 'быстрее, но проходы честные  •  10 очков',
   },
 ];
 
@@ -156,6 +156,7 @@ export class SurferScene extends BaseMinigame {
   private spawnTimer:     Phaser.Time.TimerEvent | null = null;
   private powerUpTimer:   Phaser.Time.TimerEvent | null = null;
   private lightningTimer: Phaser.Time.TimerEvent | null = null;
+  private lastGapCenterY = (CEILING_Y + FLOOR_Y) / 2;
 
   // Shield aura
   private shieldRing: Phaser.GameObjects.Arc | null = null;
@@ -190,6 +191,7 @@ export class SurferScene extends BaseMinigame {
     this.bubbles         = [];
     this.surferVY        = 0;
     this.surferY         = (CEILING_Y + FLOOR_Y) / 2;
+    this.lastGapCenterY  = this.surferY;
 
     SURFER_KEYS.forEach((key) => {
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -377,6 +379,7 @@ export class SurferScene extends BaseMinigame {
     this.stageIdx    = idx;
     this.stage       = STAGES[idx];
     this.stagePassed = 0;
+    this.lastGapCenterY = Phaser.Math.Clamp(this.surferY, CEILING_Y + this.stage.gap / 2 + 40, FLOOR_Y - this.stage.gap / 2 - 40);
 
     this.bgSky.setTexture(this.stage.bgTexture);
     this.fitBackgroundCover();
@@ -525,7 +528,11 @@ export class SurferScene extends BaseMinigame {
     const gap = this.stage.gap;
     const minCenter = CEILING_Y + gap / 2 + 40;
     const maxCenter = FLOOR_Y - gap / 2 - 40;
-    const gapCenter = Phaser.Math.Between(minCenter, maxCenter);
+    const maxStep = this.stageIdx === 2 ? 185 : 245;
+    const fairMin = Math.max(minCenter, this.lastGapCenterY - maxStep);
+    const fairMax = Math.min(maxCenter, this.lastGapCenterY + maxStep);
+    const gapCenter = Phaser.Math.Between(fairMin, fairMax);
+    this.lastGapCenterY = gapCenter;
     const gapTopY    = gapCenter - gap / 2;
     const gapBottomY = gapCenter + gap / 2;
 

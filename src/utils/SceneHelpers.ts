@@ -5,7 +5,9 @@ import { SoundButton } from '@ui/SoundButton';
 import { EventBus } from '@core/EventBus';
 import { SessionState } from '@core/SessionState';
 import { TicketProvider } from '@core/TicketProvider';
+import { SoundManager } from '@core/SoundManager';
 import type { BaseMinigame } from '@minigames/BaseMinigame';
+import { drawPixelButton } from '@utils/PixelButton';
 
 /**
  * Добавляет иконку mute в правый верхний угол сцены.
@@ -28,10 +30,10 @@ export function attachSoundButton(scene: Phaser.Scene): SoundButton {
  *   attachNoiseBackdrop(this, `noise-${this.scene.key}`, 500);
  */
 /**
- * Кнопка-домик с подтверждением выхода.
+ * Кнопка-назад с подтверждением выхода.
  *
  * Реализация максимально простая, чтобы не ломать минки:
- * - Кнопка на углу
+ * - Крупная стрелка на углу
  * - На клик: создаются объекты модалки В ТОЙ ЖЕ сцене (без `scene.pause`,
  *   без отдельной модальной сцены — они дают непредсказуемые баги
  *   с Phaser scene-менеджером).
@@ -40,33 +42,19 @@ export function attachSoundButton(scene: Phaser.Scene): SoundButton {
  *   (она работала). В дев-меню эмитим minigame:complete с aborted.
  * - На «Нет» уничтожаем объекты модалки.
  *
- * Минка продолжает тикать в фоне пока модалка открыта — это компромисс ради
- * стабильности (а не паузим сцену через Phaser API).
+ * Пока модалка открыта, локальные таймеры/твины сцены ставятся на паузу,
+ * чтобы выход не оставлял догоняющие обработчики.
  */
-export function attachHomeButton(scene: BaseMinigame): Phaser.GameObjects.Image {
-  const btn = scene.add.image(54, 80, 'home-pixel');
-  btn.setOrigin(0.5);
-  btn.setDisplaySize(96, 96);
-  btn.setDepth(DEPTH.ui + 5);
-  btn.setScrollFactor(0);
-  btn.setInteractive({ useHandCursor: true });
-
+export function attachHomeButton(scene: BaseMinigame): Phaser.GameObjects.Container {
   let modalOpen = false;
   const openModal = () => {
     if (modalOpen) return;
     modalOpen = true;
+    SoundManager.playSfx('modalOpen');
     showHomeModal(scene, () => { modalOpen = false; });
   };
-
-  btn.on('pointerdown', (
-    _pointer: Phaser.Input.Pointer,
-    _localX: number,
-    _localY: number,
-    event: Phaser.Types.Input.EventData,
-  ) => {
-    event.stopPropagation();
-    openModal();
-  });
+  const btn = createBackButton(scene, 58, 80, () => openModal());
+  btn.setDepth(DEPTH.ui + 5);
 
   // ESC на клавиатуре = клик по домику
   const onKey = (e: KeyboardEvent) => {
@@ -79,6 +67,63 @@ export function attachHomeButton(scene: BaseMinigame): Phaser.GameObjects.Image 
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
     window.removeEventListener('keydown', onKey);
   });
+
+  return btn;
+}
+
+export function attachSceneBackButton(
+  scene: Phaser.Scene,
+  onBack: () => void,
+  x = 58,
+  y = 80,
+): Phaser.GameObjects.Container {
+  const btn = createBackButton(scene, x, y, onBack);
+  btn.setDepth(DEPTH.ui + 5);
+  return btn;
+}
+
+function createBackButton(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  onBack: () => void,
+): Phaser.GameObjects.Container {
+  const btn = scene.add.container(x, y);
+  btn.setSize(82, 72);
+  btn.setScrollFactor(0);
+
+  const bg = scene.add.graphics();
+  bg.setPosition(-41, -36);
+  drawPixelButton(bg, 82, 72, 0xffc21a, { step: 6, border: 6, corner: 18 });
+
+  const arrow = scene.add.graphics();
+  arrow.fillStyle(0x0a0a0a, 1);
+  arrow.fillRect(-4, -7, 28, 14);
+  arrow.fillRect(-18, -21, 14, 14);
+  arrow.fillRect(-18, 7, 14, 14);
+  arrow.fillRect(-30, -7, 14, 14);
+  arrow.fillStyle(0xfaf7f0, 1);
+  arrow.fillRect(-2, -4, 22, 8);
+  arrow.fillRect(-14, -15, 8, 8);
+  arrow.fillRect(-14, 7, 8, 8);
+
+  const hit = scene.add.rectangle(0, 0, 92, 82, 0xffffff, 0);
+  hit.setInteractive({ useHandCursor: true });
+
+  btn.add([bg, arrow, hit]);
+  const pressBack = (
+    _pointer: Phaser.Input.Pointer,
+    _localX: number,
+    _localY: number,
+    event: Phaser.Types.Input.EventData,
+  ) => {
+    event.stopPropagation();
+    SoundManager.playSfx('backCancel');
+    onBack();
+  };
+  hit.on('pointerdown', pressBack);
+  hit.on('pointerover', () => btn.setScale(1.04));
+  hit.on('pointerout', () => btn.setScale(1));
 
   return btn;
 }
@@ -198,7 +243,7 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
     scene.time.paused = false;
   };
 
-  const overlay = scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.92);
+  const overlay = scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black, 0.9);
   overlay.setDepth(DEPTH.toast + 10);
   overlay.setInteractive();
   overlay.setScrollFactor(0);
@@ -217,13 +262,13 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
   // (на toast=60) пробивается поверх и портит UX.
   const TOP = DEPTH.toast + 10;
 
-  const panel = scene.add.rectangle(WIDTH / 2, HEIGHT / 2, 500, 320, 0x5a54f9);
-  panel.setStrokeStyle(6, COLORS.black);
+  const panel = scene.add.rectangle(WIDTH / 2, HEIGHT / 2, 540, 340, 0x1d1712);
+  panel.setStrokeStyle(8, COLORS.red);
   panel.setDepth(TOP + 1);
   panel.setScrollFactor(0);
 
-  const titleText = scene.add.text(WIDTH / 2, HEIGHT / 2 - 100, 'Вы уверены,\nчто хотите выйти?', {
-    fontFamily: pixel, fontSize: '22px', color: '#FAF7F0',
+  const titleText = scene.add.text(WIDTH / 2, HEIGHT / 2 - 108, 'ВЫЙТИ ИЗ ИГРЫ?', {
+    fontFamily: pixel, fontSize: '24px', color: '#FFE600',
     align: 'center', lineSpacing: 8,
   });
   titleText.setOrigin(0.5);
@@ -232,9 +277,11 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
 
   const bodyText = scene.add.text(
     WIDTH / 2, HEIGHT / 2 + 5,
-    scene.isInfinite ? 'Текущий заход прервётся\nи ты вернёшься в меню.' : 'Билет сгорит\nи прогресс сбросится!',
+    scene.isInfinite || import.meta.env.DEV
+      ? 'Раунд остановится,\nвозврат в меню мини-игр.'
+      : 'Раунд остановится,\nпрогресс сессии сбросится.',
     {
-      fontFamily: pixel, fontSize: '14px', color: '#FFE600',
+      fontFamily: pixel, fontSize: '15px', color: '#FAF7F0',
       align: 'center', lineSpacing: 12,
     },
   );
@@ -242,22 +289,22 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
   bodyText.setDepth(TOP + 2);
   bodyText.setScrollFactor(0);
 
-  const yes = scene.add.rectangle(WIDTH / 2 - 105, HEIGHT / 2 + 95, 105, 56, COLORS.win);
+  const yes = scene.add.rectangle(WIDTH / 2 - 125, HEIGHT / 2 + 105, 170, 64, COLORS.red);
   yes.setStrokeStyle(4, COLORS.black);
   yes.setDepth(TOP + 2);
   yes.setInteractive({ useHandCursor: true });
   yes.setScrollFactor(0);
-  const yesText = scene.add.text(yes.x, yes.y, 'Да', { fontFamily: pixel, fontSize: '20px', color: '#FAF7F0' });
+  const yesText = scene.add.text(yes.x, yes.y, 'ВЫЙТИ', { fontFamily: pixel, fontSize: '16px', color: '#FAF7F0' });
   yesText.setOrigin(0.5);
   yesText.setDepth(TOP + 3);
   yesText.setScrollFactor(0);
 
-  const no = scene.add.rectangle(WIDTH / 2 + 105, HEIGHT / 2 + 95, 105, 56, 0xff4e25);
+  const no = scene.add.rectangle(WIDTH / 2 + 125, HEIGHT / 2 + 105, 170, 64, COLORS.yellow);
   no.setStrokeStyle(4, COLORS.black);
   no.setDepth(TOP + 2);
   no.setInteractive({ useHandCursor: true });
   no.setScrollFactor(0);
-  const noText = scene.add.text(no.x, no.y, 'Нет', { fontFamily: pixel, fontSize: '20px', color: '#FAF7F0' });
+  const noText = scene.add.text(no.x, no.y, 'ИГРАТЬ', { fontFamily: pixel, fontSize: '16px', color: '#0A0A0A' });
   noText.setOrigin(0.5);
   noText.setDepth(TOP + 3);
   noText.setScrollFactor(0);
@@ -275,6 +322,8 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
     event.stopPropagation();
     if (consumed) return;
     consumed = true;
+    SoundManager.playSfx('backCancel');
+    SoundManager.stopAll(180);
     destroyModal();
     // Сцена сейчас будет stop/start — резумить смысла нет, но на всякий случай
     // (вдруг handleExit не выполнит scene.stop) выставляем флаг.
@@ -290,6 +339,7 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
     event.stopPropagation();
     if (consumed) return;
     consumed = true;
+    SoundManager.playSfx('modalClose');
     destroyModal();
     resumeGameplay();
     onClose();
@@ -299,12 +349,15 @@ function showHomeModal(scene: BaseMinigame, onClose: () => void): void {
 /** Выполняет фактический выход — для Play закрывает сессию, для дев-меню возвращает в меню */
 function handleExit(scene: BaseMinigame): void {
   const currentSceneKey = scene.scene.key;
+  SoundManager.stopAll(180);
 
-  if (scene.isInfinite) {
+  if (scene.isInfinite || import.meta.env.DEV) {
     // Дев-меню: чистый scene.start обратно в меню. Раньше эмитили событие
     // и делали scene.stop, а дев-меню сидело в sleep — это давало пустой
     // экран в Safari при возврате. Теперь scene.start полностью пересоздаёт
     // меню, никаких параллельных сцен.
+    SessionState.endSession('lose');
+    scene.scene.stop('MinigameRunnerScene');
     scene.scene.start('DevMinigameMenuScene');
     scene.scene.stop(currentSceneKey);
     return;
@@ -347,8 +400,8 @@ export function attachIntro(
     e: Phaser.Types.Input.EventData,
   ) => e.stopPropagation());
 
-  const panel = scene.add.rectangle(WIDTH / 2, HEIGHT / 2 - 30, WIDTH - 100, 660, 0x5a54f9);
-  panel.setStrokeStyle(8, COLORS.black);
+  const panel = scene.add.rectangle(WIDTH / 2, HEIGHT / 2 - 30, WIDTH - 100, 660, 0x1d1712);
+  panel.setStrokeStyle(8, COLORS.red);
   panel.setDepth(TOP + 1);
   panel.setScrollFactor(0);
 
@@ -368,7 +421,7 @@ export function attachIntro(
   bodyText.setDepth(TOP + 2);
   bodyText.setScrollFactor(0);
 
-  const btn = scene.add.rectangle(WIDTH / 2, HEIGHT / 2 + 230, 380, 96, COLORS.win);
+  const btn = scene.add.rectangle(WIDTH / 2, HEIGHT / 2 + 230, 410, 100, COLORS.yellow);
   btn.setStrokeStyle(6, COLORS.black);
   btn.setDepth(TOP + 1);
   btn.setInteractive({ useHandCursor: true });
@@ -392,6 +445,7 @@ export function attachIntro(
     e.stopPropagation();
     if (clicked) return;
     clicked = true;
+    SoundManager.playSfx('select');
     all.forEach((o) => o.destroy());
     onStart();
   });
@@ -400,7 +454,7 @@ export function attachIntro(
 /**
  * Заливает страницу за пределами канваса в цвет минки на время её жизни.
  * Это решает letterbox — когда canvas 9:16 не покрывает весь viewport, вокруг
- * него виден дефолтный фон сайта (#5a54f9 + звёзды). С этой утилитой:
+ * него виден дефолтный фон сайта. С этой утилитой:
  *   - body окрашивается в цвет минки
  *   - декоративные слои (звёзды, пульс-градиент) прячутся через CSS-класс
  *   - на shutdown сцены всё откатывается

@@ -57,13 +57,17 @@ export abstract class BaseMinigame extends Phaser.Scene {
    *  Минки которые гоняют логику в update() должны проверять `if (this.gamePaused) return`. */
   public gamePaused = false;
 
+  private sceneShutdownHooked = false;
+  private runningShutdownHook = false;
+
   init(data: MinigameInitData): void {
     this.initData = data;
     this.completed = false;
-    SoundManager.startMusic('gameplay');
+    SoundManager.playMusic('gameplay');
     // Сбрасываем флаг паузы — Phaser переиспользует scene-instance, и если в прошлом
     // ране модалка осталась открытой при crash/abort, флаг застрял бы в true.
     this.gamePaused = false;
+    this.hookSceneShutdown();
   }
 
   /**
@@ -76,6 +80,7 @@ export abstract class BaseMinigame extends Phaser.Scene {
       return;
     }
     this.completed = true;
+    SoundManager.stopAll(180);
 
     if (this.isInfinite) {
       const currentSceneKey = this.scene.key;
@@ -121,6 +126,28 @@ export abstract class BaseMinigame extends Phaser.Scene {
       score: 0,
       metadata: { aborted: true },
     });
+  }
+
+  private hookSceneShutdown(): void {
+    if (this.sceneShutdownHooked) {
+      this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.handleSceneShutdown, this);
+    }
+    this.sceneShutdownHooked = true;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleSceneShutdown, this);
+  }
+
+  private handleSceneShutdown(): void {
+    if (this.runningShutdownHook) return;
+    this.runningShutdownHook = true;
+    SoundManager.stopAll(120);
+
+    const sceneWithShutdown = this as Phaser.Scene & { shutdown?: () => void };
+    if (typeof sceneWithShutdown.shutdown === 'function') {
+      sceneWithShutdown.shutdown.call(this);
+    }
+
+    this.runningShutdownHook = false;
+    this.sceneShutdownHooked = false;
   }
 
   /** Каждая минка обязана реализовать */

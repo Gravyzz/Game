@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#5A54F9" />
+    <meta name="theme-color" content="#130709" />
     <meta name="format-detection" content="telephone=no" />
 
     <title>Make Love Adventures</title>
@@ -42,8 +42,9 @@
       body {
         width: 100%;
         height: 100%;
+        min-height: 100dvh;
         overflow: hidden;
-        background: #5a54f9;
+        background: #130709;
         font-family: 'Onest', system-ui, sans-serif;
         color: #faf7f0;
         /* Запрещаем долгий тап с меню iOS, выделение текста, callout */
@@ -52,6 +53,7 @@
         user-select: none;
         -webkit-tap-highlight-color: transparent;
         overscroll-behavior: none;
+        touch-action: none;
       }
 
       #app {
@@ -61,7 +63,17 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        background: #5a54f9;
+        background:
+          linear-gradient(0deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.34)),
+          repeating-linear-gradient(0deg, rgba(255, 198, 26, 0.05) 0 2px, transparent 2px 8px),
+          repeating-linear-gradient(90deg, rgba(255, 46, 46, 0.045) 0 2px, transparent 2px 8px),
+          #130709;
+        padding:
+          env(safe-area-inset-top)
+          env(safe-area-inset-right)
+          env(safe-area-inset-bottom)
+          env(safe-area-inset-left);
+        touch-action: none;
       }
 
       #app::before,
@@ -74,9 +86,8 @@
 
       #app::before {
         background:
-          linear-gradient(120deg, rgba(118, 109, 255, 0.55), transparent 52%),
-          linear-gradient(250deg, rgba(66, 61, 212, 0.38), transparent 58%);
-        animation: app-bg-pulse 3.2s ease-in-out infinite alternate;
+          radial-gradient(circle at 50% 12%, rgba(255, 198, 26, 0.2), transparent 32%),
+          linear-gradient(180deg, rgba(255, 46, 46, 0.12), transparent 46%);
         z-index: 0;
       }
 
@@ -104,6 +115,9 @@
         display: block;
         max-width: 100vw;
         max-height: 100vh;
+        max-height: 100dvh;
+        image-rendering: pixelated;
+        touch-action: none;
       }
 
       #orientation-lock {
@@ -114,8 +128,8 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        background: #5a54f9;
-        color: #0a0a0a;
+        background: #130709;
+        color: #faf7f0;
         font-family: 'Press Start 2P', monospace;
       }
 
@@ -139,9 +153,10 @@
         position: absolute;
         inset: 0;
         background:
-          linear-gradient(120deg, rgba(118, 109, 255, 0.55), transparent 52%),
-          linear-gradient(250deg, rgba(66, 61, 212, 0.38), transparent 58%);
-        animation: app-bg-pulse 3.2s ease-in-out infinite alternate;
+          repeating-linear-gradient(0deg, rgba(255, 198, 26, 0.08) 0 2px, transparent 2px 10px),
+          repeating-linear-gradient(90deg, rgba(255, 46, 46, 0.06) 0 2px, transparent 2px 10px),
+          radial-gradient(circle at 50% 20%, rgba(255, 198, 26, 0.14), transparent 40%),
+          #130709;
       }
 
       .orientation-lock__stars {
@@ -149,6 +164,7 @@
         inset: 0;
         pointer-events: none;
         overflow: hidden;
+        display: none;
       }
 
       .orientation-lock__stars span {
@@ -171,17 +187,18 @@
         grid-template-columns: auto auto;
         align-items: center;
         justify-content: center;
-        gap: clamp(56px, 8vw, 112px);
-        width: min(92vw, 760px);
+        gap: clamp(28px, 6vw, 72px);
+        width: min(92vw, 700px);
+        max-height: calc(100dvh - 32px);
         margin: auto;
       }
 
       .orientation-lock__phone {
-        width: clamp(132px, 16.5vw, 198px);
+        width: clamp(96px, 15vw, 164px);
         height: auto;
         image-rendering: pixelated;
         transform-origin: center;
-        animation: orientation-phone-turn 2.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        animation: orientation-phone-turn 3.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
 
       .orientation-lock__copy {
@@ -193,22 +210,41 @@
       }
 
       .orientation-lock__title {
-        color: #0a0a0a;
-        font-size: clamp(26px, 4.1vw, 46px);
-        line-height: 1.08;
+        color: #ffe600;
+        font-size: clamp(20px, 3.2vw, 34px);
+        line-height: 1.22;
+        text-shadow: 0 4px 0 #0a0a0a;
       }
 
       .orientation-lock__body {
-        margin-top: clamp(24px, 4vw, 42px);
+        margin-top: clamp(14px, 2.2vw, 26px);
         color: #faf7f0;
-        font-size: clamp(8px, 1.25vw, 14px);
-        line-height: 1.35;
+        font-size: clamp(8px, 1.05vw, 12px);
+        line-height: 1.55;
+      }
+
+      .orientation-lock__bar {
+        width: min(280px, 40vw);
+        height: 18px;
+        margin-top: clamp(16px, 2.4vw, 28px);
+        border: 4px solid #0a0a0a;
+        background: #050607;
+        box-shadow: 0 0 0 4px #ff2e2e;
+      }
+
+      .orientation-lock__bar::before {
+        content: '';
+        display: block;
+        width: 62%;
+        height: 100%;
+        background: #ffe600;
       }
 
       @media (max-width: 680px) and (orientation: landscape) {
         .orientation-lock__content {
           gap: 38px;
           width: min(94vw, 560px);
+          grid-template-columns: auto minmax(240px, 1fr);
         }
 
         .orientation-lock__title {
@@ -218,6 +254,11 @@
         .orientation-lock__body {
           margin-top: 20px;
           font-size: 8px;
+        }
+
+        .orientation-lock__bar {
+          width: min(240px, 36vw);
+          height: 14px;
         }
       }
 
@@ -266,9 +307,9 @@
         justify-content: center;
         padding: 32px;
         background:
-          linear-gradient(120deg, rgba(118, 109, 255, 0.55), transparent 52%),
-          linear-gradient(250deg, rgba(66, 61, 212, 0.38), transparent 58%),
-          #5a54f9;
+          repeating-linear-gradient(0deg, rgba(255, 198, 26, 0.08) 0 2px, transparent 2px 10px),
+          repeating-linear-gradient(90deg, rgba(255, 46, 46, 0.06) 0 2px, transparent 2px 10px),
+          #130709;
         color: #faf7f0;
         font-family: 'Press Start 2P', monospace;
         font-weight: 400;
@@ -276,7 +317,6 @@
         line-height: 1.55;
         text-align: center;
         z-index: 100;
-        animation: app-bg-pulse 3.2s ease-in-out infinite alternate;
       }
 
       #boot-loader > div {
@@ -359,6 +399,7 @@
 	        <div class="orientation-lock__copy">
 	          <div class="orientation-lock__title">Поверни<br />телефон!</div>
 	          <div class="orientation-lock__body">эта игра только<br />для вертикальных<br />устройств</div>
+	          <div class="orientation-lock__bar" aria-hidden="true"></div>
 	        </div>
 	      </div>
 	    </div>

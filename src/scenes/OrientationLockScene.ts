@@ -19,8 +19,15 @@ export class OrientationLockScene extends Phaser.Scene {
 
     this.textures.get('orientation-phone-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.purple)
+    this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x130709)
       .setDepth(DEPTH.background);
+
+    const grid = this.add.graphics();
+    grid.setDepth(DEPTH.background + 1);
+    grid.fillStyle(0xffc21a, 0.08);
+    for (let y = 0; y < HEIGHT; y += 12) grid.fillRect(0, y, WIDTH, 2);
+    grid.fillStyle(COLORS.red, 0.06);
+    for (let x = 0; x < WIDTH; x += 12) grid.fillRect(x, 0, 2, HEIGHT);
 
     const content = this.add.container(WIDTH / 2, HEIGHT / 2);
     content.setSize(WIDTH, HEIGHT);
@@ -35,9 +42,9 @@ export class OrientationLockScene extends Phaser.Scene {
     this.tweens.add({
       targets: phone,
       rotation: { from: -Math.PI / 2, to: 0 },
-      duration: 1900,
-      hold: 450,
-      repeatDelay: 450,
+      duration: 2600,
+      hold: 900,
+      repeatDelay: 900,
       yoyo: true,
       repeat: -1,
       ease: 'Cubic.easeInOut',
@@ -48,8 +55,8 @@ export class OrientationLockScene extends Phaser.Scene {
 
     const title = this.add.text(0, -45, RU.orientationLock.title, {
       fontFamily: this.pixelFont,
-      fontSize: '30px',
-      color: '#0A0A0A',
+      fontSize: '28px',
+      color: '#FFE600',
       align: 'center',
       wordWrap: { width: 360 },
       lineSpacing: 16,

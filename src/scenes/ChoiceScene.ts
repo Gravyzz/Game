@@ -6,7 +6,7 @@ import { Button } from '@ui/Button';
 import { SessionState } from '@core/SessionState';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { attachSoundButton } from '@utils/SceneHelpers';
+import { attachSoundButton, paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * Экран выбора после победы в минке.
@@ -26,7 +26,8 @@ export class ChoiceScene extends Phaser.Scene {
 
   create(_data: { wonLevel?: number } = {}): void {
     const { WIDTH, HEIGHT } = GAME;
-    SoundManager.startMusic('relaxed');
+    SoundManager.playMusic('relaxed');
+    paintPageBackdrop(this, 0x130709);
 
     if (SessionState.getLivesLeft() <= 0) {
       this.scene.start('ResultScene', { outcome: 'lose' });
