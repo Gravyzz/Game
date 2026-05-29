@@ -55,7 +55,7 @@ export class ResultScene extends Phaser.Scene {
     const { WIDTH, HEIGHT } = GAME;
     const prize = SessionState.getPrize();
 
-    paintPageBackdrop(this, 0x050607);
+    paintPageBackdrop(this, 0x050607, 'unluck-bg');
 
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'unluck-bg');
     bg.setOrigin(0.5);
@@ -179,7 +179,7 @@ export class ResultScene extends Phaser.Scene {
   private renderLose(): void {
     const { WIDTH, HEIGHT } = GAME;
 
-    paintPageBackdrop(this, 0x050607);
+    paintPageBackdrop(this, 0x050607, 'unluck-bg');
     this.textures.get('pizza-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'unluck-bg');

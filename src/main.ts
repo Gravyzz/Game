@@ -25,6 +25,22 @@ import { FiveDollarScene } from '@minigames/FiveDollar';
 import { RecipeMemoScene } from '@minigames/RecipeMemo';
 import { JeffreySurferScene } from '@minigames/JeffreySurfer';
 
+const getViewportSize = (): { width: number; height: number } => {
+  const viewport = window.visualViewport;
+  return {
+    width: viewport?.width ?? window.innerWidth,
+    height: viewport?.height ?? window.innerHeight,
+  };
+};
+
+const shouldScaleToMobileWidth = (): boolean => {
+  const { width, height } = getViewportSize();
+  return width <= 768 && height >= width;
+};
+
+const getScaleMode = (): Phaser.Scale.ScaleModeType =>
+  shouldScaleToMobileWidth() ? Phaser.Scale.WIDTH_CONTROLS_HEIGHT : Phaser.Scale.FIT;
+
 /**
  * Точка входа Make Love Adventures.
  *
@@ -42,7 +58,7 @@ const config: Phaser.Types.Core.GameConfig = {
   transparent: true,
 
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: getScaleMode(),
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width:  GAME.WIDTH,
     height: GAME.HEIGHT,
@@ -101,6 +117,32 @@ TicketProvider.init();
 
 // Запускаем игру
 const game = new Phaser.Game(config);
+
+let scaleSyncTimer: number | undefined;
+
+const syncScaleMode = (): void => {
+  const nextMode = getScaleMode();
+
+  if (game.scale.scaleMode !== nextMode) {
+    game.scale.scaleMode = nextMode;
+  }
+
+  game.scale.refresh();
+};
+
+const scheduleScaleSync = (): void => {
+  if (scaleSyncTimer !== undefined) {
+    window.clearTimeout(scaleSyncTimer);
+  }
+
+  scaleSyncTimer = window.setTimeout(syncScaleMode, 0);
+};
+
+window.addEventListener('resize', scheduleScaleSync);
+window.addEventListener('orientationchange', scheduleScaleSync);
+window.visualViewport?.addEventListener('resize', scheduleScaleSync);
+game.events.once(Phaser.Core.Events.READY, scheduleScaleSync);
+window.setTimeout(scheduleScaleSync, 0);
 
 const ORIENTATION_LOCK_SCENE = 'OrientationLockScene';
 let orientationListenersReady = false;

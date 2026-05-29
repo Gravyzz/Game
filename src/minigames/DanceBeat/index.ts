@@ -137,7 +137,7 @@ export class DanceBeatScene extends BaseMinigame {
     this.configurePixelAssets();
 
     // Фон
-    paintPageBackdrop(this, 0x120608);
+    paintPageBackdrop(this, 0x120608, 'dancebeat-bg');
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2 + BG_OFFSET_Y, 'dancebeat-bg');
     bg.setOrigin(0.5);
     bg.setDepth(DEPTH.background);

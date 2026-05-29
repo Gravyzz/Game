@@ -7,7 +7,7 @@ import { SessionState } from '@core/SessionState';
 import { SoundManager } from '@core/SoundManager';
 import { MINIGAME_DIFFICULTY, MINIGAME_POOL } from '@core/MinigameRegistry';
 import type { MinigameInitData } from '@minigames/BaseMinigame';
-import { attachSceneBackButton } from '@utils/SceneHelpers';
+import { attachSceneBackButton, paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * Дев-меню: запускает любую минку напрямую, в обход билета и сессии.
@@ -33,6 +33,7 @@ export class DevMinigameMenuScene extends Phaser.Scene {
     SoundManager.playMusic('menu');
 
     this.setPixelTexture('minigames-screen-bg-new');
+    paintPageBackdrop(this, 0x130709, 'minigames-screen-bg-new');
     this.drawTreeBackdrop();
     attachSceneBackButton(this, () => this.scene.start('SplashScene'));
 

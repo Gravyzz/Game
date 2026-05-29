@@ -462,18 +462,48 @@ export function attachIntro(
  * Использование в create():
  *   paintPageBackdrop(this, 0x2a4d3e);
  */
-export function paintPageBackdrop(scene: Phaser.Scene, color: number): void {
+let pageBackdropToken = 0;
+
+function getTextureUrl(scene: Phaser.Scene, textureKey?: string): string | null {
+  if (!textureKey || !scene.textures.exists(textureKey)) return null;
+  const source = scene.textures.get(textureKey).getSourceImage() as { currentSrc?: string; src?: string };
+  const url = source.currentSrc || source.src;
+  return typeof url === 'string' && url.length > 0 ? url : null;
+}
+
+function buildPageBackdrop(scene: Phaser.Scene, color: number, textureKey?: string): string {
   const hex = '#' + color.toString(16).padStart(6, '0');
+  const textureUrl = getTextureUrl(scene, textureKey);
+  if (!textureUrl) return hex;
+
+  const safeUrl = textureUrl.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return [
+    'linear-gradient(0deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28))',
+    `url("${safeUrl}") center center / cover no-repeat`,
+    hex,
+  ].join(', ');
+}
+
+export function updatePageBackdrop(scene: Phaser.Scene, color: number, textureKey?: string): void {
+  const backdrop = buildPageBackdrop(scene, color, textureKey);
   const app = document.getElementById('app');
+  document.body.style.background = backdrop;
+  document.documentElement.style.background = backdrop;
+  if (app) app.style.background = backdrop;
+  document.body.classList.add('scene-backdrop');
+}
+
+export function paintPageBackdrop(scene: Phaser.Scene, color: number, textureKey?: string): void {
+  const app = document.getElementById('app');
+  const token = ++pageBackdropToken;
   const prevBody = document.body.style.background;
   const prevHtml = document.documentElement.style.background;
   const prevApp = app?.style.background ?? '';
-  document.body.style.background = hex;
-  document.documentElement.style.background = hex;
-  if (app) app.style.background = hex;
-  document.body.classList.add('scene-backdrop');
+
+  updatePageBackdrop(scene, color, textureKey);
 
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+    if (token !== pageBackdropToken) return;
     document.body.style.background = prevBody;
     document.documentElement.style.background = prevHtml;
     if (app) app.style.background = prevApp;

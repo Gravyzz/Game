@@ -217,7 +217,7 @@ export class ChopChopScene extends BaseMinigame {
     this.dullKnifeFlip = false;
 
     // Фон
-    paintPageBackdrop(this, 0x1d1712);
+    paintPageBackdrop(this, 0x1d1712, 'chopchop-bg');
     this.textures.get('chopchop-bg').setFilter(Phaser.Textures.FilterMode.NEAREST);
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'chopchop-bg');
     bg.setOrigin(0.5);

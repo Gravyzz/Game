@@ -10,6 +10,7 @@ import { MINIGAME_DIFFICULTY } from '@core/MinigameRegistry';
 import type { MinigameInitData, MinigameResult } from '@minigames/BaseMinigame';
 import { Button } from '@ui/Button';
 import { SoundManager } from '@core/SoundManager';
+import { paintPageBackdrop } from '@utils/SceneHelpers';
 
 const PIXEL_FONT = '"Press Start 2P", monospace';
 
@@ -69,6 +70,7 @@ export class MinigameRunnerScene extends Phaser.Scene {
     const meta = SessionState.getMinigameAtLevel(level);
 
     // Атмосферный фон пиццерии
+    paintPageBackdrop(this, 0x130709, 'play-interlevel-bg');
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'play-interlevel-bg');
     bg.setOrigin(0.5);
     bg.setScale(Math.max(WIDTH / bg.width, HEIGHT / bg.height));

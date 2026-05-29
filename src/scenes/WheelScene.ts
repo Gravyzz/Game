@@ -90,7 +90,7 @@ export class WheelScene extends Phaser.Scene {
     this.sectorRad = (Math.PI * 2) / this.sectorCount;
 
     this.preparePixelAssets();
-    paintPageBackdrop(this, 0x0a0a0a);
+    paintPageBackdrop(this, 0x0a0a0a, 'fortune-bg');
 
     // ===== Фон по макету =====
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'fortune-bg');

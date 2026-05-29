@@ -99,7 +99,7 @@ export class FireStarterScene extends BaseMinigame {
     this.resetRuntimeState();
     this.preparePixelTextures();
 
-    paintPageBackdrop(this, FIRESTARTER_BG);
+    paintPageBackdrop(this, FIRESTARTER_BG, 'firestarter-bg');
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'firestarter-bg')
       .setOrigin(0.5)
       .setDepth(DEPTH.background);

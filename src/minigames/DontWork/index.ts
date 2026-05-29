@@ -9,6 +9,7 @@ import { Haptics } from '@core/Haptics';
 import { DONT_WORK_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
+  updatePageBackdrop,
   attachHomeButton,
   attachIntro,
   createGlobalLivesDisplay,
@@ -256,7 +257,7 @@ export class DontWorkScene extends BaseMinigame {
     this.bakeNoise();
 
     // Background
-    paintPageBackdrop(this, 0x17110d);
+    paintPageBackdrop(this, 0x17110d, this.stage.bgTexture);
     this.bgImage = this.add.image(CX, H / 2, this.stage.bgTexture)
       .setOrigin(0.5)
       .setDepth(DEPTH.background);
@@ -438,6 +439,7 @@ export class DontWorkScene extends BaseMinigame {
     this.bossHP      = this.stage.bossHP;
     this.bgImage.setTexture(this.stage.bgTexture);
     this.fitStageBackground();
+    updatePageBackdrop(this, 0x17110d, this.stage.bgTexture);
     this.refreshHud();
 
     if (this.stage.hasBoss) this.spawnBoss();

@@ -5,7 +5,7 @@ import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
 import { GameState } from '@core/GameState';
 import { SessionState } from '@core/SessionState';
-import { attachSoundButton } from '@utils/SceneHelpers';
+import { attachSoundButton, paintPageBackdrop } from '@utils/SceneHelpers';
 import { drawPixelButton } from '@utils/PixelButton';
 
 /**
@@ -40,6 +40,7 @@ export class SplashScene extends Phaser.Scene {
     this.setPixelTexture('plus-pixel');
     this.setPixelTexture('minus-pixel');
     this.setPixelTexture('cancel-pixel');
+    paintPageBackdrop(this, 0x130709, 'main-screen-bg-new');
 
     const screenContent = this.add.container(WIDTH / 2, HEIGHT / 2);
     screenContent.setSize(WIDTH, HEIGHT);

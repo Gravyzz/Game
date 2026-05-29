@@ -132,7 +132,7 @@ export class RecipeMemoScene extends BaseMinigame {
     this.resetRuntimeState();
     this.preparePixelTextures();
 
-    paintPageBackdrop(this, RECIPE_BG);
+    paintPageBackdrop(this, RECIPE_BG, 'recipe-bg');
     const bg = this.add.image(WIDTH / 2, HEIGHT / 2, 'recipe-bg');
     bg.setOrigin(0.5);
     bg.setDepth(DEPTH.background);

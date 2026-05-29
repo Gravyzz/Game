@@ -8,6 +8,7 @@ import { Haptics } from '@core/Haptics';
 import { SURFER_ASSETS, loadImageAssets } from '@core/AssetManifest';
 import {
   paintPageBackdrop,
+  updatePageBackdrop,
   attachHomeButton,
   attachIntro,
   createGlobalLivesDisplay,
@@ -199,7 +200,7 @@ export class SurferScene extends BaseMinigame {
     this.textures.get('heart-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.textures.get('home-pixel').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    paintPageBackdrop(this, this.stage.bgSky);
+    paintPageBackdrop(this, this.stage.bgSky, this.stage.bgTexture);
     this.bgSky = this.add.image(CX, H / 2, this.stage.bgTexture)
       .setOrigin(0.5)
       .setDepth(DEPTH.background);
@@ -383,6 +384,7 @@ export class SurferScene extends BaseMinigame {
 
     this.bgSky.setTexture(this.stage.bgTexture);
     this.fitBackgroundCover();
+    updatePageBackdrop(this, this.stage.bgSky, this.stage.bgTexture);
     const skyHex = '#' + this.stage.bgSky.toString(16).padStart(6, '0');
     document.body.style.background = skyHex;
     document.documentElement.style.background = skyHex;

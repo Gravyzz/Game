@@ -18,6 +18,7 @@ import {
   type Lane,
   type HitQuality,
 } from '@minigames/RhythmBattle/config';
+import { paintPageBackdrop } from '@utils/SceneHelpers';
 
 /**
  * MG-01 ⭐ ФЛАГМАН: Олдскул vs Шокинг Блю.
@@ -76,6 +77,7 @@ export class RhythmBattleScene extends BaseMinigame {
     const { WIDTH, HEIGHT } = GAME;
 
     // Фон сцены
+    paintPageBackdrop(this, COLORS.black);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.black);
     this.drawNoise();
     this.drawStageStripes();

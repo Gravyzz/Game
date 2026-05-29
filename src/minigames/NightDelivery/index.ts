@@ -7,7 +7,7 @@ import { RU } from '@i18n/ru';
 import { PosterText } from '@ui/PosterText';
 import { SoundManager } from '@core/SoundManager';
 import { Haptics } from '@core/Haptics';
-import { createGlobalLivesDisplay, type GlobalLivesDisplay } from '@utils/SceneHelpers';
+import { createGlobalLivesDisplay, paintPageBackdrop, type GlobalLivesDisplay } from '@utils/SceneHelpers';
 
 /**
  * MG-04 Ночная доставка.
@@ -89,6 +89,7 @@ export class NightDeliveryScene extends BaseMinigame {
     this.groundY = HEIGHT * GROUND_Y_RATIO;
 
     // Фон тёмно-серый с фиолетовыми бликами
+    paintPageBackdrop(this, COLORS.greyDark);
     this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, COLORS.greyDark);
     // Небо-ночь
     const sky = this.add.rectangle(WIDTH / 2, HEIGHT * 0.3, WIDTH, HEIGHT * 0.6, COLORS.black);

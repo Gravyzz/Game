@@ -384,7 +384,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
   // ─── construction ──────────────────────────────────────────────────────────
 
   private drawRoom(): void {
-    paintPageBackdrop(this, PA_BG);
+    paintPageBackdrop(this, PA_BG, 'pizzaassembly-knife-hit-bg');
     this.add.image(CX, H / 2, 'pizzaassembly-knife-hit-bg')
       .setOrigin(0.5)
       .setDisplaySize(W, H)
