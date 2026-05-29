@@ -383,6 +383,8 @@ export class DontWorkScene extends BaseMinigame {
     this.input.off('pointermove', this.onPointerMove, this);
     this.input.off('pointerup',   this.onPointerUp,   this);
     this.spawnTimer?.remove();
+    SoundManager.stopSfx('knifeSlice', 60);
+    SoundManager.stopSfx('heavyImpact', 80);
     this.tweens.killAll();
   }
 
@@ -501,11 +503,11 @@ export class DontWorkScene extends BaseMinigame {
     this.tweens.add({ targets: banner, alpha: 1, scale: 1, duration: 280, ease: 'Cubic.easeOut' });
     this.tweens.add({
       targets: banner, alpha: 0, y: H / 2 - 20,
-      delay: 700, duration: 350, ease: 'Sine.easeIn',
+      delay: 1700, duration: 350, ease: 'Sine.easeIn',
       onComplete: () => banner.destroy(),
     });
 
-    this.time.delayedCall(900, () => {
+    this.time.delayedCall(2050, () => {
       if (this.finished) return;
       const nextIdx = this.stageIdx + 1;
       if (nextIdx >= TOTAL_STAGES) {
@@ -553,7 +555,7 @@ export class DontWorkScene extends BaseMinigame {
 
     this.tweens.add({
       targets: [txt, hint], alpha: 0, y: '-=30',
-      delay: 1200, duration: 400, ease: 'Sine.easeIn',
+      delay: 2200, duration: 400, ease: 'Sine.easeIn',
       onComplete: () => { txt.destroy(); hint.destroy(); after(); },
     });
   }
@@ -768,7 +770,7 @@ export class DontWorkScene extends BaseMinigame {
     this.totalScore += 10 * mult;
     if (mult >= 2) this.showCombo(x, y, mult);
 
-    SoundManager.playSfx('impact');
+    SoundManager.playSfx('knifeSlice', 0.62);
     Haptics.trigger('good');
     this.spawnSparks(x, y, 0xffe600);
     this.refreshHud();
@@ -1014,6 +1016,8 @@ export class DontWorkScene extends BaseMinigame {
     this.finished = true;
     this.canPlay  = false;
     this.spawnTimer?.remove();
+    SoundManager.stopSfx('knifeSlice', 60);
+    SoundManager.stopSfx('heavyImpact', 80);
 
     if (win) { SoundManager.playSfx('win');  Haptics.trigger('win');  }
     else     { SoundManager.playSfx('lose'); Haptics.trigger('lose'); }

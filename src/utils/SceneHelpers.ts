@@ -414,8 +414,8 @@ export function attachIntro(
   titleText.setScrollFactor(0);
 
   const bodyText = scene.add.text(WIDTH / 2, HEIGHT / 2 - 30, guide, {
-    fontFamily: pixel, fontSize: '21px', color: '#FAF7F0',
-    align: 'center', lineSpacing: 16, wordWrap: { width: WIDTH - 180 },
+    fontFamily: pixel, fontSize: '19px', color: '#FAF7F0',
+    align: 'center', lineSpacing: 14, wordWrap: { width: WIDTH - 160 },
   });
   bodyText.setOrigin(0.5);
   bodyText.setDepth(TOP + 2);

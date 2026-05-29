@@ -269,7 +269,7 @@ export class DanceBeatScene extends BaseMinigame {
       scaleY: { from: z.button.scaleY * 1.08, to: z.button.scaleY },
       duration: 180, ease: 'Back.easeOut',
     });
-    SoundManager.playSfx('electricPop');
+    SoundManager.playSfx('comboCue');
     this.time.delayedCall(durationMs, () => {
       if (!this.finished && !this.acceptingInput) this.setButtonsMode('grey');
     });
@@ -285,7 +285,7 @@ export class DanceBeatScene extends BaseMinigame {
       duration: 120,
       ease: 'Back.easeOut',
     });
-    SoundManager.playSfx('good');
+    SoundManager.playSfx('comboPress');
     this.time.delayedCall(durationMs, () => {
       if (!this.finished && this.acceptingInput) this.setButtonState(dir, 'normal');
     });
@@ -453,7 +453,9 @@ export class DanceBeatScene extends BaseMinigame {
   }
 
   private handleRoundCleared(): void {
-    SoundManager.playSfx('danceStinger');
+    SoundManager.stopSfx('comboCue', 40);
+    SoundManager.stopSfx('comboPress', 40);
+    SoundManager.playSfx('comboClear');
     Haptics.trigger('win');
     this.setBig('K.O.', '#4ADE80');
     this.tweens.add({
@@ -480,6 +482,8 @@ export class DanceBeatScene extends BaseMinigame {
     this.timerBar.setVisible(false);
     this.timerBarBg.setVisible(false);
 
+    SoundManager.stopSfx('comboCue', 40);
+    SoundManager.stopSfx('comboPress', 40);
     SoundManager.playSfx('miss');
     Haptics.trigger('miss');
     this.setBig(reason, '#EF4444');
@@ -525,6 +529,9 @@ export class DanceBeatScene extends BaseMinigame {
     this.acceptingInput = false;
     this.clearShowTimers();
     if (this.inputTimer) this.inputTimer.remove();
+    SoundManager.stopSfx('comboCue', 50);
+    SoundManager.stopSfx('comboPress', 50);
+    SoundManager.stopSfx('comboClear', 80);
 
     if (win) { SoundManager.playSfx('win'); Haptics.trigger('win'); }
     else     { SoundManager.playSfx('lose'); Haptics.trigger('lose'); }
@@ -557,6 +564,9 @@ export class DanceBeatScene extends BaseMinigame {
   shutdown(): void {
     this.clearShowTimers();
     if (this.inputTimer) this.inputTimer.remove();
+    SoundManager.stopSfx('comboCue', 50);
+    SoundManager.stopSfx('comboPress', 50);
+    SoundManager.stopSfx('comboClear', 80);
     this.unbindKeyboard();
   }
 

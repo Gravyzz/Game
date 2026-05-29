@@ -455,6 +455,7 @@ export class FireStarterScene extends BaseMinigame {
     this.accepting = false;
     if (this.markerTween) this.markerTween.remove();
     if (this.timerEvent) this.timerEvent.remove();
+    SoundManager.stopSfx('impact', 60);
 
     // Победа = добил 10 успешных раундов. Сессионные жизни уже списаны промахами;
     // их учёт делается раннером и не должен здесь убивать выигрыш.
@@ -488,5 +489,6 @@ export class FireStarterScene extends BaseMinigame {
     }
     if (this.markerTween) this.markerTween.remove();
     if (this.timerEvent) this.timerEvent.remove();
+    SoundManager.stopSfx('impact', 60);
   }
 }

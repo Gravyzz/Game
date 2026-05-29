@@ -7,6 +7,9 @@ import { Haptics } from '@core/Haptics';
 
 const PIXEL_FONT = '"Press Start 2P", monospace';
 const PANEL_DELAY_MS = 3000;
+const MOUTH_FRAME_DELAY_MS = 1050;
+const MOUTH_TOGGLE_LIMIT = 2;
+const MOUTH_SETTLE_DELAY_MS = 180;
 
 interface ComicPanel {
   x: number;
@@ -125,22 +128,42 @@ export class ComicsScene extends Phaser.Scene {
     this.flashComicPop(panel.x, panel.y, panel.w, panel.h);
 
     if (panel.closeKey) {
-      const closeKey = panel.closeKey;
-      this.activePanel = image;
-      this.activeTimer = this.time.addEvent({
-        delay: 500,
-        loop: true,
-        callback: () => {
-          if (!this.activePanel) return;
-          const nextKey = this.activePanel.texture.key === panel.openKey ? closeKey : panel.openKey;
-          this.activePanel.setTexture(nextKey);
-          this.activePanel.setDisplaySize(panel.w, panel.h);
-        },
-      });
+      this.startBriefMouthAnimation(panel, image);
     } else {
       this.hideSkipButton();
       this.showStartButton();
     }
+  }
+
+  private startBriefMouthAnimation(panel: ComicPanel, image: Phaser.GameObjects.Image): void {
+    if (!panel.closeKey) return;
+
+    const closeKey = panel.closeKey;
+    this.activePanel = image;
+
+    let togglesDone = 0;
+    const toggleFrame = () => {
+      if (!this.activePanel) return;
+
+      const nextKey = this.activePanel.texture.key === panel.openKey ? closeKey : panel.openKey;
+      this.activePanel.setTexture(nextKey);
+      this.activePanel.setDisplaySize(panel.w, panel.h);
+      togglesDone++;
+
+      if (togglesDone < MOUTH_TOGGLE_LIMIT) {
+        this.activeTimer = this.time.delayedCall(MOUTH_FRAME_DELAY_MS, toggleFrame);
+        return;
+      }
+
+      this.activeTimer = this.time.delayedCall(MOUTH_SETTLE_DELAY_MS, () => {
+        if (!this.activePanel) return;
+        this.activePanel.setTexture(panel.openKey);
+        this.activePanel.setDisplaySize(panel.w, panel.h);
+        this.activeTimer = null;
+      });
+    };
+
+    this.activeTimer = this.time.delayedCall(MOUTH_FRAME_DELAY_MS, toggleFrame);
   }
 
   private flashComicPop(x: number, y: number, w: number, h: number): void {

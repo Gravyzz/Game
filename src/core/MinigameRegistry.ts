@@ -84,11 +84,35 @@ const SESSION_LENGTH = 4;
  * Генерирует уникальную случайную последовательность из 4 мини-игр.
  * Гарантия: внутри одной сессии мини-игры не повторяются.
  */
-export function generateSessionSequence(): MinigameMeta[] {
-  const shuffled = [...MINIGAME_POOL];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+export function pickOneFromRemaining(remaining: MinigameMeta[]): MinigameMeta {
+  if (remaining.length <= 0) {
+    throw new Error('Cannot pick a minigame from an empty pool.');
   }
-  return shuffled.slice(0, SESSION_LENGTH);
+
+  const index = Math.floor(Math.random() * remaining.length);
+  const picked = remaining[index];
+  if (!picked) {
+    throw new Error(`Minigame pick failed at index ${index}.`);
+  }
+
+  remaining.splice(index, 1);
+  return picked;
+}
+
+export function generateSessionSequence(): MinigameMeta[] {
+  const remaining = [...MINIGAME_POOL];
+  const sequence: MinigameMeta[] = [];
+
+  while (sequence.length < SESSION_LENGTH && remaining.length > 0) {
+    sequence.push(pickOneFromRemaining(remaining));
+  }
+
+  if (import.meta.env.DEV) {
+    console.info(
+      '[Minigames] session sequence:',
+      sequence.map((meta, idx) => `${idx + 1}:${meta.key}`).join(' -> '),
+    );
+  }
+
+  return sequence;
 }

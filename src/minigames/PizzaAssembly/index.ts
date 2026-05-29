@@ -272,6 +272,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.input.off('pointerdown', this.onTap, this);
     this.input.keyboard?.off('keydown-SPACE', this.onTap, this);
     this.flipEvt?.remove();
+    SoundManager.stopSfx('knifeThrow', 60);
+    SoundManager.stopSfx('knifeStick', 60);
+    SoundManager.stopSfx('knifeClash', 80);
     SoundManager.stopSfx('saberCut', 80);
     SoundManager.stopSfx('impact', 80);
     this.tweens.killAll();
@@ -415,7 +418,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     if (!this.canThrow || this.flying || this.done || this.inTransition) return;
     this.flying   = true;
     this.canThrow = false;
-    SoundManager.playSfx('saberCut', 0.72);
+    SoundManager.playSfx('knifeThrow');
   }
 
   private landKnife(): void {
@@ -460,7 +463,8 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.stuck.push({ localAngle, sprite: k });
     this.stageStuck++;
 
-    SoundManager.playSfx('impact', 0.82);
+    SoundManager.stopSfx('knifeThrow', 25);
+    SoundManager.playSfx('knifeStick');
     Haptics.trigger('perfect');
     this.spawnImpactRing();
     this.spawnHitChips(CX, CY + KNIFE_STUCK_RADIUS);
@@ -480,7 +484,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
   }
 
   private onCollision(): void {
-    SoundManager.playSfx('heavyImpact', 0.78);
+    SoundManager.stopSfx('knifeThrow', 25);
+    SoundManager.stopSfx('knifeStick', 35);
+    SoundManager.playSfx('knifeClash');
     Haptics.trigger('miss');
     this.cameras.main.shake(160, 0.012);
     this.inTransition = true;
@@ -537,7 +543,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     });
     this.tweens.add({
       targets: banner, alpha: 0, y: H / 2 - 20,
-      delay: 700, duration: 350, ease: 'Sine.easeIn',
+      delay: 1700, duration: 350, ease: 'Sine.easeIn',
       onComplete: () => banner.destroy(),
     });
 
@@ -557,7 +563,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
       });
     }
 
-    this.time.delayedCall(900, () => {
+    this.time.delayedCall(2050, () => {
       if (this.done) return;
       this.stuck      = [];
       this.stageStuck = 0;
@@ -616,7 +622,7 @@ export class PizzaAssemblyScene extends BaseMinigame {
     });
     this.tweens.add({
       targets: txt, alpha: 0, y: H / 2 - 30,
-      delay: inDelay + 750, duration: 400, ease: 'Sine.easeIn',
+      delay: inDelay + 1800, duration: 400, ease: 'Sine.easeIn',
       onComplete: () => {
         txt.destroy();
         after();
@@ -801,6 +807,9 @@ export class PizzaAssemblyScene extends BaseMinigame {
     this.flipEvt?.remove();
     this.input.off('pointerdown', this.onTap, this);
     this.input.keyboard?.off('keydown-SPACE', this.onTap, this);
+    SoundManager.stopSfx('knifeThrow', 60);
+    SoundManager.stopSfx('knifeStick', 60);
+    SoundManager.stopSfx('knifeClash', 80);
     SoundManager.stopSfx('saberCut', 80);
     SoundManager.stopSfx('impact', 80);
 
