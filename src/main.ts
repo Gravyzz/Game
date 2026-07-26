@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME } from '@config/game';
+import { GameState } from '@core/GameState';
 import { TicketProvider } from '@core/TicketProvider';
 import { SoundManager } from '@core/SoundManager';
 import { BootScene } from '@scenes/BootScene';
@@ -11,7 +12,6 @@ import { ChoiceScene } from '@scenes/ChoiceScene';
 import { WheelScene } from '@scenes/WheelScene';
 import { ResultScene } from '@scenes/ResultScene';
 import { NoTicketScene } from '@scenes/NoTicketScene';
-// === DEV: minigame test menu — REMOVE BEFORE PROD ===
 import { DevMinigameMenuScene } from '@scenes/DevMinigameMenuScene';
 import { FireStarterScene } from '@minigames/FireStarter';
 import { DontWorkScene } from '@minigames/DontWork';
@@ -41,16 +41,6 @@ const shouldScaleToMobileWidth = (): boolean => {
 const getScaleMode = (): Phaser.Scale.ScaleModeType =>
   shouldScaleToMobileWidth() ? Phaser.Scale.WIDTH_CONTROLS_HEIGHT : Phaser.Scale.FIT;
 
-/**
- * Точка входа Make Love Adventures.
- *
- * Phaser конфиг:
- * - Scale.FIT — масштабируем виртуальный холст 720x1280 под реальный экран,
- *   сохраняя соотношение. По бокам/сверху/снизу могут появиться чёрные поля
- *   (на iPad) — это ожидаемо для портретной mobile-first игры.
- * - autoCenter — центруем canvas по горизонтали и вертикали.
- * - WebGL с Canvas-фолбэком на старых девайсах.
- */
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'app',
@@ -60,23 +50,20 @@ const config: Phaser.Types.Core.GameConfig = {
   scale: {
     mode: getScaleMode(),
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width:  GAME.WIDTH,
+    width: GAME.WIDTH,
     height: GAME.HEIGHT,
   },
 
-  // Тач-инпут включён, мышь тоже работает — для отладки на десктопе
   input: {
-    activePointers: 3, // одновременно до 3 пальцев (на будущее, для рит-минки)
+    activePointers: 3,
     touch: { capture: true },
   },
 
-  // FPS таргет
   fps: {
     target: GAME.TARGET_FPS,
     forceSetTimeOut: false,
   },
 
-  // Регистрация сцен. Первая в массиве — стартует автоматически.
   scene: [
     BootScene,
     ComicsScene,
@@ -88,7 +75,6 @@ const config: Phaser.Types.Core.GameConfig = {
     WheelScene,
     ResultScene,
     DevMinigameMenuScene,
-    // Мини-игры — Phaser scene key совпадает с MINIGAME_ORDER в registry
     FireStarterScene,
     DontWorkScene,
     RhythmBattleScene,
@@ -102,7 +88,6 @@ const config: Phaser.Types.Core.GameConfig = {
     JeffreySurferScene,
   ],
 
-  // Без отрисовки физических тел — нам не нужны коллизии в этой игре
   physics: {
     default: 'arcade',
     arcade: {
@@ -112,10 +97,8 @@ const config: Phaser.Types.Core.GameConfig = {
   },
 };
 
-// Запускаем источники билетов до старта игры (URL-параметр и postMessage слушатель)
 TicketProvider.init();
 
-// Запускаем игру
 const game = new Phaser.Game(config);
 
 let scaleSyncTimer: number | undefined;
@@ -204,15 +187,13 @@ const registerOrientationLock = (): void => {
 game.events.once(Phaser.Core.Events.READY, registerOrientationLock);
 window.setTimeout(registerOrientationLock, 0);
 
-// Логи в консоль на старте — удобно дебажить с телефона
 console.log(
   '%c MAKE LOVE ADVENTURES %c v0.1 ',
   'background: #FF2E2E; color: #FAF7F0; font-weight: 900; padding: 4px 8px;',
-  'background: #0A0A0A; color: #FAF7F0; padding: 4px 8px;'
+  'background: #0A0A0A; color: #FAF7F0; padding: 4px 8px;',
 );
-console.log('Кайф. Драйв. Рок-н-ролл.');
+console.log('Make Love Adventures started');
 
-// Защита от случайного зума двойным тапом на iOS
 let lastTouchEnd = 0;
 document.addEventListener(
   'touchend',
@@ -223,18 +204,15 @@ document.addEventListener(
     }
     lastTouchEnd = now;
   },
-  { passive: false }
+  { passive: false },
 );
 
-// Защита от pinch-zoom на iOS
 document.addEventListener(
   'gesturestart',
   (e) => e.preventDefault(),
-  { passive: false }
+  { passive: false },
 );
 
-// Экспортим для отладки в консоли
-import { GameState } from '@core/GameState';
 (window as unknown as { __game: Phaser.Game; __state: typeof GameState; __ticket: typeof TicketProvider }).__game = game;
 (window as unknown as { __game: Phaser.Game; __state: typeof GameState; __ticket: typeof TicketProvider }).__state = GameState;
 (window as unknown as { __game: Phaser.Game; __state: typeof GameState; __ticket: typeof TicketProvider }).__ticket = TicketProvider;

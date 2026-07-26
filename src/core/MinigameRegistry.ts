@@ -1,31 +1,31 @@
 /**
- * Реестр всех активных минок Make Love Adventures.
+ * Реестр активных мини-игр Make Love Adventures.
  *
- * Сессия состоит из 4 разных мини-игр. Выбор полностью случайный:
- * берём весь активный пул, тасуем его и отрезаем первые 4 элемента.
+ * Сессия состоит из 4 разных мини-игр. На старте сессии раннер тасует
+ * активный пул и берёт первые 4 позиции без повторов.
  *
- * Чтобы добавить новую минку:
+ * Чтобы добавить новую мини-игру:
  *   1. Создай scene-класс extends BaseMinigame в src/minigames/MyGame/index.ts
- *   2. Зарегистрируй scene в main.ts
+ *   2. Зарегистрируй scene в src/main.ts
  *   3. Добавь запись в MINIGAME_POOL
- *   4. При необходимости добавь строки в i18n/ru.ts (names, hints, guides)
+ *   4. Добавь строки в src/i18n/ru.ts: names, hints, guides
  */
 
 export interface MinigameMeta {
-  /** Уникальный ключ - также используется как Phaser scene key */
+  /** Уникальный ключ. Также используется как Phaser scene key. */
   key: string;
-  /** Имя для UI (берётся из i18n.minigame.names[key]) */
+  /** Ключ имени в RU.minigame.names. */
   i18nKey: string;
-  /** Хинт-стикер перед запуском (берётся из i18n.minigame.hints[key]) */
+  /** Ключ короткой подсказки в RU.minigame.hints. */
   hintI18nKey: string;
-  /** Длительность раунда в мс */
+  /** Рекомендованная длительность мини-игры в миллисекундах. */
   durationMs: number;
 }
 
-/** Фиксированная сложность: она больше не зависит от номера слота 1..4. */
+/** Фиксированная сложность: мини-игры сами масштабируют прогрессию внутри себя. */
 export const MINIGAME_DIFFICULTY = 0.5;
 
-/** Активный пул из 8 готовых мини-игр. */
+/** Активный пул мини-игр для Play и Mini Games. */
 export const MINIGAME_POOL: MinigameMeta[] = [
   {
     key: 'FireStarter',
@@ -77,13 +77,9 @@ export const MINIGAME_POOL: MinigameMeta[] = [
   },
 ];
 
-/** Сколько минок в одной сессии. */
+/** Сколько мини-игр входит в одну сессию. */
 const SESSION_LENGTH = 4;
 
-/**
- * Генерирует уникальную случайную последовательность из 4 мини-игр.
- * Гарантия: внутри одной сессии мини-игры не повторяются.
- */
 export function pickOneFromRemaining(remaining: MinigameMeta[]): MinigameMeta {
   if (remaining.length <= 0) {
     throw new Error('Cannot pick a minigame from an empty pool.');
@@ -99,6 +95,10 @@ export function pickOneFromRemaining(remaining: MinigameMeta[]): MinigameMeta {
   return picked;
 }
 
+/**
+ * Генерирует уникальную случайную последовательность для одной сессии.
+ * Внутри одной сессии мини-игры не повторяются.
+ */
 export function generateSessionSequence(): MinigameMeta[] {
   const remaining = [...MINIGAME_POOL];
   const sequence: MinigameMeta[] = [];

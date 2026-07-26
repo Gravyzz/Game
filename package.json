@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Make Love Adventures — мини-игры для пиццамонстров. Кайф, драйв, рок-н-ролл!",
+  "description": "Make Love Adventures — промо-игра с мини-играми для Make Love Pizza.",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
